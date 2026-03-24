@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:koshur.org)",
+      "Bash(brew install:*)",
+      "Bash(python3 -m pip install pymupdf)",
+      "Bash(python3 -m pip install --user pymupdf)",
+      "Bash(python3 -m pip install --break-system-packages pymupdf)",
+      "Bash(python3 -c \":*)",
+      "Bash(find /Users/imans -maxdepth 4 -name *.pdf)",
+      "WebFetch(domain:docs.expo.dev)",
+      "WebFetch(domain:supabase.com)",
+      "Bash(npx create-expo-app@latest . --template tabs)",
+      "Bash(npx create-expo-app@latest wanawun-app --template tabs)",
+      "Bash(rm -rf /Users/imans/.npm/_cacache/tmp)",
+      "Bash(cp -r /Users/imans/wanawun-app/* /Users/imans/wanawun/)",
+      "Bash(cp /Users/imans/wanawun-app/.* /Users/imans/wanawun/)",
+      "Bash(rm -rf /Users/imans/wanawun-app)",
+      "Bash(npm install:*)"
+    ]
+  }
+}

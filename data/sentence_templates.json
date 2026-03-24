@@ -1,0 +1,501 @@
+{
+  "templates": [
+    {
+      "id": "t01",
+      "template": "___ chu ___",
+      "english_template": "[person/noun] is [adjective]",
+      "slots": [
+        { "position": 0, "type": "noun", "category": "family" },
+        { "position": 1, "type": "adjective" }
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "t02",
+      "template": "___ chu ___",
+      "english_template": "[noun] is [adjective]",
+      "slots": [
+        { "position": 0, "type": "noun", "category": "nature" },
+        { "position": 1, "type": "adjective" }
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "t03",
+      "template": "b0 chu ___ kh'ava:n",
+      "english_template": "He/she is eating [food]",
+      "slots": [
+        { "position": 0, "type": "noun", "category": "food" }
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "t04",
+      "template": "m'on' chu ___ gov",
+      "english_template": "My ___ went home",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" }
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "t05",
+      "template": "___ chus ___",
+      "english_template": "[noun] is in [place]",
+      "slots": [
+        { "position": 0, "type": "noun" },
+        { "position": 1, "type": "place", "category": "places" }
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "t06",
+      "template": "su chu ___ kahra:n",
+      "english_template": "He is saying ___",
+      "slots": [
+        { "position": 0, "type": "noun" }
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "t07",
+      "template": "m'on' ___ chu ___",
+      "english_template": "My [family member] is [adjective]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "adjective" }
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "t08",
+      "template": "___ gatshi ___",
+      "english_template": "[person] goes to [place]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "place", "category": "places" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t09",
+      "template": "su kari ___ ___",
+      "english_template": "He will do [noun] [time]",
+      "slots": [
+        { "position": 0, "type": "noun" },
+        { "position": 1, "type": "noun", "category": "time" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t10",
+      "template": "___ ani ___",
+      "english_template": "[person] brings [object]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "object", "category": "household" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t11",
+      "template": "___ chu ___ vuchha:n",
+      "english_template": "[person] is looking at [noun]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "noun" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t12",
+      "template": "yi ___ chu ___",
+      "english_template": "This [noun] is [adjective]",
+      "slots": [
+        { "position": 0, "type": "noun" },
+        { "position": 1, "type": "adjective" }
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "t13",
+      "template": "___ d'utha:m ___ kh?:tr0",
+      "english_template": "I gave [object] for [person]",
+      "slots": [
+        { "position": 0, "type": "object", "category": "household" },
+        { "position": 1, "type": "person", "category": "family" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t14",
+      "template": "___ vanzi ___ s'ath",
+      "english_template": "[person] lives with [person]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "person", "category": "family" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t15",
+      "template": "___ gov ___ h'onas",
+      "english_template": "[person] went to buy [object]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "noun", "category": "food" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t16",
+      "template": "___ manz chu ___",
+      "english_template": "In [place] there is [noun]",
+      "slots": [
+        { "position": 0, "type": "place", "category": "places" },
+        { "position": 1, "type": "noun" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t17",
+      "template": "az ___ kari ___",
+      "english_template": "Today [person] will do [noun]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "noun" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t18",
+      "template": "___ chu ___ gara:n",
+      "english_template": "[person] is singing [noun]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "noun" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t19",
+      "template": "___ boz ___ pon'",
+      "english_template": "[person] heard about [noun]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "noun" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t20",
+      "template": "su osus ___ nish",
+      "english_template": "He sat near [place/noun]",
+      "slots": [
+        { "position": 0, "type": "noun" }
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "t21",
+      "template": "___ gatshi ___ khasas",
+      "english_template": "[person] goes to climb [place]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "place", "category": "nature" }
+      ],
+      "difficulty": 3
+    },
+    {
+      "id": "t22",
+      "template": "___ hav ___ manz",
+      "english_template": "Put [object] in [container/place]",
+      "slots": [
+        { "position": 0, "type": "object", "category": "household" },
+        { "position": 1, "type": "noun", "category": "household" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t23",
+      "template": "___ pyav ___ p'ath",
+      "english_template": "[person] fell on [noun]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "noun" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t24",
+      "template": "ti gatsh ___ ___",
+      "english_template": "They went to [place] [time]",
+      "slots": [
+        { "position": 0, "type": "place", "category": "places" },
+        { "position": 1, "type": "noun", "category": "time" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t25",
+      "template": "___ m'on' ___ hund chu",
+      "english_template": "[noun] is my [family member]'s",
+      "slots": [
+        { "position": 0, "type": "noun" },
+        { "position": 1, "type": "person", "category": "family" }
+      ],
+      "difficulty": 3
+    },
+    {
+      "id": "t26",
+      "template": "___ t0 ___ yi dNs;iv0y",
+      "english_template": "[noun] and [noun], both of these",
+      "slots": [
+        { "position": 0, "type": "noun" },
+        { "position": 1, "type": "noun" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t27",
+      "template": "___ chi ___ paka:n",
+      "english_template": "[person(f)] is cooking [food]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "noun", "category": "food" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t28",
+      "template": "___ d'utum ___ nish",
+      "english_template": "I gave it to [person] near [place]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "place", "category": "places" }
+      ],
+      "difficulty": 3
+    },
+    {
+      "id": "t29",
+      "template": "___ chu p'ath0kani ___ nish",
+      "english_template": "[noun] is above, near [noun]",
+      "slots": [
+        { "position": 0, "type": "noun" },
+        { "position": 1, "type": "noun" }
+      ],
+      "difficulty": 3
+    },
+    {
+      "id": "t30",
+      "template": "yimav hav ___ ___ p'ath",
+      "english_template": "Please put [object] on [noun]",
+      "slots": [
+        { "position": 0, "type": "object", "category": "household" },
+        { "position": 1, "type": "noun" }
+      ],
+      "difficulty": 3
+    },
+    {
+      "id": "t31",
+      "template": "___ roz ___",
+      "english_template": "[person] stayed [time/place]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "noun", "category": "time" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t32",
+      "template": "___ chu ___ gatsha:n",
+      "english_template": "[person] is going to [place]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "place", "category": "places" }
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "t33",
+      "template": "m'on' nish chu ___ ___",
+      "english_template": "I have [number] [noun]",
+      "slots": [
+        { "position": 0, "type": "noun", "category": "numbers" },
+        { "position": 1, "type": "noun" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t34",
+      "template": "___ ranun ___ s'ath",
+      "english_template": "[person] cooked [food] together",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "noun", "category": "food" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t35",
+      "template": "___ chu ___ n'ura:n",
+      "english_template": "[person] is bringing [object]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "object", "category": "household" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t36",
+      "template": "ti vani ___ manz",
+      "english_template": "They live in [place]",
+      "slots": [
+        { "position": 0, "type": "place", "category": "places" }
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "t37",
+      "template": "___ chi ___",
+      "english_template": "[noun(f)] is [adjective]",
+      "slots": [
+        { "position": 0, "type": "noun" },
+        { "position": 1, "type": "adjective" }
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "t38",
+      "template": "___ tsali ___ kh'on",
+      "english_template": "[person] went to [place] to eat",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "place", "category": "places" }
+      ],
+      "difficulty": 3
+    },
+    {
+      "id": "t39",
+      "template": "___ voth ___ vakhtas",
+      "english_template": "[person] woke up at [time] time",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "noun", "category": "time" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t40",
+      "template": "___ mar ___",
+      "english_template": "[person] hit [object/noun]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "noun" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t41",
+      "template": "___ yiyi ___ pata",
+      "english_template": "[person] will come after [event/noun]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "noun" }
+      ],
+      "difficulty": 3
+    },
+    {
+      "id": "t42",
+      "template": "___ drav ___ manzas",
+      "english_template": "[person] left from [place]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "place", "category": "places" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t43",
+      "template": "___ lagiy ___",
+      "english_template": "[adjective] feels [adjective/noun]",
+      "slots": [
+        { "position": 0, "type": "noun" },
+        { "position": 1, "type": "adjective" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t44",
+      "template": "___ manz chu ___ t0 ___",
+      "english_template": "In [place] there is [noun] and [noun]",
+      "slots": [
+        { "position": 0, "type": "place", "category": "places" },
+        { "position": 1, "type": "noun" },
+        { "position": 2, "type": "noun" }
+      ],
+      "difficulty": 3
+    },
+    {
+      "id": "t45",
+      "template": "___ chu ___ pra:ra:n",
+      "english_template": "[person] is reading [noun]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "noun", "category": "household" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t46",
+      "template": "___ thavun ___ manz",
+      "english_template": "Put [object] in [container]",
+      "slots": [
+        { "position": 0, "type": "object", "category": "household" },
+        { "position": 1, "type": "noun", "category": "household" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t47",
+      "template": "___ gatshi ___ t0 ___ h'onas",
+      "english_template": "[person] goes to buy [noun] and [noun]",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "noun", "category": "food" },
+        { "position": 2, "type": "noun", "category": "food" }
+      ],
+      "difficulty": 3
+    },
+    {
+      "id": "t48",
+      "template": "___ kun chu ___ sa:ra:n",
+      "english_template": "[person] is carrying [noun] somewhere",
+      "slots": [
+        { "position": 0, "type": "person", "category": "family" },
+        { "position": 1, "type": "noun" }
+      ],
+      "difficulty": 3
+    },
+    {
+      "id": "t49",
+      "template": "su vani ___ chu ___",
+      "english_template": "He says [noun] is [adjective]",
+      "slots": [
+        { "position": 0, "type": "noun" },
+        { "position": 1, "type": "adjective" }
+      ],
+      "difficulty": 2
+    },
+    {
+      "id": "t50",
+      "template": "___ karun ___ s'ath",
+      "english_template": "Do [noun/activity] with [person]",
+      "slots": [
+        { "position": 0, "type": "noun" },
+        { "position": 1, "type": "person", "category": "family" }
+      ],
+      "difficulty": 2
+    }
+  ]
+}

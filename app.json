@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "Wanawun",
+    "slug": "wanawun",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "wanawun",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FEFAE0"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "org.koshur.wanawun"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FEFAE0",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "package": "org.koshur.wanawun"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
