@@ -13,7 +13,22 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
+          borderTopWidth: 1,
+          paddingTop: 4,
         },
+        tabBarLabelStyle: {
+          fontWeight: '600',
+          fontSize: 11,
+          letterSpacing: 0.2,
+        },
+        headerStyle: {
+          backgroundColor: Colors.background,
+        },
+        headerTitleStyle: {
+          color: Colors.primaryDark,
+          fontWeight: '700',
+        },
+        headerShadowVisible: false,
       }}
     >
       <Tabs.Screen

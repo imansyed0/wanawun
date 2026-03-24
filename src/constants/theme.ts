@@ -1,26 +1,32 @@
 export const Colors = {
   // Kashmir-inspired palette
-  primary: '#2D6A4F', // Deep green (Kashmir meadows)
-  primaryLight: '#52B788',
-  primaryDark: '#1B4332',
-  secondary: '#E76F51', // Warm saffron/terracotta
-  secondaryLight: '#F4A261',
-  accent: '#264653', // Deep teal
+  primary: '#2D6A4F',       // Deep green (Kashmir meadows, chinar canopy)
+  primaryLight: '#52B788',  // Spring meadow
+  primaryDark: '#1B4332',   // Dense deodar forest
+  secondary: '#C65D3E',     // Kashmiri saffron / terracotta
+  secondaryLight: '#E8985A', // Warm noon-kabab glow
+  accent: '#264653',        // Deep Dal Lake teal
+  accentLight: '#3A7D8C',   // Lighter teal
+
+  // Walnut wood tones (Kashmiri woodcraft)
+  walnut: '#5C4033',        // Dark walnut
+  walnutLight: '#8B6F4E',   // Light walnut
 
   // Game colors
   correct: '#2D6A4F',
-  wrong: '#E63946',
-  timer: '#F4A261',
-  streak: '#FFD700',
+  wrong: '#C0392B',
+  timer: '#E8985A',
+  streak: '#D4A843',        // Pashmina gold
 
-  // Neutral
-  background: '#FEFAE0',
+  // Neutral — warm parchment tones
+  background: '#FBF7F0',    // Warm parchment / papier-mache base
   surface: '#FFFFFF',
-  surfaceLight: '#F8F9FA',
-  text: '#212529',
-  textSecondary: '#6C757D',
-  textLight: '#ADB5BD',
-  border: '#DEE2E6',
+  surfaceLight: '#F5F0E8',  // Warm off-white
+  surfaceWarm: '#F0E8DA',   // Slightly warmer for accents
+  text: '#2C2418',          // Deep walnut-brown text
+  textSecondary: '#7A6B5D', // Muted brown
+  textLight: '#A89B8C',     // Faded walnut
+  border: '#DDD4C8',        // Warm border
 
   // Dark mode
   dark: {

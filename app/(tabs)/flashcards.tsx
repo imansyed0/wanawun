@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card } from '@/src/components/ui/Card';
 import { Button } from '@/src/components/ui/Button';
+import { ChinarLeaf } from '@/src/components/ui/ChinarLeaf';
+import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
 import { BorderRadius, Colors, FontSize, Spacing } from '@/src/constants/theme';
 import { playAudio, stopAudio } from '@/src/services/audioService';
 import { getGlossaryWords } from '@/src/services/wordService';
@@ -214,6 +216,8 @@ export default function FlashcardsScreen() {
         </Text>
       </View>
 
+      <ScreenHeaderDecoration variant="saffron" />
+
       <View style={styles.statsRow}>
         <Card style={styles.statCard}>
           <Text style={styles.statLabel}>Cycle</Text>
@@ -243,6 +247,7 @@ export default function FlashcardsScreen() {
           </Text>
         ) : (
           <Card style={styles.flashcard}>
+            <ChinarLeaf size={48} color={Colors.primary} opacity={0.06} style={styles.flashcardLeaf} />
             <Text style={styles.promptLabel}>Kashmiri</Text>
             <Text style={styles.kashmiri}>{currentWord.kashmiri}</Text>
             <Text style={styles.audioHint}>
@@ -373,6 +378,13 @@ const styles = StyleSheet.create({
   flashcard: {
     gap: Spacing.lg,
     paddingVertical: Spacing.xl,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  flashcardLeaf: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
   },
   promptLabel: {
     fontSize: FontSize.xs,

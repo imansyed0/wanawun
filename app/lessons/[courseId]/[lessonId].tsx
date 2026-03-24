@@ -19,6 +19,7 @@ import { Audio } from 'expo-av';
 import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 import { allCourses, type AudioClip } from '@/src/data/courses';
 import { getSpokenKashmiriChapterContent } from '@/src/data/spokenKashmiriContent';
+import { getLessonCourseContext } from '@/src/data/courseContext';
 import { ExternalLink } from '@/components/ExternalLink';
 import { useAuth } from '@/src/hooks/useAuth';
 import {
@@ -51,6 +52,17 @@ export default function LessonPlayerScreen() {
     course?.id === 'spoken-kashmiri' && lesson
       ? getSpokenKashmiriChapterContent(lesson.number)
       : null;
+  const lessonContext =
+    course && lesson ? getLessonCourseContext(course.id, lesson.id) : null;
+  const hasLessonContext = !!(
+    lessonContext &&
+    (
+      lessonContext.note ||
+      lessonContext.intro ||
+      lessonContext.highlights.length > 0 ||
+      (lessonContext.sections && lessonContext.sections.length > 0)
+    )
+  );
   const lessonImageBaseUrl = lesson?.imageBaseUrl;
 
   useLayoutEffect(() => {
@@ -319,6 +331,17 @@ export default function LessonPlayerScreen() {
       ? spokenContent.intro
       : '';
   const hasImages = lesson.images && lesson.images.length > 0;
+  const hasContentTab = !!(
+    (spokenContent && (spokenIntro || spokenContent.exchanges.length > 0)) ||
+    hasLessonContext ||
+    (hasImages && !spokenContent)
+  );
+
+  useEffect(() => {
+    if (!hasContentTab && activeTab !== 'vocab') {
+      setActiveTab('vocab');
+    }
+  }, [activeTab, hasContentTab]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -339,97 +362,98 @@ export default function LessonPlayerScreen() {
           </View>
         </View>
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
-          {/* Audio Player */}
-          <View style={styles.playerCard}>
-            {/* Clip selector for multi-clip lessons */}
-            {clips.length > 1 && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.clipScroll}
-                contentContainerStyle={styles.clipRow}
-              >
-                {clips.map((clip, idx) => (
-                  <Pressable
-                    key={clip.filename}
+        {/* Pinned Audio Player */}
+        <View style={styles.playerCard}>
+          {/* Clip selector for multi-clip lessons */}
+          {clips.length > 1 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.clipScroll}
+              contentContainerStyle={styles.clipRow}
+            >
+              {clips.map((clip, idx) => (
+                <Pressable
+                  key={clip.filename}
+                  style={[
+                    styles.clipChip,
+                    idx === currentClipIdx && styles.clipChipActive,
+                  ]}
+                  onPress={() => playClip(idx)}
+                >
+                  <Text
                     style={[
-                      styles.clipChip,
-                      idx === currentClipIdx && styles.clipChipActive,
+                      styles.clipChipText,
+                      idx === currentClipIdx && styles.clipChipTextActive,
                     ]}
-                    onPress={() => playClip(idx)}
+                    numberOfLines={1}
                   >
-                    <Text
-                      style={[
-                        styles.clipChipText,
-                        idx === currentClipIdx && styles.clipChipTextActive,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {clip.label || clip.filename.replace('.mp3', '')}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            )}
+                    {clip.label || clip.filename.replace('.mp3', '')}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
 
-            {/* Progress bar */}
-            <View style={styles.progressBar}>
-              <View
-                style={[styles.progressFill, { width: `${progress * 100}%` }]}
-              />
-            </View>
-            <View style={styles.timeRow}>
-              <Text style={styles.timeText}>{formatTime(position)}</Text>
-              <Text style={styles.timeText}>
-                {clips.length > 1
-                  ? `Clip ${currentClipIdx + 1}/${clips.length}`
-                  : ''}
-              </Text>
-              <Text style={styles.timeText}>
-                {duration > 0 ? formatTime(duration) : '--:--'}
-              </Text>
-            </View>
-
-            {/* Controls */}
-            <View style={styles.controls}>
-              {clips.length > 1 ? (
-                <>
-                  <Pressable
-                    onPress={() => { if (currentClipIdx > 0) playClip(currentClipIdx - 1); }}
-                    style={styles.seekBtn}
-                    disabled={currentClipIdx === 0}
-                  >
-                    <Text style={[styles.seekText, currentClipIdx === 0 && { color: Colors.border }]}>{'\u23EE'}</Text>
-                  </Pressable>
-                  <Pressable onPress={togglePlayPause} style={[styles.playBtn, isLoading && styles.playBtnLoading]} disabled={isLoading}>
-                    {isLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.playIcon}>{isPlaying ? '\u23F8' : '\u25B6'}</Text>}
-                  </Pressable>
-                  <Pressable
-                    onPress={() => { if (currentClipIdx < clips.length - 1) playClip(currentClipIdx + 1); }}
-                    style={styles.seekBtn}
-                    disabled={currentClipIdx === clips.length - 1}
-                  >
-                    <Text style={[styles.seekText, currentClipIdx === clips.length - 1 && { color: Colors.border }]}>{'\u23ED'}</Text>
-                  </Pressable>
-                </>
-              ) : (
-                <>
-                  <Pressable onPress={() => seekBy(-15000)} style={styles.seekBtn}>
-                    <Text style={styles.seekText}>-15s</Text>
-                  </Pressable>
-                  <Pressable onPress={togglePlayPause} style={[styles.playBtn, isLoading && styles.playBtnLoading]} disabled={isLoading}>
-                    {isLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.playIcon}>{isPlaying ? '\u23F8' : '\u25B6'}</Text>}
-                  </Pressable>
-                  <Pressable onPress={() => seekBy(15000)} style={styles.seekBtn}>
-                    <Text style={styles.seekText}>+15s</Text>
-                  </Pressable>
-                </>
-              )}
-            </View>
-            {error ? <Text style={styles.audioError}>{error}</Text> : null}
+          {/* Progress bar */}
+          <View style={styles.progressBar}>
+            <View
+              style={[styles.progressFill, { width: `${progress * 100}%` }]}
+            />
+          </View>
+          <View style={styles.timeRow}>
+            <Text style={styles.timeText}>{formatTime(position)}</Text>
+            <Text style={styles.timeText}>
+              {clips.length > 1
+                ? `Clip ${currentClipIdx + 1}/${clips.length}`
+                : ''}
+            </Text>
+            <Text style={styles.timeText}>
+              {duration > 0 ? formatTime(duration) : '--:--'}
+            </Text>
           </View>
 
+          {/* Controls */}
+          <View style={styles.controls}>
+            {clips.length > 1 ? (
+              <>
+                <Pressable
+                  onPress={() => { if (currentClipIdx > 0) playClip(currentClipIdx - 1); }}
+                  style={styles.seekBtn}
+                  disabled={currentClipIdx === 0}
+                >
+                  <Text style={[styles.seekText, currentClipIdx === 0 && { color: Colors.border }]}>{'\u23EE'}</Text>
+                </Pressable>
+                <Pressable onPress={togglePlayPause} style={[styles.playBtn, isLoading && styles.playBtnLoading]} disabled={isLoading}>
+                  {isLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.playIcon}>{isPlaying ? '\u23F8' : '\u25B6'}</Text>}
+                </Pressable>
+                <Pressable
+                  onPress={() => { if (currentClipIdx < clips.length - 1) playClip(currentClipIdx + 1); }}
+                  style={styles.seekBtn}
+                  disabled={currentClipIdx === clips.length - 1}
+                >
+                  <Text style={[styles.seekText, currentClipIdx === clips.length - 1 && { color: Colors.border }]}>{'\u23ED'}</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Pressable onPress={() => seekBy(-15000)} style={styles.seekBtn}>
+                  <Text style={styles.seekText}>-15s</Text>
+                </Pressable>
+                <Pressable onPress={togglePlayPause} style={[styles.playBtn, isLoading && styles.playBtnLoading]} disabled={isLoading}>
+                  {isLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.playIcon}>{isPlaying ? '\u23F8' : '\u25B6'}</Text>}
+                </Pressable>
+                <Pressable onPress={() => seekBy(15000)} style={styles.seekBtn}>
+                  <Text style={styles.seekText}>+15s</Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+          {error ? <Text style={styles.audioError}>{error}</Text> : null}
+        </View>
+
+        {/* Pinned tab bar */}
+        {hasContentTab ? (
           <View style={styles.tabBar}>
             <Pressable
               onPress={() => setActiveTab('content')}
@@ -452,8 +476,10 @@ export default function LessonPlayerScreen() {
               </Text>
             </Pressable>
           </View>
+        ) : null}
 
-          {activeTab === 'content' ? (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
+          {hasContentTab && activeTab === 'content' ? (
             <>
               {/* Structured page content for Spoken Kashmiri */}
               {spokenContent && (spokenIntro || spokenContent.exchanges.length > 0) && (
@@ -495,6 +521,77 @@ export default function LessonPlayerScreen() {
                       </View>
                     );
                   })}
+                </View>
+              )}
+
+              {/* Image-only course content */}
+              {hasLessonContext && lessonContext && (
+                <View style={styles.contextSection}>
+                  <Text style={styles.sectionTitle}>Lesson Content</Text>
+                  {lessonContext.note ? (
+                    <Text style={styles.contextNote}>{lessonContext.note}</Text>
+                  ) : null}
+                  {lessonContext.intro ? (
+                    <Text style={styles.contextIntro}>{lessonContext.intro}</Text>
+                  ) : null}
+                  {lessonContext.sections?.map((section) => {
+                    // Detect section type from content patterns
+                    const isTable = section.items.length > 0 && section.items.every((item) => item.includes(' - '));
+                    const isDialogue = /dialogue|conversation/i.test(section.title);
+                    const isNumbered = /practice|listen|repeat|drill/i.test(section.title);
+
+                    return (
+                      <View key={section.title} style={styles.contextSectionBlock}>
+                        <Text style={styles.contextSectionTitle}>{section.title}</Text>
+
+                        {isTable ? (
+                          // Render as a 2-column table (vocabulary, numerals, etc.)
+                          <View style={styles.contextTable}>
+                            {section.items.map((item) => {
+                              const parts = item.split(' - ');
+                              const left = parts[0]?.trim() ?? '';
+                              const right = parts.slice(1).join(' - ').trim();
+                              return (
+                                <View key={item} style={styles.contextTableRow}>
+                                  <Text style={styles.contextTableKashmiri}>{left}</Text>
+                                  <Text style={styles.contextTableEnglish}>{right}</Text>
+                                </View>
+                              );
+                            })}
+                          </View>
+                        ) : isDialogue ? (
+                          // Render as conversation lines
+                          section.items.map((item, idx) => (
+                            <View key={`${section.title}-${idx}`} style={styles.contextDialogueLine}>
+                              <Text style={styles.contextDialogueText}>{item}</Text>
+                            </View>
+                          ))
+                        ) : isNumbered ? (
+                          // Render as numbered list
+                          section.items.map((item, idx) => (
+                            <View key={`${section.title}-${idx}`} style={styles.contextNumberedRow}>
+                              <Text style={styles.contextNumber}>{idx + 1}.</Text>
+                              <Text style={styles.contextNumberedText}>{item}</Text>
+                            </View>
+                          ))
+                        ) : (
+                          // Default: bullet list
+                          section.items.map((item, idx) => (
+                            <View key={`${section.title}-${idx}`} style={styles.contextBulletRow}>
+                              <Text style={styles.contextBullet}>{'\u2022'}</Text>
+                              <Text style={styles.contextBulletText}>{item}</Text>
+                            </View>
+                          ))
+                        )}
+                      </View>
+                    );
+                  })}
+                  {lessonContext.highlights.map((highlight, idx) => (
+                    <View key={`hl-${idx}`} style={styles.contextBulletRow}>
+                      <Text style={styles.contextBullet}>{'\u2022'}</Text>
+                      <Text style={styles.contextBulletText}>{highlight}</Text>
+                    </View>
+                  ))}
                 </View>
               )}
 
@@ -687,15 +784,17 @@ const styles = StyleSheet.create({
 
   // Player
   playerCard: {
-    marginHorizontal: Spacing.lg,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
+    zIndex: 1,
   },
   clipScroll: { marginBottom: Spacing.md },
   clipRow: { gap: Spacing.xs },
@@ -755,9 +854,118 @@ const styles = StyleSheet.create({
     color: Colors.wrong,
     textAlign: 'center',
   },
+  contextSection: {
+    marginTop: Spacing.lg,
+    marginHorizontal: Spacing.lg,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  contextNote: {
+    fontSize: FontSize.sm,
+    color: Colors.primaryDark,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  contextIntro: {
+    fontSize: FontSize.md,
+    color: Colors.text,
+    lineHeight: 22,
+  },
+  contextSectionBlock: {
+    gap: Spacing.xs,
+  },
+  contextSectionTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    color: Colors.primaryDark,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginTop: Spacing.xs,
+  },
+  contextBulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  contextBullet: {
+    fontSize: FontSize.md,
+    color: Colors.primary,
+    lineHeight: 22,
+  },
+  contextBulletText: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    lineHeight: 21,
+  },
+  // Table rendering (vocabulary, numerals)
+  contextTable: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.sm,
+    overflow: 'hidden',
+  },
+  contextTableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  contextTableKashmiri: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: Colors.accent,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.surfaceLight,
+  },
+  contextTableEnglish: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  // Dialogue rendering
+  contextDialogueLine: {
+    paddingVertical: 4,
+    paddingHorizontal: Spacing.md,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primaryLight,
+    marginVertical: 2,
+    backgroundColor: Colors.surfaceLight,
+    borderRadius: 4,
+  },
+  contextDialogueText: {
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    lineHeight: 22,
+    fontStyle: 'italic',
+  },
+  // Numbered list
+  contextNumberedRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    paddingVertical: 2,
+  },
+  contextNumber: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    color: Colors.primary,
+    width: 24,
+    textAlign: 'right',
+  },
+  contextNumberedText: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    lineHeight: 21,
+  },
   tabBar: {
     flexDirection: 'row',
-    marginTop: Spacing.lg,
     marginHorizontal: Spacing.lg,
     backgroundColor: '#dfe9e3',
     borderRadius: BorderRadius.lg,
@@ -765,6 +973,8 @@ const styles = StyleSheet.create({
     gap: 4,
     borderWidth: 1,
     borderColor: '#c6d7cd',
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   tabButton: {
     flex: 1,

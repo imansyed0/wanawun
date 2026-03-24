@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Audio } from 'expo-av';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card } from '@/src/components/ui/Card';
+import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
 import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 import { deleteGlossaryWord, getGlossaryWords, invalidateWordCache } from '@/src/services/wordService';
 import { playAudio, stopAudio, startRecording, stopAndUploadRecording, linkAudioToWord } from '@/src/services/audioService';
@@ -189,6 +190,8 @@ export default function LearnScreen() {
         <Text style={styles.title}>Glossary</Text>
         <Text style={styles.subtitle}>{words.length} Kashmiri words</Text>
       </View>
+
+      <ScreenHeaderDecoration variant="teal" />
 
       <TextInput
         style={styles.searchInput}

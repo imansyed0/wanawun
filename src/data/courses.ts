@@ -192,7 +192,7 @@ export const ciilCourse: Course = {
     id: `ciil-prog${i + 1}`,
     number: i + 1,
     title: `Programme ${i + 1}: ${title}`,
-    pageUrl: 'https://koshur.org/ciil/',
+    pageUrl: `https://koshur.org/ciil/prog${i + 1}.html`,
     audioBaseUrl: `https://koshur.org/ciil/audio/`,
     audioClips: [{ filename: `prog${i + 1}.mp3`, label: `Programme ${i + 1}` }],
     // CIIL pages don't have per-lesson translation images
@@ -203,19 +203,19 @@ export const ciilCourse: Course = {
 // 4. Let's Learn Kashmiri — 12 audio tracks across 35 chapters
 // ---------------------------------------------------------------------------
 
-const learnKashmiriChapters: { n: number; title: string; trackNum: number }[] = [
-  { n: 1, title: 'Words', trackNum: 2 },
-  { n: 2, title: 'Counting Numbers', trackNum: 3 },
-  { n: 3, title: 'A Short Story', trackNum: 4 },
-  { n: 4, title: 'Some Special Usages', trackNum: 5 },
-  { n: 5, title: 'More Words', trackNum: 6 },
-  { n: 6, title: 'Differentiating Sounds', trackNum: 7 },
-  { n: 7, title: 'Short Sentences', trackNum: 8 },
-  { n: 8, title: 'Some Notes on Grammar', trackNum: 9 },
-  { n: 9, title: 'Order of Words', trackNum: 10 },
-  { n: 10, title: 'Questions & Answers', trackNum: 11 },
-  { n: 11, title: 'Where, Who, What, When', trackNum: 12 },
-  { n: 12, title: 'Question Sentences', trackNum: 13 },
+const learnKashmiriChapters: { n: number; title: string; trackNum: number; imgCount: number }[] = [
+  { n: 1, title: 'Words', trackNum: 2, imgCount: 10 },
+  { n: 2, title: 'Counting Numbers', trackNum: 3, imgCount: 13 },
+  { n: 3, title: 'A Short Story', trackNum: 4, imgCount: 10 },
+  { n: 4, title: 'Some Special Usages', trackNum: 5, imgCount: 2 },
+  { n: 5, title: 'More Words', trackNum: 6, imgCount: 8 },
+  { n: 6, title: 'Differentiating Sounds', trackNum: 7, imgCount: 13 },
+  { n: 7, title: 'Short Sentences', trackNum: 8, imgCount: 6 },
+  { n: 8, title: 'Some Notes on Grammar', trackNum: 9, imgCount: 11 },
+  { n: 9, title: 'Order of Words', trackNum: 10, imgCount: 40 },
+  { n: 10, title: 'Questions & Answers', trackNum: 11, imgCount: 28 },
+  { n: 11, title: 'Where, Who, What, When', trackNum: 12, imgCount: 47 },
+  { n: 12, title: 'Question Sentences', trackNum: 13, imgCount: 33 },
 ];
 
 export const learnKashmiri: Course = {
@@ -227,10 +227,11 @@ export const learnKashmiri: Course = {
     id: `learn-ch${ch.n}`,
     number: ch.n,
     title: `Chapter ${ch.n}: ${ch.title}`,
-    pageUrl: 'https://koshur.org/LearnKashmiri/',
+    pageUrl: `https://koshur.org/LearnKashmiri/chapter${ch.n + 1}/`,
     audioBaseUrl: `https://koshur.org/LearnKashmiri/mp3/audio/`,
     audioClips: [{ filename: `${ch.trackNum}.mp3`, label: ch.title }],
-    // No per-chapter images for LearnKashmiri
+    imageBaseUrl: `https://koshur.org/LearnKashmiri/chapter${ch.n + 1}/images/`,
+    images: Array.from({ length: ch.imgCount }, (_, i) => ({ filename: `${i + 1}.jpg` })),
   })),
 };
 
