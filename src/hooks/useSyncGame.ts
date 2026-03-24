@@ -15,6 +15,7 @@ interface SyncGameState {
   streak: number;
   opponentName: string;
   roomCode: string;
+  setupError: string;
 }
 
 export function useSyncGame(gameId: string, userId: string) {
@@ -28,6 +29,7 @@ export function useSyncGame(gameId: string, userId: string) {
     streak: 0,
     opponentName: 'Opponent',
     roomCode: '',
+    setupError: '',
   });
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -129,9 +131,15 @@ export function useSyncGame(gameId: string, userId: string) {
             ...prev,
             rounds,
             phase: 'countdown',
+            setupError: '',
           }));
         } catch (err) {
           console.error('Failed to generate rounds:', err);
+          const message = err instanceof Error ? err.message : 'Failed to prepare this duel.';
+          setState(prev => ({
+            ...prev,
+            setupError: message,
+          }));
         }
       }
     }

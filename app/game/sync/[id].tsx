@@ -28,6 +28,7 @@ export default function SyncGameScreen() {
     opponentScore,
     opponentName,
     roomCode,
+    setupError,
     submitAnswer,
     startGame,
   } = useSyncGame(id!, user?.id ?? '');
@@ -57,6 +58,7 @@ export default function SyncGameScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.waitingContainer}>
           <Text style={styles.waitingTitle}>Waiting for opponent...</Text>
+          {setupError ? <Text style={styles.errorText}>{setupError}</Text> : null}
           <Card style={styles.codeCard}>
             <Text style={styles.codeLabel}>Room Code</Text>
             <Text style={styles.codeValue}>{roomCode}</Text>
@@ -195,6 +197,16 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xl,
     fontWeight: '700',
     color: Colors.text,
+  },
+  errorText: {
+    fontSize: FontSize.sm,
+    color: Colors.wrong,
+    textAlign: 'center',
+    backgroundColor: '#fef2f2',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
   },
   codeCard: {
     alignItems: 'center',

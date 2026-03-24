@@ -1,4 +1,4 @@
-import { Pressable, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { Pressable, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Colors, BorderRadius, Spacing, FontSize } from '@/src/constants/theme';
 
 interface ButtonProps {
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   },
   outline: {
     backgroundColor: 'transparent',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: Colors.primary,
   },
   ghost: {
@@ -73,11 +73,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   size_lg: {
-    paddingVertical: Spacing.lg,
+    paddingVertical: 14,
     paddingHorizontal: Spacing.xl,
   },
   pressed: {
-    opacity: 0.8,
+    opacity: 0.85,
     transform: [{ scale: 0.98 }],
   },
   disabled: {
@@ -85,6 +85,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontWeight: '700',
+    letterSpacing: 0.3,
   },
   text_primary: {
     color: '#fff',

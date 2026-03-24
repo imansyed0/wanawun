@@ -5,6 +5,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/src/components/ui/Button';
 import { Card } from '@/src/components/ui/Card';
+import { ChinarLeaf } from '@/src/components/ui/ChinarLeaf';
+import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
 import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 import { useAuth } from '@/src/hooks/useAuth';
 import { getGlossaryWords } from '@/src/services/wordService';
@@ -52,6 +54,7 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.authPrompt}>
+          <ChinarLeaf size={64} color={Colors.primary} opacity={0.1} style={{ alignSelf: 'center' }} />
           <Text style={styles.title}>Join Wanawun</Text>
           <Text style={styles.subtitle}>
             Sign in to track your progress and play with friends
@@ -86,6 +89,8 @@ export default function ProfileScreen() {
           <Text style={styles.displayName}>{profile?.display_name ?? 'Player'}</Text>
           <Text style={styles.email}>{user.email}</Text>
         </View>
+
+        <ScreenHeaderDecoration variant="saffron" />
 
         <View style={styles.statsGrid}>
           <Card style={styles.statCard}>
@@ -159,6 +164,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: Colors.secondaryLight,
   },
   avatarText: {
     fontSize: FontSize.xxl,

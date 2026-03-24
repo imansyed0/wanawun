@@ -1,7 +1,7 @@
 import { supabase } from '@/src/lib/supabase';
 import { SYNC_GAME } from '@/src/constants/gameConfig';
 import type { SyncGame, SyncRound, AsyncGame, WordEntry } from '@/src/types';
-import { getAllWords, generateMultipleChoiceOptions, getRandomWords } from './wordService';
+import { generateMultipleChoiceOptions, getRandomWords } from './wordService';
 
 // Generate a 6-character room code
 function generateRoomCode(): string {
@@ -90,6 +90,15 @@ export async function joinSyncGameByCode(roomCode: string, playerId: string): Pr
 
 let _generatingRounds = new Set<string>();
 
+async function getDuelWordPool(gameId: string): Promise<WordEntry[]> {
+  const { data, error } = await supabase.rpc('get_sync_game_duel_words', {
+    game_id_input: gameId,
+  });
+
+  if (error) throw error;
+  return (data ?? []) as WordEntry[];
+}
+
 export async function generateRounds(gameId: string): Promise<SyncRound[]> {
   // Prevent concurrent generation for the same game
   if (_generatingRounds.has(gameId)) {
@@ -98,10 +107,14 @@ export async function generateRounds(gameId: string): Promise<SyncRound[]> {
   _generatingRounds.add(gameId);
 
   try {
-    const allWords = await getAllWords();
+    const allWords = await getDuelWordPool(gameId);
+    if (allWords.length < 2) {
+      throw new Error('Both players need to add some lesson vocabulary before starting a duel.');
+    }
+
     const gameWords = getRandomWords(
-      allWords.filter(w => !w.is_phrase),
-      SYNC_GAME.ROUNDS_PER_GAME
+      allWords,
+      Math.min(SYNC_GAME.ROUNDS_PER_GAME, allWords.length)
     );
 
     const rounds: SyncRound[] = gameWords.map((word, i) => ({
