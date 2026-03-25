@@ -1,0 +1,21 @@
+# Local env stays on the machine and is no longer the build source of truth.
+.env
+
+# Standard local/build artifacts.
+node_modules/
+.expo/
+dist/
+web-build/
+.claude/
+
+# Generated native folders are not needed for this managed Expo build.
+android/
+ios/
+
+# Large local source media not imported by the app bundle.
+data/audio/
+
+# Local crawler and data-prep scripts are not used during EAS build.
+data/*.js
+data/*.py
+scripts/
