@@ -32,6 +32,10 @@ function fetchPage(url) {
   });
 }
 
+function buildChapterUrl(chapterNum, page = 'index.html') {
+  return `${BASE_URL}${chapterNum}/${page}`;
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -72,6 +76,15 @@ function normalizeText(str) {
     .trim();
 }
 
+function normalizeMultilineText(str) {
+  return stripHtmlTags(str)
+    .replace(/[ \t]*\n[ \t]*/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\s([?.!,;:])/g, '$1')
+    .trim();
+}
+
 function extractTitle(html) {
   const titleMatch = html.match(
     /<a\s+href="audio\/title1\.mp3"[^>]*>[\s\S]*?ALT="[^"]*Chapter\s+\d+:\s*([^"]+)"/i
@@ -101,6 +114,31 @@ function extractMainConversationSection(html) {
   }
 
   return bestSection;
+}
+
+function extractBodyContentSection(html) {
+  const bodyMatch = html.match(
+    /<TD class=bodytext[\s\S]*?(?=<!--webbot bot="Include" U-Include="\.\.\/\.\.\/home\/footnote\.html"|<\/body>)/i
+  );
+
+  return bodyMatch ? bodyMatch[0] : html;
+}
+
+function extractLocalSubpageLinks(html) {
+  return Array.from(html.matchAll(/href="([^"]+\.html)"/gi))
+    .map((match) => match[1])
+    .filter(
+      (href) =>
+        href &&
+        !href.startsWith('../') &&
+        !href.startsWith('../../') &&
+        !href.startsWith('http://') &&
+        !href.startsWith('https://') &&
+        href !== 'index.html' &&
+        href !== 'vocabulary.html' &&
+        href !== 'notes.html'
+    )
+    .filter((href, index, all) => all.indexOf(href) === index);
 }
 
 function extractIntro(html, conversationSection) {
@@ -149,14 +187,104 @@ function extractExchanges(section) {
     .filter((entry) => entry.english.length > 0);
 }
 
+function extractNarrativeExchanges(section) {
+  const rows = Array.from(section.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)).map(
+    (match) => match[1]
+  );
+
+  return rows
+    .map((row) => {
+      const mainMedia = row.match(
+        /<a\s+href="audio\/(?!title1|caption)([^"]+\.mp3)"[^>]*>[\s\S]*?<img[^>]+src="images\/((?!chapter|title1|pic|caption)[^"]+\.jpg)"[^>]*>[\s\S]*?<\/a>/i
+      );
+      if (!mainMedia) return null;
+
+      const [, audio, image] = mainMedia;
+      const withoutMainMedia = row.replace(mainMedia[0], ' ');
+      const withoutInlineGlosses = withoutMainMedia.replace(
+        /<a\s+href="audio\/[^"]+\.mp3"[^>]*>[\s\S]*?<img[^>]+src="images\/[^"]+\.jpg"[^>]*>[\s\S]*?<\/a>/gi,
+        ' '
+      );
+      const english = normalizeMultilineText(withoutInlineGlosses);
+
+      if (!english) return null;
+
+      return {
+        image,
+        audio,
+        speaker: null,
+        english,
+      };
+    })
+    .filter(Boolean);
+}
+
 function parseChapter(html, chapterNum) {
   const conversationSection = extractMainConversationSection(html);
+  const bodyContentSection = extractBodyContentSection(html);
+  const conversationExchanges = extractExchanges(conversationSection);
+  const narrativeExchanges =
+    conversationExchanges.length === 0
+      ? extractNarrativeExchanges(bodyContentSection)
+      : [];
 
   return {
     chapter: chapterNum,
     title: extractTitle(html),
     intro: extractIntro(html, conversationSection),
-    exchanges: extractExchanges(conversationSection),
+    exchanges:
+      conversationExchanges.length > 0 ? conversationExchanges : narrativeExchanges,
+  };
+}
+
+function mergeExchanges(...groups) {
+  const seen = new Set();
+
+  return groups
+    .flat()
+    .filter((entry) => {
+      const key = `${entry.audio}::${entry.image}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function extractAllChapterExchanges(html) {
+  const conversationSection = extractMainConversationSection(html);
+  const conversationExchanges = extractExchanges(conversationSection);
+  if (conversationExchanges.length > 0) return conversationExchanges;
+
+  const bodyContentSection = extractBodyContentSection(html);
+  return extractNarrativeExchanges(bodyContentSection);
+}
+
+async function fetchChapterPages(chapterNum) {
+  const indexHtml = await fetchPage(buildChapterUrl(chapterNum));
+  const subpageLinks = extractLocalSubpageLinks(indexHtml);
+  const subpages = [];
+
+  for (const href of subpageLinks) {
+    try {
+      const html = await fetchPage(buildChapterUrl(chapterNum, href));
+      subpages.push(html);
+    } catch (error) {
+      console.error(`Chapter ${chapterNum} subpage ${href} failed: ${error.message}`);
+    }
+  }
+
+  return { indexHtml, subpages };
+}
+
+function parseChapterPages(indexHtml, subpages, chapterNum) {
+  const chapter = parseChapter(indexHtml, chapterNum);
+
+  return {
+    ...chapter,
+    exchanges: mergeExchanges(
+      chapter.exchanges,
+      ...subpages.map((html) => extractAllChapterExchanges(html))
+    ),
   };
 }
 
@@ -167,10 +295,9 @@ async function main() {
   console.log('Crawling Spoken Kashmiri chapters from koshur.org...');
 
   for (let chapterNum = 1; chapterNum <= 50; chapterNum += 1) {
-    const url = `${BASE_URL}${chapterNum}/`;
     try {
-      const html = await fetchPage(url);
-      const chapter = parseChapter(html, chapterNum);
+      const { indexHtml, subpages } = await fetchChapterPages(chapterNum);
+      const chapter = parseChapterPages(indexHtml, subpages, chapterNum);
       results.push(chapter);
       console.log(
         `Chapter ${chapterNum}: "${chapter.title}" | intro=${chapter.intro ? 'yes' : 'no'} | exchanges=${chapter.exchanges.length}`
