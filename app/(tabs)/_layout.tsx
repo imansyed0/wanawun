@@ -10,6 +10,7 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textLight,
+        headerShown: false,
         tabBarStyle: {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
@@ -21,14 +22,6 @@ export default function TabLayout() {
           fontSize: 11,
           letterSpacing: 0.2,
         },
-        headerStyle: {
-          backgroundColor: Colors.background,
-        },
-        headerTitleStyle: {
-          color: Colors.primaryDark,
-          fontWeight: '700',
-        },
-        headerShadowVisible: false,
       }}
     >
       <Tabs.Screen

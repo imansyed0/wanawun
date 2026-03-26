@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Platform } from 'react-native';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '@/src/components/ui/Button';
 import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
@@ -18,7 +18,7 @@ export default function RegisterScreen() {
   async function handleRegister() {
     setError('');
     setSuccess('');
-    if (!displayName || !email || !password) {
+    if (!displayName.trim() || !email.trim() || !password) {
       setError('Please fill in all fields');
       return;
     }
@@ -28,8 +28,12 @@ export default function RegisterScreen() {
     }
     setLoading(true);
     try {
-      await signUp(email, password, displayName);
-      setSuccess('Account created! Check your email to confirm.');
+      const result = await signUp(email, password, displayName);
+      setSuccess(
+        result.session
+          ? 'Account created! You can start learning now.'
+          : 'Account created! Check your email to confirm.'
+      );
     } catch (err: any) {
       setError(err.message);
     } finally {

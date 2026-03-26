@@ -109,6 +109,7 @@ export default function LobbyScreen() {
             onChangeText={text => setRoomCode(text.toUpperCase())}
             autoCapitalize="characters"
             maxLength={6}
+            secureTextEntry
           />
           <Button
             title="Join"

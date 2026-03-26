@@ -121,6 +121,300 @@ function joinWrappedLines(lines) {
   return blocks;
 }
 
+function extractNumberedSections(lines) {
+  const sections = [];
+  let currentSection = null;
+  let previousLine = '';
+
+  const pushCurrentSection = () => {
+    if (!currentSection || currentSection.items.length === 0) return;
+    sections.push(currentSection);
+    currentSection = null;
+  };
+
+  const fragments = lines.flatMap((line) =>
+    line
+      .split('|')
+      .map((part) => part.trim())
+      .filter(Boolean)
+  );
+
+  for (const fragment of fragments) {
+    const trimmed = fragment.trim();
+    const numberedMatch = trimmed.match(/^(\d+)\.\s*(.+)$/);
+
+    if (!numberedMatch) {
+      if (currentSection) {
+        pushCurrentSection();
+      }
+      previousLine = trimmed;
+      continue;
+    }
+
+    const number = Number(numberedMatch[1]);
+    const itemText = numberedMatch[2].trim();
+
+    const shouldStartNewSection =
+      !currentSection ||
+      number <= currentSection.lastNumber ||
+      currentSection.lastLineWasBreak;
+
+    if (shouldStartNewSection) {
+      pushCurrentSection();
+      const title =
+        /repeat|following sentences/i.test(previousLine)
+          ? 'Practice Sentences'
+          : /english\s+kashmiri/i.test(previousLine)
+            ? 'Sentence Patterns'
+            : 'Examples';
+
+      currentSection = {
+        title,
+        items: [],
+        lastNumber: 0,
+        lastLineWasBreak: false,
+      };
+    }
+
+    currentSection.items.push(itemText);
+    currentSection.lastNumber = number;
+    currentSection.lastLineWasBreak = false;
+    previousLine = trimmed;
+  }
+
+  pushCurrentSection();
+
+  return sections.map(({ title, items }) => ({ title, items }));
+}
+
+function extractLearnImageSections(mainContent) {
+  const rowHtml = Array.from(mainContent.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)).map(
+    (match) => match[1]
+  );
+  const sections = [];
+  let currentSection = null;
+  let previousText = '';
+
+  const pushCurrentSection = () => {
+    if (!currentSection || currentSection.items.length === 0) return;
+    sections.push(currentSection);
+    currentSection = null;
+  };
+
+  for (const row of rowHtml) {
+    const images = Array.from(row.matchAll(/<img[^>]+src=["']([^"']+)["']/gi))
+      .map((match) => match[1])
+      .filter((src) => /^images\/\d+\.jpg$/i.test(src))
+      .map((src) => src.replace(/^images\//i, ''));
+    const text = stripTags(row).replace(/\s+\|\s+/g, ' | ').trim();
+    const numberedMatch = text.match(/^(\d+)\.\s*(.+?)\s*(?:\|\s*\|.*)?$/);
+
+    if (images.length === 1 && numberedMatch) {
+      const itemText = numberedMatch[2].trim();
+      const title =
+        /repeat|following sentences/i.test(previousText)
+          ? 'Practice Sentences'
+          : /english\s*\|\s*kashmiri/i.test(previousText)
+            ? 'Examples'
+            : currentSection?.title || 'Examples';
+
+      if (!currentSection || currentSection.title !== title) {
+        pushCurrentSection();
+        currentSection = { title, items: [], images: [] };
+      }
+
+      currentSection.items.push(itemText);
+      currentSection.images.push(images[0]);
+      previousText = text;
+      continue;
+    }
+
+    if (
+      currentSection &&
+      images.length === 0 &&
+      !numberedMatch &&
+      !/^(english\s*\|\s*kashmiri|chus\s*=|chu\s*=)/i.test(text)
+    ) {
+      pushCurrentSection();
+    }
+
+    if (text) {
+      previousText = text;
+    }
+  }
+
+  pushCurrentSection();
+  return sections;
+}
+
+function absolutizeAssetUrls(html, pageUrl) {
+  return html.replace(
+    /\b(src|href)=["']([^"']+)["']/gi,
+    (full, attr, value) => {
+      if (/^(?:https?:|data:|mailto:|tel:|#)/i.test(value)) {
+        return `${attr}="${value}"`;
+      }
+
+      try {
+        return `${attr}="${new URL(value, pageUrl).href}"`;
+      } catch {
+        return full;
+      }
+    }
+  );
+}
+
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function isLearnJunkText(text) {
+  const normalized = normalizeWhitespace(text)
+    .replace(/\s*\|\s*/g, ' ')
+    .trim();
+
+  return (
+    !normalized ||
+    /^note:\s*click on any jpg image/i.test(normalized) ||
+    /^omkar n/i.test(normalized) ||
+    /^\(\d+\s+of\s+\d+\)$/i.test(normalized) ||
+    /^previous\s+chapter(?:\s+index)?(?:\s+next\s+chapter)?$/i.test(normalized) ||
+    /^index$/i.test(normalized) ||
+    /^koshur\s+site\s+index$/i.test(normalized) ||
+    /^chapter\s+\d+$/i.test(normalized) ||
+    /^site index$/i.test(normalized)
+  );
+}
+
+function extractLearnHtmlRaw(mainContent, pageUrl) {
+  let content = mainContent;
+
+  // Drop the title/author/note header so the lesson body starts at the actual content.
+  content = content.replace(
+    /^[\s\S]*?<img[^>]+src=["'][^"']*line1\.jpg["'][^>]*>\s*(?:&nbsp;)?\s*(?:<\/p>)?/i,
+    ''
+  );
+
+  // Drop chapter pagination widgets used on some early pages.
+  content = content.replace(
+    /<center>[\s\S]*?arrownext\.gif[\s\S]*?\(\d+\s+of\s+\d+\)<\/center>/gi,
+    ''
+  );
+  content = content.replace(/<a href="[^"]+"><img[^>]+arrownext\.gif[^>]*><\/a>/gi, '');
+  content = content.replace(
+    /<table[^>]*>\s*<tr>\s*<td><img[^>]+nonclick\.jpg[^>]*><\/td>\s*<td><a href="[^"]+"><img[^>]+click\.jpg[^>]*><\/a><\/td>\s*<\/tr>\s*<\/table>/gi,
+    ''
+  );
+  content = content.replace(/<center>\(\d+\s+of\s+\d+\)<\/center>/gi, '');
+
+  // Drop the bottom navigation and site-index tables.
+  content = content.replace(
+    /<center>\s*<table[^>]+bgcolor="#FF0000"[\s\S]*$/i,
+    ''
+  );
+
+  content = content
+    .replace(/<p>\s*&nbsp;\s*<\/p>/gi, '')
+    .replace(/^\s*<center>\s*<\/p>/i, '')
+    .replace(/^\s*<center>\s*<\/center>/gi, '')
+    .trim();
+
+  return absolutizeAssetUrls(content, pageUrl);
+}
+
+function extractLearnHtml(mainContent, pageUrl) {
+  const rowHtml = Array.from(mainContent.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)).map(
+    (match) => match[1]
+  );
+  const blocks = [];
+
+  const introText = stripTags(mainContent)
+    .split('\n')
+    .map((line) => line.trim())
+    .find(
+      (line) =>
+        line.length > 50 &&
+        !/^omkar n/i.test(line) &&
+        !/^note:/i.test(line) &&
+        !/^order of words$/i.test(line)
+    );
+
+  if (introText) {
+    blocks.push(`<p>${escapeHtml(introText)}</p>`);
+  }
+
+  for (const row of rowHtml) {
+    const images = Array.from(row.matchAll(/<img[^>]+src=["']([^"']+)["']/gi))
+      .map((match) => match[1])
+      .filter((src) => /^images\/\d+\.jpg$/i.test(src))
+      .map((src) => new URL(src, pageUrl).href);
+    const text = stripTags(row).replace(/\s+\|\s+/g, ' | ').trim();
+    const cleanedText = text.replace(/\s*\|\s*/g, ' ').trim();
+
+    if (
+      isLearnJunkText(cleanedText) ||
+      /^english\s*\|\s*kashmiri\s*\|?$/i.test(text)
+    ) {
+      continue;
+    }
+
+    const numberedMatch = text.match(/^(\d+)\.\s*(.+?)\s*(?:\|\s*\|.*)?$/);
+
+    if (images.length === 1 && numberedMatch) {
+      blocks.push(
+        `<div>
+          <img src="${images[0]}" />
+          <p>${escapeHtml(numberedMatch[2].trim())}</p>
+        </div>`
+      );
+      continue;
+    }
+
+    if (images.length > 0 && !numberedMatch) {
+      blocks.push(
+        `<div>
+          ${images.map((src) => `<img src="${src}" />`).join('')}
+          ${cleanedText ? `<p>${escapeHtml(cleanedText)}</p>` : ''}
+        </div>`
+      );
+      continue;
+    }
+
+    if (
+      cleanedText.length > 3 &&
+      !/^chapter \d+/i.test(cleanedText) &&
+      !/^order of words$/i.test(cleanedText)
+    ) {
+      blocks.push(`<p>${escapeHtml(cleanedText)}</p>`);
+    }
+  }
+
+  const structuredHtml = blocks.join('\n').trim();
+  const structuredImageCount = (structuredHtml.match(/<img\b/gi) || []).length;
+  const sourceImageCount = (
+    mainContent.match(/<img[^>]+src=["']images\/\d+\.jpg["']/gi) || []
+  ).length;
+
+  if (
+    /arrownext\.gif|nonclick\.jpg|click\.jpg/i.test(structuredHtml) ||
+    structuredImageCount === 0 ||
+    (sourceImageCount > 0 && structuredImageCount < Math.ceil(sourceImageCount / 2))
+  ) {
+    return extractLearnHtmlRaw(mainContent, pageUrl);
+  }
+
+  if (/<img\b/i.test(structuredHtml)) {
+    return structuredHtml;
+  }
+
+  return extractLearnHtmlRaw(mainContent, pageUrl);
+}
+
 function parseLearnPage(html, pageUrl) {
   const mainContent = extractMainContent(html);
   const titleMatch = mainContent.match(
@@ -180,7 +474,6 @@ function parseLearnPage(html, pageUrl) {
     englishPromptMatches
       .map((line) => line.replace(/\s+/g, ' ').trim())
       .filter((line) => /[A-Za-z]/.test(line))
-      .slice(0, 5)
   );
 
   const intro =
@@ -203,12 +496,17 @@ function parseLearnPage(html, pageUrl) {
       .filter((line) => line !== chapterMatch?.[1]?.trim()),
   ]).slice(0, 8);
 
+  const sections = extractLearnImageSections(mainContent);
+  const fallbackSections = sections.length > 0 ? sections : extractNumberedSections(lines);
+
   return {
     pageUrl,
     heading: chapterMatch ? chapterMatch[1].trim() : '',
     title: titleMatch ? titleMatch[1].trim() : '',
     note,
     intro,
+    htmlContent: extractLearnHtml(mainContent, pageUrl),
+    sections: fallbackSections,
     highlights: unique([...highlights, ...promptHighlights]).slice(0, 8),
   };
 }

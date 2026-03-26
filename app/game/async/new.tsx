@@ -72,6 +72,7 @@ export default function NewAsyncGameScreen() {
           autoCapitalize="none"
           keyboardType="email-address"
           autoComplete="email"
+          secureTextEntry
         />
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <Button
