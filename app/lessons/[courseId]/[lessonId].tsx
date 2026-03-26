@@ -10,12 +10,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  findNodeHandle,
 } from 'react-native';
+import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useLayoutEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Audio } from 'expo-av';
+import { WebView } from 'react-native-webview';
 import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 import { allCourses, type AudioClip } from '@/src/data/courses';
 import { getSpokenKashmiriChapterContent } from '@/src/data/spokenKashmiriContent';
@@ -59,6 +62,7 @@ export default function LessonPlayerScreen() {
     (
       lessonContext.note ||
       lessonContext.intro ||
+      lessonContext.htmlContent ||
       lessonContext.highlights.length > 0 ||
       (lessonContext.sections && lessonContext.sections.length > 0)
     )
@@ -91,6 +95,10 @@ export default function LessonPlayerScreen() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'content' | 'vocab'>('content');
   const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, number>>({});
+  const [learnHtmlHeight, setLearnHtmlHeight] = useState(900);
+  const scrollViewRef = useRef<ScrollView | null>(null);
+  const kashmiriInputRef = useRef<TextInput | null>(null);
+  const englishInputRef = useRef<TextInput | null>(null);
 
   // Vocab
   const [vocab, setVocab] = useState<LessonVocabEntry[]>([]);
@@ -117,29 +125,38 @@ export default function LessonPlayerScreen() {
   }, []);
 
   useEffect(() => {
-    if (!spokenContent || !lessonImageBaseUrl) return;
+    if (!lessonImageBaseUrl) return;
 
-    const pending = spokenContent.exchanges.filter(
-      (exchange) => imageAspectRatios[exchange.image] == null
-    );
+    const pendingSpoken =
+      spokenContent?.exchanges.filter(
+        (exchange) => imageAspectRatios[exchange.image] == null
+      ) ?? [];
+    const pendingLessonImages =
+      course?.id === 'learn-kashmiri'
+        ? (lesson?.images ?? []).filter((img) => imageAspectRatios[img.filename] == null)
+        : [];
+    const pending = [
+      ...pendingSpoken.map((exchange) => exchange.image),
+      ...pendingLessonImages.map((img) => img.filename),
+    ];
 
     if (pending.length === 0) return;
 
-    pending.forEach((exchange) => {
-      const uri = lessonImageBaseUrl + exchange.image;
+    pending.forEach((filename) => {
+      const uri = lessonImageBaseUrl + filename;
       Image.getSize(
         uri,
         (width, height) => {
           if (!width || !height) return;
           setImageAspectRatios((current) => {
-            if (current[exchange.image] != null) return current;
-            return { ...current, [exchange.image]: width / height };
+            if (current[filename] != null) return current;
+            return { ...current, [filename]: width / height };
           });
         },
         () => {}
       );
     });
-  }, [spokenContent, lessonImageBaseUrl, imageAspectRatios]);
+  }, [spokenContent, lessonImageBaseUrl, imageAspectRatios, course?.id, lesson?.images]);
 
   if (!course || !lesson) {
     return (
@@ -199,6 +216,20 @@ export default function LessonPlayerScreen() {
     }
   };
 
+  const scrollVocabInputsIntoView = (input: TextInput | null) => {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const inputHandle = input ? findNodeHandle(input) : null;
+        if (!inputHandle) return;
+        scrollViewRef.current?.scrollResponderScrollNativeHandleToKeyboard(
+          inputHandle,
+          24,
+          true
+        );
+      }, 150);
+    });
+  };
+
   const togglePlayPause = async () => {
     if (!soundRef.current) {
       playClip(currentClipIdx);
@@ -232,6 +263,23 @@ export default function LessonPlayerScreen() {
   const formatTime = (ms: number) => {
     const s = Math.floor(ms / 1000);
     return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+  };
+
+  const renderPlayPauseIcon = () => {
+    if (isLoading) {
+      return <ActivityIndicator color="#fff" size="small" />;
+    }
+
+    if (isPlaying) {
+      return (
+        <View style={styles.pauseIcon} pointerEvents="none">
+          <View style={styles.pauseBar} />
+          <View style={styles.pauseBar} />
+        </View>
+      );
+    }
+
+    return <Text style={styles.playIcon}>{'\u25B6'}</Text>;
   };
 
   const handleVocabPlay = async (entry: LessonVocabEntry) => {
@@ -331,6 +379,75 @@ export default function LessonPlayerScreen() {
       ? spokenContent.intro
       : '';
   const hasImages = lesson.images && lesson.images.length > 0;
+  const shouldRenderLearnHtml = !!(
+    course?.id === 'learn-kashmiri' &&
+    lessonContext?.htmlContent
+  );
+  const learnHtmlDocument = shouldRenderLearnHtml
+    ? `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <style>
+      body {
+        margin: 0;
+        padding: 0 0 24px;
+        background: #ffffff;
+        color: #2f2a25;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.5;
+      }
+      p {
+        margin: 0 0 14px;
+        font-size: 16px;
+      }
+      div {
+        margin: 0 0 18px;
+      }
+      img {
+        display: block;
+        width: 100%;
+        height: auto;
+        background: #f6f1e7;
+        border-radius: 12px;
+        margin: 0 0 10px;
+      }
+      a {
+        color: #2f6f53;
+      }
+    </style>
+  </head>
+  <body>
+    ${lessonContext!.htmlContent!}
+    <script>
+      (function() {
+        function sendHeight() {
+          var height = Math.max(
+            document.body.scrollHeight,
+            document.documentElement.scrollHeight
+          );
+          if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(String(height));
+          }
+        }
+        window.addEventListener('load', function() {
+          setTimeout(sendHeight, 80);
+          setTimeout(sendHeight, 300);
+          setTimeout(sendHeight, 700);
+        });
+      })();
+    </script>
+  </body>
+</html>`
+    : '';
+  const shouldRenderLearnImageCaptions = !!(
+    course?.id === 'learn-kashmiri' &&
+    lessonContext &&
+    hasImages &&
+    !lessonContext.htmlContent &&
+    lessonContext.sections?.some((section) => section.items.length > 0)
+  );
   const hasContentTab = !!(
     (spokenContent && (spokenIntro || spokenContent.exchanges.length > 0)) ||
     hasLessonContext ||
@@ -344,24 +461,11 @@ export default function LessonPlayerScreen() {
   }, [activeTab, hasContentTab]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>{'\u2190'}</Text>
-          </Pressable>
-          <View style={styles.headerInfo}>
-            <Text style={styles.lessonTitle} numberOfLines={1}>
-              {lesson.title}
-            </Text>
-            <Text style={styles.courseLabel}>{course.title}</Text>
-          </View>
-        </View>
-
         {/* Pinned Audio Player */}
         <View style={styles.playerCard}>
           {/* Clip selector for multi-clip lessons */}
@@ -425,7 +529,7 @@ export default function LessonPlayerScreen() {
                   <Text style={[styles.seekText, currentClipIdx === 0 && { color: Colors.border }]}>{'\u23EE'}</Text>
                 </Pressable>
                 <Pressable onPress={togglePlayPause} style={[styles.playBtn, isLoading && styles.playBtnLoading]} disabled={isLoading}>
-                  {isLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.playIcon}>{isPlaying ? '\u23F8' : '\u25B6'}</Text>}
+                  {renderPlayPauseIcon()}
                 </Pressable>
                 <Pressable
                   onPress={() => { if (currentClipIdx < clips.length - 1) playClip(currentClipIdx + 1); }}
@@ -441,7 +545,7 @@ export default function LessonPlayerScreen() {
                   <Text style={styles.seekText}>-15s</Text>
                 </Pressable>
                 <Pressable onPress={togglePlayPause} style={[styles.playBtn, isLoading && styles.playBtnLoading]} disabled={isLoading}>
-                  {isLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.playIcon}>{isPlaying ? '\u23F8' : '\u25B6'}</Text>}
+                  {renderPlayPauseIcon()}
                 </Pressable>
                 <Pressable onPress={() => seekBy(15000)} style={styles.seekBtn}>
                   <Text style={styles.seekText}>+15s</Text>
@@ -478,7 +582,16 @@ export default function LessonPlayerScreen() {
           </View>
         ) : null}
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          ref={scrollViewRef}
+          style={{ flex: 1 }}
+          contentContainerStyle={[
+            styles.scrollContent,
+            activeTab === 'vocab' && styles.vocabScrollContent,
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        >
           {hasContentTab && activeTab === 'content' ? (
             <>
               {/* Structured page content for Spoken Kashmiri */}
@@ -496,13 +609,11 @@ export default function LessonPlayerScreen() {
 
                     return (
                       <View key={`${exchange.audio}-${exchange.image}`} style={styles.translationCard}>
-                        {imageUri ? (
+                        {imageUri && imageAspectRatio ? (
                           <View
                             style={[
                               styles.translationImageFrame,
-                              imageAspectRatio
-                                ? { aspectRatio: imageAspectRatio, height: undefined }
-                                : null,
+                              { aspectRatio: imageAspectRatio, height: undefined },
                             ]}
                           >
                             <Image
@@ -510,6 +621,10 @@ export default function LessonPlayerScreen() {
                               style={styles.translationImage}
                               resizeMode="contain"
                             />
+                          </View>
+                        ) : imageUri ? (
+                          <View style={styles.translationImagePlaceholder}>
+                            <ActivityIndicator size="small" color={Colors.primary} />
                           </View>
                         ) : null}
                         <View style={styles.translationCopy}>
@@ -528,13 +643,146 @@ export default function LessonPlayerScreen() {
               {hasLessonContext && lessonContext && (
                 <View style={styles.contextSection}>
                   <Text style={styles.sectionTitle}>Lesson Content</Text>
-                  {lessonContext.note ? (
+                  {!shouldRenderLearnHtml && lessonContext.note ? (
                     <Text style={styles.contextNote}>{lessonContext.note}</Text>
                   ) : null}
-                  {lessonContext.intro ? (
+                  {!shouldRenderLearnHtml && lessonContext.intro ? (
                     <Text style={styles.contextIntro}>{lessonContext.intro}</Text>
                   ) : null}
-                  {lessonContext.sections?.map((section) => {
+                  {shouldRenderLearnHtml ? (
+                    <>
+                      {Platform.OS === 'web' ? (
+                        <Text style={styles.contextIntro}>
+                          Learn Kashmiri HTML rendering is available in the native app view.
+                        </Text>
+                      ) : (
+                        <View style={styles.learnWebViewFrame}>
+                          <WebView
+                            originWhitelist={['*']}
+                            source={{
+                              html: learnHtmlDocument,
+                              baseUrl: lessonContext.pageUrl,
+                            }}
+                            style={[styles.learnWebView, { height: learnHtmlHeight }]}
+                            scrollEnabled={false}
+                            nestedScrollEnabled={false}
+                            onMessage={(event) => {
+                              const nextHeight = Number(event.nativeEvent.data);
+                              if (Number.isFinite(nextHeight) && nextHeight > 0) {
+                                setLearnHtmlHeight(nextHeight);
+                              }
+                            }}
+                            onShouldStartLoadWithRequest={(request) => {
+                              if (
+                                request.url &&
+                                request.url !== 'about:blank' &&
+                                request.url !== lessonContext.pageUrl
+                              ) {
+                                Linking.openURL(request.url);
+                                return false;
+                              }
+                              return true;
+                            }}
+                          />
+                        </View>
+                      )}
+                    </>
+                  ) : shouldRenderLearnImageCaptions ? (() => {
+                    const sectionBlocks = lessonContext.sections?.map((section) => {
+                      if (section.items.length === 0) return null;
+
+                      return (
+                        <View key={section.title} style={styles.contextSectionBlock}>
+                          <Text style={styles.contextSectionTitle}>{section.title}</Text>
+                          {section.items.map((item, idx) => {
+                            const mappedFilename = section.images?.[idx];
+                            const image = mappedFilename
+                              ? lesson.images?.find((entry) => entry.filename === mappedFilename)
+                              : lesson.images?.[idx];
+                            const imageUri = image && lesson.imageBaseUrl
+                              ? lesson.imageBaseUrl + image.filename
+                              : undefined;
+                            const imageAspectRatio = image
+                              ? imageAspectRatios[image.filename]
+                              : undefined;
+
+                            return (
+                              <View key={`${section.title}-${idx}`} style={styles.translationCard}>
+                                {imageUri && imageAspectRatio ? (
+                                  <View
+                                    style={[
+                                      styles.translationImageFrame,
+                                      { aspectRatio: imageAspectRatio, height: undefined },
+                                    ]}
+                                  >
+                                    <Image
+                                      source={{ uri: imageUri }}
+                                      style={styles.translationImage}
+                                      resizeMode="contain"
+                                    />
+                                  </View>
+                                ) : imageUri ? (
+                                  <View style={styles.translationImagePlaceholder}>
+                                    <ActivityIndicator size="small" color={Colors.primary} />
+                                  </View>
+                                ) : null}
+                                <View style={styles.translationCopy}>
+                                  <Text style={styles.translationEnglish}>{item}</Text>
+                                </View>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      );
+                    }) ?? [];
+
+                    const usedFilenames = new Set(
+                      lessonContext.sections?.flatMap((section) => section.images ?? []) ?? []
+                    );
+                    const remainingImages = (lesson.images ?? []).filter(
+                      (img) => !usedFilenames.has(img.filename)
+                    );
+
+                    return (
+                      <>
+                        {sectionBlocks}
+                        {remainingImages.length > 0 ? (
+                          <View style={styles.contextSectionBlock}>
+                            <Text style={styles.contextSectionTitle}>More Examples</Text>
+                            {remainingImages.map((img) => {
+                              const imageUri = lesson.imageBaseUrl
+                                ? lesson.imageBaseUrl + img.filename
+                                : undefined;
+                              const imageAspectRatio = imageAspectRatios[img.filename];
+
+                              return (
+                                <View key={img.filename} style={styles.translationCard}>
+                                  {imageUri && imageAspectRatio ? (
+                                    <View
+                                      style={[
+                                        styles.translationImageFrame,
+                                        { aspectRatio: imageAspectRatio, height: undefined },
+                                      ]}
+                                    >
+                                      <Image
+                                        source={{ uri: imageUri }}
+                                        style={styles.translationImage}
+                                        resizeMode="contain"
+                                      />
+                                    </View>
+                                  ) : imageUri ? (
+                                    <View style={styles.translationImagePlaceholder}>
+                                      <ActivityIndicator size="small" color={Colors.primary} />
+                                    </View>
+                                  ) : null}
+                                </View>
+                              );
+                            })}
+                          </View>
+                        ) : null}
+                      </>
+                    );
+                  })() : lessonContext.sections?.map((section) => {
                     // Detect section type from content patterns
                     const isTable = section.items.length > 0 && section.items.every((item) => item.includes(' - '));
                     const isDialogue = /dialogue|conversation/i.test(section.title);
@@ -560,7 +808,6 @@ export default function LessonPlayerScreen() {
                             })}
                           </View>
                         ) : isDialogue ? (
-                          // Render as conversation lines
                           section.items.map((item, idx) => (
                             <View key={`${section.title}-${idx}`} style={styles.contextDialogueLine}>
                               <Text style={styles.contextDialogueText}>{item}</Text>
@@ -586,7 +833,7 @@ export default function LessonPlayerScreen() {
                       </View>
                     );
                   })}
-                  {lessonContext.highlights.map((highlight, idx) => (
+                  {!shouldRenderLearnImageCaptions && lessonContext.highlights.map((highlight, idx) => (
                     <View key={`hl-${idx}`} style={styles.contextBulletRow}>
                       <Text style={styles.contextBullet}>{'\u2022'}</Text>
                       <Text style={styles.contextBulletText}>{highlight}</Text>
@@ -596,7 +843,7 @@ export default function LessonPlayerScreen() {
               )}
 
               {/* Image-only course content */}
-              {hasImages && !spokenContent && (
+              {hasImages && !spokenContent && !hasLessonContext && (
                 <View style={styles.imagesSection}>
                   <Text style={styles.sectionTitle}>Lesson Content</Text>
                   {lesson.images!.map((img) => (
@@ -647,18 +894,22 @@ export default function LessonPlayerScreen() {
 
               <View style={styles.addRow}>
                 <TextInput
+                  ref={kashmiriInputRef}
                   style={[styles.vocabInput, { flex: 1.2 }]}
                   placeholder="Kashmiri"
                   placeholderTextColor={Colors.textLight}
                   value={newKashmiri}
                   onChangeText={setNewKashmiri}
+                  onFocus={() => scrollVocabInputsIntoView(kashmiriInputRef.current)}
                 />
                 <TextInput
+                  ref={englishInputRef}
                   style={[styles.vocabInput, { flex: 1 }]}
                   placeholder="English"
                   placeholderTextColor={Colors.textLight}
                   value={newEnglish}
                   onChangeText={setNewEnglish}
+                  onFocus={() => scrollVocabInputsIntoView(englishInputRef.current)}
                 />
                 <Pressable
                   style={[
@@ -758,19 +1009,6 @@ export default function LessonPlayerScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.sm,
-    gap: Spacing.md,
-  },
-  backBtn: { padding: Spacing.xs },
-  backText: { fontSize: 24, color: Colors.primary },
-  headerInfo: { flex: 1 },
-  lessonTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.text },
-  courseLabel: { fontSize: FontSize.xs, color: Colors.textSecondary },
   headerLink: {
     maxWidth: 240,
   },
@@ -781,6 +1019,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   scrollContent: { paddingBottom: Spacing.xxl },
+  vocabScrollContent: { paddingBottom: Spacing.xxl * 3 },
 
   // Player
   playerCard: {
@@ -788,7 +1027,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -796,11 +1035,11 @@ const styles = StyleSheet.create({
     elevation: 2,
     zIndex: 1,
   },
-  clipScroll: { marginBottom: Spacing.md },
+  clipScroll: { marginBottom: Spacing.sm },
   clipRow: { gap: Spacing.xs },
   clipChip: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: BorderRadius.sm,
     backgroundColor: Colors.surfaceLight,
     maxWidth: 100,
@@ -822,7 +1061,7 @@ const styles = StyleSheet.create({
   timeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: Spacing.xs,
+    marginTop: 4,
   },
   timeText: {
     fontSize: FontSize.xs,
@@ -834,20 +1073,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.lg,
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
   },
-  seekBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
+  seekBtn: { paddingHorizontal: Spacing.md, paddingVertical: 6 },
   seekText: { fontSize: FontSize.md, color: Colors.textSecondary, fontWeight: '600' },
   playBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   playBtnLoading: { backgroundColor: Colors.textLight },
-  playIcon: { fontSize: 22, color: '#fff' },
+  playIcon: { fontSize: 18, color: '#fff' },
+  pauseIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  pauseBar: {
+    width: 4,
+    height: 16,
+    borderRadius: 2,
+    backgroundColor: '#fff',
+  },
   audioError: {
     marginTop: Spacing.sm,
     fontSize: FontSize.xs,
@@ -872,6 +1123,16 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     color: Colors.text,
     lineHeight: 22,
+  },
+  learnWebViewFrame: {
+    marginTop: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+    backgroundColor: Colors.surface,
+  },
+  learnWebView: {
+    width: '100%',
+    backgroundColor: Colors.surface,
   },
   contextSectionBlock: {
     gap: Spacing.xs,
@@ -969,18 +1230,18 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     backgroundColor: '#dfe9e3',
     borderRadius: BorderRadius.lg,
-    padding: 4,
+    padding: 3,
     gap: 4,
     borderWidth: 1,
     borderColor: '#c6d7cd',
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.xs,
+    marginTop: 6,
+    marginBottom: 2,
   },
   tabButton: {
     flex: 1,
     borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: 7,
+    paddingHorizontal: Spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -994,10 +1255,10 @@ const styles = StyleSheet.create({
   },
   tabButtonText: {
     color: Colors.primaryDark,
-    fontSize: FontSize.sm,
+    fontSize: FontSize.xs,
     fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
   tabButtonTextActive: {
     color: Colors.primary,
@@ -1037,6 +1298,14 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: 'transparent',
   },
+  translationImagePlaceholder: {
+    width: '100%',
+    height: 120,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.surfaceLight,
+  },
   translationCopy: {
     paddingTop: 0,
     paddingHorizontal: 0,
@@ -1055,7 +1324,7 @@ const styles = StyleSheet.create({
   },
 
   // Vocab
-  vocabSection: { marginTop: Spacing.lg, paddingHorizontal: Spacing.lg },
+  vocabSection: { marginTop: Spacing.md, paddingHorizontal: Spacing.lg },
   vocabHint: {
     fontSize: FontSize.xs,
     color: Colors.textSecondary,

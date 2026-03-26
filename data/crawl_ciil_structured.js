@@ -111,9 +111,18 @@ function parseTable(tableHtml, precedingTitle) {
     .filter((text) => !/^What vegetables, sir\?$/i.test(text) || true);
 
   if (/Sample Dialogue/i.test(title) && dialogueItems.length >= 2) {
+    const rows = meaningfulRows
+      .filter((row) => row.length >= 3)
+      .map((row) => ({
+        kashmiri: row[row.length - 2],
+        english: row[row.length - 1],
+      }))
+      .filter((row) => row.kashmiri && row.english);
+
     return {
       title: 'Sample Dialogue',
       items: dedupe(dialogueItems),
+      rows,
     };
   }
 

@@ -6,9 +6,11 @@ export interface LessonCourseContext {
   title?: string;
   note?: string;
   intro?: string;
+  htmlContent?: string;
   sections?: Array<{
     title: string;
     items: string[];
+    images?: string[];
   }>;
   highlights: string[];
 }
@@ -55,15 +57,6 @@ function splitCiilHighlights(lines: string[]) {
 }
 
 function sanitizeContext(context: LessonCourseContext): LessonCourseContext {
-  if (context.courseId === 'learn-kashmiri') {
-    return {
-      ...context,
-      note: '',
-      intro: '',
-      highlights: [],
-    };
-  }
-
   if (context.courseId === 'ciil') {
     const introBase = normalizeText(context.intro).replace(/^[IVXLC]+\.\s*/i, '');
     const sectionTitles = (context.sections || [])
@@ -78,10 +71,12 @@ function sanitizeContext(context: LessonCourseContext): LessonCourseContext {
       ...context,
       note: '',
       intro,
+      htmlContent: context.htmlContent,
       highlights: [],
       sections: (context.sections || []).map((section) => ({
         title: normalizeText(section.title),
         items: section.items.map(normalizeText).filter(Boolean),
+        images: section.images?.filter(Boolean),
       })),
     };
   }
@@ -104,6 +99,12 @@ function sanitizeContext(context: LessonCourseContext): LessonCourseContext {
     ...context,
     note: normalizeText(context.note),
     intro,
+    htmlContent: context.htmlContent,
+    sections: (context.sections || []).map((section) => ({
+      title: normalizeText(section.title),
+      items: section.items.map(normalizeText).filter(Boolean),
+      images: section.images?.filter(Boolean),
+    })),
     highlights,
   };
 }

@@ -265,6 +265,128 @@
           "No that is not a shirt, that is a sweater.",
           "Is this not a notebook?",
           "Yes, this is a note book."
+        ],
+        "rows": [
+          {
+            "kashmiri": "yi kaa chu ?",
+            "english": "What is this?"
+          },
+          {
+            "kashmiri": "yi chu kalam.",
+            "english": "This is a pen."
+          },
+          {
+            "kashmiri": "yim kaa: chi ?",
+            "english": "What are these?"
+          },
+          {
+            "kashmiri": "yim chi kalam",
+            "english": "These are pens."
+          },
+          {
+            "kashmiri": "hu kaa: chu ?",
+            "english": "What is that?"
+          },
+          {
+            "kashmiri": "hu chu me:z",
+            "english": "That is a table."
+          },
+          {
+            "kashmiri": "hum kaa: chi ?",
+            "english": "What are those?"
+          },
+          {
+            "kashmiri": "hum chi me:z",
+            "english": "Those are tables."
+          },
+          {
+            "kashmiri": "su kaa: chu ?",
+            "english": "What is he?"
+          },
+          {
+            "kashmiri": "su chu ma:sTar",
+            "english": "He is a teacher."
+          },
+          {
+            "kashmiri": "tim kaa: chi ?",
+            "english": "What are those?"
+          },
+          {
+            "kashmiri": "tim chi maka:nI",
+            "english": "Those are houses."
+          },
+          {
+            "kashmiri": "yi kaa: chi ?",
+            "english": "What is this? (F)"
+          },
+          {
+            "kashmiri": "yi che ka:pi:",
+            "english": "This is a notebook."
+          },
+          {
+            "kashmiri": "yimI kaa: cha ?",
+            "english": "What are these? (Fem)"
+          },
+          {
+            "kashmiri": "yimI che ka:piyi",
+            "english": "These are notebooks."
+          },
+          {
+            "kashmiri": "ha kaa: che ?",
+            "english": "What is that? (Fem)"
+          },
+          {
+            "kashmiri": "ha cha kAmi:z",
+            "english": "That is a shirt."
+          },
+          {
+            "kashmiri": "humI kaa che ?",
+            "english": "What are those? (Fem)"
+          },
+          {
+            "kashmiri": "humI che kAmi:zI",
+            "english": "Those are shirts."
+          },
+          {
+            "kashmiri": "sa kaa che ? (Fem)",
+            "english": "What is that?"
+          },
+          {
+            "kashmiri": "sa cha ka:r",
+            "english": "That is a car."
+          },
+          {
+            "kashmiri": "timI kaa: che ?",
+            "english": "What are those? (Fem)"
+          },
+          {
+            "kashmiri": "timI cha ka:rI",
+            "english": "Those are cars."
+          },
+          {
+            "kashmiri": "yimI cha: kAmi:zI ?",
+            "english": "Are these shirts?"
+          },
+          {
+            "kashmiri": "a: yimI cha kAmi:zI",
+            "english": "Yes these are shirts."
+          },
+          {
+            "kashmiri": "ha cha: kAm:z ?",
+            "english": "Is that a shirt?"
+          },
+          {
+            "kashmiri": "na ha chanI kAmi:z, ha cha baniya:n",
+            "english": "No that is not a shirt, that is a sweater."
+          },
+          {
+            "kashmiri": "yi cha na: ka:pi: ?",
+            "english": "Is this not a notebook?"
+          },
+          {
+            "kashmiri": "a: yi cha ka:pi:",
+            "english": "Yes, this is a note book."
+          }
         ]
       },
       {
@@ -342,6 +464,100 @@
           "No, I am not a teacher.",
           "Both of us are employees.",
           "Yes, you are also an employee and I am also an employee."
+        ],
+        "rows": [
+          {
+            "kashmiri": "yi kus chu ?",
+            "english": "Who is he?"
+          },
+          {
+            "kashmiri": "yi chu ashokI",
+            "english": "He is Ashok."
+          },
+          {
+            "kashmiri": "yi kaa: chu ?",
+            "english": "What is he?"
+          },
+          {
+            "kashmiri": "yi chu duka:nda:r",
+            "english": "He is a shopkeeper."
+          },
+          {
+            "kashmiri": "hu kus chu ?",
+            "english": "Who is he?"
+          },
+          {
+            "kashmiri": "hu chu dob",
+            "english": "He is a washerman"
+          },
+          {
+            "kashmiri": "yim kam chi ?",
+            "english": "Who are they."
+          },
+          {
+            "kashmiri": "yim chi cha:n",
+            "english": "They are carpenters."
+          },
+          {
+            "kashmiri": "hum kam chi?",
+            "english": "Who are those?"
+          },
+          {
+            "kashmiri": "hum chi sIts",
+            "english": "They are tailors."
+          },
+          {
+            "kashmiri": "ha kasI cha ?",
+            "english": "Who is she ?"
+          },
+          {
+            "kashmiri": "ha cha raziaa",
+            "english": "She is Razia."
+          },
+          {
+            "kashmiri": "humI kamI cha ?",
+            "english": "Who are those?"
+          },
+          {
+            "kashmiri": "humI cha nArsI",
+            "english": "Those are nurses."
+          },
+          {
+            "kashmiri": "humI cha: Da:kTarba:yi ?",
+            "english": "Are those lady doctors ?"
+          },
+          {
+            "kashmiri": "na humI chanI Da:kTarba:yi humI ti cha nArsI",
+            "english": "They are not lady doctors. They are also nurses."
+          },
+          {
+            "kashmiri": "tsI kaa: chakh ?",
+            "english": "What are you? (Fem)"
+          },
+          {
+            "kashmiri": "bI ti chas nArIs.toha kaa:chiv ?",
+            "english": "I am also a nurse. What are you?"
+          },
+          {
+            "kashmiri": "bI chus kIlA :rIkh",
+            "english": "I am a clerk."
+          },
+          {
+            "kashmiri": "acha: toha chiv na: ma:sTar?",
+            "english": "O.K.are you not a teacher?"
+          },
+          {
+            "kashmiri": "na bI chus nI ma:sTar",
+            "english": "No, I am not a teacher."
+          },
+          {
+            "kashmiri": "dashvay chi mulA:zim.",
+            "english": "Both of us are employees."
+          },
+          {
+            "kashmiri": "a: tsI ti chakh mulA:zim tI bI ti chus mulA:zim.",
+            "english": "Yes, you are also an employee and I am also an employee."
+          }
         ]
       },
       {
@@ -425,6 +641,88 @@
           "This isjias picture. He is our uncle.",
           "Where is your aunt?",
           "Our aunt is in the market."
+        ],
+        "rows": [
+          {
+            "kashmiri": "yi cha: co:n garI ?",
+            "english": "Is this your home?"
+          },
+          {
+            "kashmiri": "a: yi chu mao:n garI",
+            "english": "Yes this is my home."
+          },
+          {
+            "kashmiri": "hu kus chu ?",
+            "english": "Who is that?"
+          },
+          {
+            "kashmiri": "hu chu mao:n mo:l",
+            "english": "He is my father."
+          },
+          {
+            "kashmiri": "ha cha: cA:na beni ?",
+            "english": "Is she your sister?"
+          },
+          {
+            "kashmiri": "a: yi cha me:na beni",
+            "english": "Yes, she is my sister."
+          },
+          {
+            "kashmiri": "yi kus chu ?",
+            "english": "Who is this?"
+          },
+          {
+            "kashmiri": "yi chu mao:n bo:y",
+            "english": "He is my brother."
+          },
+          {
+            "kashmiri": "cA:na mA:j kati cha ?",
+            "english": "Where is your mother?"
+          },
+          {
+            "kashmiri": "me:na mA:j cha DaftarI",
+            "english": "My mother is in the office."
+          },
+          {
+            "kashmiri": "tuhund buDa bab cha: yeti?",
+            "english": "Is your grandfather here?"
+          },
+          {
+            "kashmiri": "a: su chu yeti",
+            "english": "Yes, he is here."
+          },
+          {
+            "kashmiri": "tuhunda hamsa:yi: kam chi ?",
+            "english": "Who are your neighbors?"
+          },
+          {
+            "kashmiri": "sA:na hamsa:yi chi hari tI ashokI yi chu hariyun maka:nI tI hu chu ashokun.",
+            "english": "Our neighbors are Hari and Ashok. This is Harias house and that is Ashokas."
+          },
+          {
+            "kashmiri": "shi:lI cha na: tuhunz hamsa:yiba:y?",
+            "english": "Isnat Sheela your neighbour?"
+          },
+          {
+            "kashmiri": "na sa chanI sA:na hamsa:yiba:y",
+            "english": "No, she is not our neighbour."
+          },
+          {
+            "kashmiri": "yi kAmasund pho:Tu: chu ?",
+            "english": "Whose picture is this?"
+          },
+          {
+            "kashmiri": "yi chu ra:mjiyun pho:T u:, su chu so:n petIr.",
+            "english": "This isjias picture. He is our uncle."
+          },
+          {
+            "kashmiri": "TuhInz pecana kati cha ?",
+            "english": "Where is your aunt?"
+          },
+          {
+            "kashmiri": "sA:na pecana cha ba:zrI",
+            "english": "Our aunt is in the market."
+          }
         ]
       },
       {
@@ -672,6 +970,40 @@
           "Doesnat matter. Come along with me.",
           "How much is to be paid?",
           "You donat have to pay money. You are my friend."
+        ],
+        "rows": [
+          {
+            "kashmiri": "he: tse kot chuy gatshun ?",
+            "english": "Hey! Where are you going?"
+          },
+          {
+            "kashmiri": "me chu ba:gas maz gatshun",
+            "english": "I have to go to the garden."
+          },
+          {
+            "kashmiri": "tati kaa chuy karun ?",
+            "english": "What are you going to do there?"
+          },
+          {
+            "kashmiri": "tati chi k?h mozu:r timan chi tsu:Tha va:lIna . tim chi pe:Taan barIna. paga:h chi manDi: so:zIna",
+            "english": "Some labourers are there. They have to bring down (pluck) apples. These are to be packed in wooden boxes and will be sent to market tomorrow."
+          },
+          {
+            "kashmiri": "me ti che akh zI peTi zoru:rath",
+            "english": "I too need one or two boxes."
+          },
+          {
+            "kashmiri": "k?h parva:y chu nI. pAkiv me sI:ta.",
+            "english": "Doesnat matter. Come along with me."
+          },
+          {
+            "kashmiri": "kAts pa:nsI chi dina ?",
+            "english": "How much is to be paid?"
+          },
+          {
+            "kashmiri": "tahi chivnI pa:sI dina.toha chiv SA:na do:s",
+            "english": "You donat have to pay money. You are my friend."
+          }
         ]
       },
       {
@@ -753,6 +1085,68 @@
           "Look for the fish also. Open that almirah and get me my purse.",
           "Please take it.",
           "Take this money. Go fast. Get a newspaper as well."
+        ],
+        "rows": [
+          {
+            "kashmiri": "Ali, tsI vath vana. shra:n kar",
+            "english": "Ali, get up now. Have a shower."
+          },
+          {
+            "kashmiri": "ca:y cha: taya:r ?",
+            "english": "Is the tea ready ?"
+          },
+          {
+            "kashmiri": "a: sabzi: chanI kihi~na",
+            "english": "Yes, (but) there are no vegetables."
+          },
+          {
+            "kashmiri": "gulI kati chu ?",
+            "english": "Where is Gula?"
+          },
+          {
+            "kashmiri": "su chu yet:t: va:ri manz po:shan sag diva:n.",
+            "english": "He is here. He is watering the flowers in the kitchen garden."
+          },
+          {
+            "kashmiri": "tAmis kar a:lav",
+            "english": "Call him."
+          },
+          {
+            "kashmiri": "acha: Gula: vala: yu:ra",
+            "english": "Okay, Gula. Come here."
+          },
+          {
+            "kashmiri": "Jina:b toha kAriv hukum.",
+            "english": "Sir, please order."
+          },
+          {
+            "kashmiri": "tsI kar kA:m ba:zar gatsh tati an sabzi:",
+            "english": "You do one thing. Go to the market and get vegetables."
+          },
+          {
+            "kashmiri": "kaa: haz sabzi: ?",
+            "english": "What vegetables, sir?"
+          },
+          {
+            "kashmiri": "nasi:mas prItsh.",
+            "english": "Ask Nasima."
+          },
+          {
+            "kashmiri": "tsI an ha:kh tI ra:zma:h. pa:lakh ti Anazi beyi hezi muji, tI ni:lamartsva:gan.",
+            "english": "Get hakh (K) and beans. Get spinach. Also, radish and green chillies as well."
+          },
+          {
+            "kashmiri": "beyi vuchtI ga:DI ti. almA:ra kho:l tI mao:n bATwI an yu:ra.",
+            "english": "Look for the fish also. Open that almirah and get me my purse."
+          },
+          {
+            "kashmiri": "rATiv haz",
+            "english": "Please take it."
+          },
+          {
+            "kashmiri": "raTh yim rapyi.neI:ir jal. akhba:r ti Anazi",
+            "english": "Take this money. Go fast. Get a newspaper as well."
+          }
         ]
       },
       {
@@ -864,6 +1258,44 @@
           "She was studying here previously, but now she is studying medicine in Delhi.",
           "I was taking previously, but now I take milk in the evening with the baked bread (telwor).",
           "Yes, do come with pleasure."
+        ],
+        "rows": [
+          {
+            "kashmiri": "ada:b.kaho: va:ray",
+            "english": "Adaab. How are you?"
+          },
+          {
+            "kashmiri": "vala: bihu:",
+            "english": "Come sit."
+          },
+          {
+            "kashmiri": "bI o:sus ciTha para:n",
+            "english": "I was reading a letter."
+          },
+          {
+            "kashmiri": "yi chi maa:ni paphtIri bene nanIna ciTha",
+            "english": "This is my cousin Nanaas letter."
+          },
+          {
+            "kashmiri": "sa chadili ro:za:n",
+            "english": "She is living in Delhi."
+          },
+          {
+            "kashmiri": "sa chi Tre:ni~g kara:n",
+            "english": "She is doing training."
+          },
+          {
+            "kashmiri": "saA:s brah yeti: para:n magar vana chasa dili Da:rTari: kara:n",
+            "english": "She was studying here previously, but now she is studying medicine in Delhi."
+          },
+          {
+            "kashmiri": "bI o:sus brah ceva:n magar vana chus bI sha:man dad ceva:n tI te:lvor kheva:n.",
+            "english": "I was taking previously, but now I take milk in the evening with the baked bread (telwor)."
+          },
+          {
+            "kashmiri": "ha: yisA A:sha: kArith",
+            "english": "Yes, do come with pleasure."
+          }
         ]
       },
       {
@@ -924,6 +1356,68 @@
           "I will buy goods and vegetables.",
           "Okay, go ahead. God bless you.",
           "Okay, God bless you."
+        ],
+        "rows": [
+          {
+            "kashmiri": "kehe: ra:jay, va:ray chakhay ?",
+            "english": "Hey ! Raji are you fine?"
+          },
+          {
+            "kashmiri": "ahni: va:ray",
+            "english": "Yes fine."
+          },
+          {
+            "kashmiri": "haye: dewA:li karIy che?",
+            "english": "Hey! When is the Diwali ?"
+          },
+          {
+            "kashmiri": "zAhra: a:si tsAdIrva:ri da:hI",
+            "english": "Perhaps, it falls on Monday."
+          },
+          {
+            "kashmiri": "kinI bomva:ri dah",
+            "english": "I think may be on Tuesday."
+          },
+          {
+            "kashmiri": "khabar ciThiy chenI va:ta:n az ma:h va:ti",
+            "english": "I am not sure. There is no letter. May be I will get it today."
+          },
+          {
+            "kashmiri": "kAma sIz ciTha?",
+            "english": "Whose letter ?"
+          },
+          {
+            "kashmiri": "De:Di sI~z ciThahay a:si paka:n dewA:li: chena:",
+            "english": "Daddyas letter. It must be on way, because it is Diwali."
+          },
+          {
+            "kashmiri": "tim kati chi a:sa:n ?",
+            "english": "Where is he ?"
+          },
+          {
+            "kashmiri": "tsI a:skha: paga:h yetiy pra:ra:n ?",
+            "english": "Will you be waiting here tomorrow."
+          },
+          {
+            "kashmiri": "na, pagah chu me ba:zar gatshun.",
+            "english": "No, I have to go to the market tomorrow."
+          },
+          {
+            "kashmiri": "tati kaah chuy karun ?",
+            "english": "What will you do there ?"
+          },
+          {
+            "kashmiri": "bI hemI sa:ma:nI tI sabzi:",
+            "english": "I will buy goods and vegetables."
+          },
+          {
+            "kashmiri": "acha: ne:r khada:yas hava:lI",
+            "english": "Okay, go ahead. God bless you."
+          },
+          {
+            "kashmiri": "adbi: va:rIvati ro:z",
+            "english": "Okay, God bless you."
+          }
         ]
       },
       {
@@ -1239,6 +1733,56 @@
           "a:To: - Auto",
           "meTro - Metro",
           "saykIl - Bicycle"
+        ],
+        "rows": [
+          {
+            "kashmiri": "tsI chukha: za:h kAshi:ri gomut ?",
+            "english": "Have you ever been to Kashmir ?"
+          },
+          {
+            "kashmiri": "a: bI o:sus parus to:r go:mut. bI o:sus tati Akis haphtas.",
+            "english": "Yes, I had been there last year. I stayed there for a week."
+          },
+          {
+            "kashmiri": "tsI o:skha: kunuy zon ?",
+            "english": "Were you alone?"
+          },
+          {
+            "kashmiri": "na ma:ena garika ti :Asa me sI:ta a:mIta.",
+            "english": "No, my family was with me."
+          },
+          {
+            "kashmiri": "tsI kath kath ja:yi chukh phau:rmut?",
+            "english": "Which places have you visited ?"
+          },
+          {
+            "kashmiri": "pahalgam tI gulmarg",
+            "english": "Pahalgam and Gulmarg."
+          },
+          {
+            "kashmiri": "bI ti A:sIs parus gulmarg gA:mIts bI chas tati ra:tas ru:zmIts.tati chas bI ganDo:lahas ti khAtsmIts.",
+            "english": "I too had been to Gulmarg last year. I have stayed there overnight. I have also had a trip in the chair lift."
+          },
+          {
+            "kashmiri": "bI chus Dalas ti phau:rmut .bI o:sus nI za:h shika:ri khotmut.ja:n mazI a:v .",
+            "english": "I have also visited Dal lake. I had never enjoyed the Shikara ride."
+          },
+          {
+            "kashmiri": "yuhus chu na: gatshun ?",
+            "english": "Arenat you going this Year?"
+          },
+          {
+            "kashmiri": "na. tse chuya: gatshun ?",
+            "english": "No. Are you going ?"
+          },
+          {
+            "kashmiri": "a: navi retI a:sI bI kAshi:ri vA:tsmIts . pakh tsI ti.",
+            "english": "Yes, in the next month I would have arrived in Kashmir. Come with me."
+          },
+          {
+            "kashmiri": "na asi chu lADbas kas kha:ndar. bI a:sI timan dohan kha:ndras sI:ta a:vur.",
+            "english": "No. We have our sonas marriage . I would be busy with the wedding ceremony."
+          }
         ]
       }
     ]
@@ -1278,6 +1822,56 @@
           "My Daddy had brought a silver set from Delhi. We gave it to them.",
           "They would have felt very happy.",
           "Yeah, they were very happy."
+        ],
+        "rows": [
+          {
+            "kashmiri": "nasi:ma: tse chutha: kA:shur kha:ndar vuchmut ?",
+            "english": "Have you seen (attended) a Kashmiri marriage ?"
+          },
+          {
+            "kashmiri": "a: me chu kAshI:ri akh do:s . tAmis o:s parus kha:ndar.tAma o:s me sa:las prItshmut.me A:sa mami: DeDi: ti si:ta.",
+            "english": "Yeah, I have a friend in Kashmir. He had the wedding during the last year. He had invited me. I was accompanied by my Mummy and Daddy."
+          },
+          {
+            "kashmiri": "Teli a:sivI tahi va:zIva:n khyomut ?",
+            "english": "Then you would have enjoyed \"vazwaan\" (a special feast) ."
+          },
+          {
+            "kashmiri": "a: asi chu khaomut.timav a:sI va:rya:h ziya:phtsi ranimatsI.",
+            "english": "Yes, We have eaten that feast also. They had prepared many good preparations."
+          },
+          {
+            "kashmiri": "kya: kya: ?",
+            "english": "What varieties?"
+          },
+          {
+            "kashmiri": "kaba:b, gashta:b, yekhIna, ristI tI tabakhna:Th .",
+            "english": "Kababs, goshtabs, yakhni, rista and tabakhnat."
+          },
+          {
+            "kashmiri": "me chu bu:zmut, kA:shur kha:ndar chu vuchun la:yakh a:sa:n",
+            "english": "I have heard that Kashmiri weddings are worthseeing."
+          },
+          {
+            "kashmiri": "a: chu th Thi:kh bu:zmut.tse kati chath tihInz mA:zira:th vuchhmIts.",
+            "english": "Yes, you have heard right. Where have you seen their Manzira:th. (you havenat seen it.)"
+          },
+          {
+            "kashmiri": "tahi o:sva: timan k?h prazant nyumut ?",
+            "english": "Had you taken some present for them."
+          },
+          {
+            "kashmiri": "a: me:na DeDiyan o:s dili ca:ndi seT haotmut.su daut asi timan.",
+            "english": "My Daddy had brought a silver set from Delhi. We gave it to them."
+          },
+          {
+            "kashmiri": "tim a:san seTha: khash gA:mIta",
+            "english": "They would have felt very happy."
+          },
+          {
+            "kashmiri": "a: tim gAyi saaTha: khash",
+            "english": "Yeah, they were very happy."
+          }
         ]
       },
       {
@@ -1399,6 +1993,44 @@
           "Yes. I should.",
           "Come on Let us go in a bus, we can return by evening.",
           "Okay, let us go."
+        ],
+        "rows": [
+          {
+            "kashmiri": "tsI hyakIkha yi ka:r calA :vith?",
+            "english": "Can you drive this car?"
+          },
+          {
+            "kashmiri": "na, me chanI taga:n gA:Da cala:vIna.",
+            "english": "No, I do not know driving."
+          },
+          {
+            "kashmiri": "tse paziy gA:Da cala:vIna hechina",
+            "english": "You must learn driving."
+          },
+          {
+            "kashmiri": "ti chu Thi:kh , me va:ti vona gA:D: cala:vIna hechina.",
+            "english": "That is right, I should learn driving now."
+          },
+          {
+            "kashmiri": "me cha taga:n gA:Da cala:vIna magar me bani nI az cala:vIna. me chu khoras logmut",
+            "english": "I know driving but I wonat be in a position to drive today. My foot is injured."
+          },
+          {
+            "kashmiri": "tsI chukha yatsha:n az shahar gatshun ?",
+            "english": "Are you intending to go to city today?"
+          },
+          {
+            "kashmiri": "a: me va:ti gatshun.",
+            "english": "Yes. I should."
+          },
+          {
+            "kashmiri": "pakh, basi maz gatshav, sha:man ta:m hyakav va:pas yith",
+            "english": "Come on Let us go in a bus, we can return by evening."
+          },
+          {
+            "kashmiri": "adI pAkiv",
+            "english": "Okay, let us go."
+          }
         ]
       },
       {
@@ -1460,6 +2092,72 @@
           "Is it not far away from there.",
           "No, the boss also stays there. He shuttles there in his car. I come with him only. That is why it does not look far away.",
           "That is fine. God bless you."
+        ],
+        "rows": [
+          {
+            "kashmiri": "vAliv Atsiv, ali sA:b bihiv yeten. az kith pA:Tha yot ?",
+            "english": "Come in, Mr.Ali, sit down here. What brings you here today?"
+          },
+          {
+            "kashmiri": "bas yapA:ra o:sus paka:n me su:ch yo:r ti yimI toha chiva: yeth kamras manz beha:n ?",
+            "english": "I was just passing hereby. I thought I should come here. Do you sit in this room."
+          },
+          {
+            "kashmiri": "a: yeth kamras manz chi bI tI Rahma:n sA:b beha:n",
+            "english": "Yes, I and Mr. Rehman sit in this room."
+          },
+          {
+            "kashmiri": "saha:b katen chu beha:n ?",
+            "english": "Where does your boss sit ?"
+          },
+          {
+            "kashmiri": "saha:b chu hath kamras maz a:sa:n",
+            "english": "The boss sits in that room."
+          },
+          {
+            "kashmiri": "yi kamrI chu lakuT. toha chiva: yeti va:ta:n.hu kamrI chu boD.toha kaa:zi chiv nI tati beha:n.",
+            "english": "This room is small. Do you find it enough ? That room is big. Why donat you sit there ?"
+          },
+          {
+            "kashmiri": "na tati chu nI ga:sh .su chu na: pathkun.yi kamrI chu bra:Thkun .",
+            "english": "No that room does not have enough light. That room is at the back side. This room is on the front."
+          },
+          {
+            "kashmiri": "Tath kamras cha na: dA:r ?",
+            "english": "Doesnat that room have a window?"
+          },
+          {
+            "kashmiri": "a: tath cha akh dA:r magar s cha lalIT",
+            "english": "Yes, that has one window, but that is small."
+          },
+          {
+            "kashmiri": "yeth kamras cha baji da:ri. yepA:ra a:si ja:n hava: ti yiva:n.",
+            "english": "This room has big windows. It should be allowing in enough air."
+          },
+          {
+            "kashmiri": "a: yeti peThI cha sahab sIndis kamaras kun ti nazar",
+            "english": "Yes, one can see directly at the bossas room from here."
+          },
+          {
+            "kashmiri": "tahi kati chu De:rI ?",
+            "english": "Where do you stay?"
+          },
+          {
+            "kashmiri": "me chu pomprI DerI.",
+            "english": "I stay at Pampore."
+          },
+          {
+            "kashmiri": "Tati peThI ma: chu du:r gatsha:n.",
+            "english": "Is it not far away from there."
+          },
+          {
+            "kashmiri": "na sahab ti chu tati ro:za:n su chu to:r ka:rimanz yiva:n gatsha:n .bI chu tAsa sI:ta yiva:n tamikin, chu nI du:r ba:sa:n",
+            "english": "No, the boss also stays there. He shuttles there in his car. I come with him only. That is why it does not look far away."
+          },
+          {
+            "kashmiri": "ti gav ja:n ad sA: tI las",
+            "english": "That is fine. God bless you."
+          }
         ]
       },
       {

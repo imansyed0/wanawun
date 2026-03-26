@@ -199,6 +199,7 @@ export default function LearnScreen() {
         placeholderTextColor={Colors.textLight}
         value={search}
         onChangeText={setSearch}
+        secureTextEntry
       />
 
       {recordingId && (
