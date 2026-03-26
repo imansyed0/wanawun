@@ -14,7 +14,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "org.koshur.wanawun"
+      "bundleIdentifier": "org.koshur.wanawun",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "Wanawun uses the microphone so you can record Kashmiri words and phrases for practice."
+      }
     },
     "android": {
       "adaptiveIcon": {
