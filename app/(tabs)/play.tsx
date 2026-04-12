@@ -26,11 +26,11 @@ export default function HomeScreen() {
 
         <ScreenHeaderDecoration variant="saffron" />
 
-        {/* Koshur Duel card */}
+        {/* Koshur Clash card */}
         <Card style={styles.gameCard}>
           <View style={styles.gameCardHeader}>
             <View>
-              <Text style={styles.gameTitle}>Koshur Duel</Text>
+              <Text style={styles.gameTitle}>Koshur Clash</Text>
               <Text style={styles.gameSubtitle}>Real-time word battle</Text>
             </View>
             <View style={styles.badge}>

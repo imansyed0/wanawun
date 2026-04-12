@@ -87,6 +87,21 @@ export async function addLessonVocab(
   return data;
 }
 
+/** Get all lesson IDs that have at least one vocab entry for a user+course */
+export async function getCompletedLessonIds(
+  userId: string,
+  courseId: string
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('lesson_vocab')
+    .select('lesson_id')
+    .eq('user_id', userId)
+    .eq('course_id', courseId);
+  if (error) throw error;
+  const unique = [...new Set((data ?? []).map((row: any) => row.lesson_id))];
+  return unique;
+}
+
 /** Delete a vocab entry */
 export async function deleteLessonVocab(id: string): Promise<void> {
   const { error } = await supabase.from('lesson_vocab').delete().eq('id', id);

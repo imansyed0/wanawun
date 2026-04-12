@@ -250,12 +250,6 @@ export default function FlashcardsScreen() {
             <ChinarLeaf size={48} color={Colors.primary} opacity={0.06} style={styles.flashcardLeaf} />
             <Text style={styles.promptLabel}>Kashmiri</Text>
             <Text style={styles.kashmiri}>{currentWord.kashmiri}</Text>
-            <Text style={styles.audioHint}>
-              {currentWord.audio_url
-                ? 'Audio available for this card'
-                : 'No audio available for this card yet'}
-            </Text>
-
             {currentWord.audio_url ? (
               <Pressable
                 style={[styles.audioPill, playingId === currentWord.id && styles.audioPillActive]}
@@ -267,7 +261,7 @@ export default function FlashcardsScreen() {
                     playingId === currentWord.id && styles.audioPillTextActive,
                   ]}
                 >
-                  {playingId === currentWord.id ? 'Stop audio' : 'Play audio'}
+                  {playingId === currentWord.id ? '⏹' : '🔊'}
                 </Text>
               </Pressable>
             ) : null}
@@ -418,12 +412,6 @@ const styles = StyleSheet.create({
   },
   audioPillTextActive: {
     color: '#fff',
-  },
-  audioHint: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginTop: -Spacing.sm,
   },
   answerBox: {
     backgroundColor: Colors.surfaceLight,

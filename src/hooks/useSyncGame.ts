@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/src/lib/supabase';
-import { generateRounds, calculateSyncScore } from '@/src/services/gameService';
+import { generateRounds, calculateSyncScore, updateEloRatings } from '@/src/services/gameService';
 import type { SyncGame, SyncRound } from '@/src/types';
 
 type GamePhase = 'waiting' | 'countdown' | 'playing' | 'round_result' | 'finished';
@@ -135,7 +135,7 @@ export function useSyncGame(gameId: string, userId: string) {
           }));
         } catch (err) {
           console.error('Failed to generate rounds:', err);
-          const message = err instanceof Error ? err.message : 'Failed to prepare this duel.';
+          const message = err instanceof Error ? err.message : 'Failed to prepare this clash.';
           setState(prev => ({
             ...prev,
             setupError: message,
@@ -222,6 +222,19 @@ export function useSyncGame(gameId: string, userId: string) {
         if (isLastRound) {
           broadcastEvent('game_over', {});
           setState(prev => ({ ...prev, phase: 'finished' }));
+
+          // Update ELO ratings — only player_a does this to avoid double-updating
+          if (state.game?.player_a === userId && state.game?.player_b) {
+            const finalMyScore = state.myScore + points;
+            const winnerId = finalMyScore > state.opponentScore
+              ? userId
+              : finalMyScore < state.opponentScore
+                ? state.game.player_b
+                : null; // draw
+            updateEloRatings(userId, state.game.player_b, winnerId).catch(err =>
+              console.error('ELO update failed:', err)
+            );
+          }
         } else {
           const nextRound = state.currentRound + 1;
           broadcastEvent('start_round', { round_number: nextRound });
@@ -233,7 +246,7 @@ export function useSyncGame(gameId: string, userId: string) {
         }
       }, 2000);
     },
-    [state.currentRound, state.rounds, state.streak, userId]
+    [state.currentRound, state.rounds, state.streak, state.myScore, state.opponentScore, state.game, userId]
   );
 
   const startGame = useCallback(() => {

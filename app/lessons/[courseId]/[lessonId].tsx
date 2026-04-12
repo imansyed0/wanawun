@@ -39,6 +39,7 @@ import {
   linkAudioToWord,
 } from '@/src/services/audioService';
 import { invalidateWordCache } from '@/src/services/wordService';
+import { markClipListened, getListenedClips } from '@/src/services/clipProgressService';
 
 export default function LessonPlayerScreen() {
   const { courseId, lessonId } = useLocalSearchParams<{
@@ -97,6 +98,7 @@ export default function LessonPlayerScreen() {
   const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, number>>({});
   const [learnHtmlHeight, setLearnHtmlHeight] = useState(900);
   const scrollViewRef = useRef<ScrollView | null>(null);
+  const contentScrollY = useRef(0);
   const kashmiriInputRef = useRef<TextInput | null>(null);
   const englishInputRef = useRef<TextInput | null>(null);
 
@@ -112,6 +114,14 @@ export default function LessonPlayerScreen() {
   const [vocabRecordingId, setVocabRecordingId] = useState<string | null>(null);
   const [vocabSavingId, setVocabSavingId] = useState<string | null>(null);
   const vocabRecordingRef = useRef<Audio.Recording | null>(null);
+
+  // Clip listen tracking
+  const [listenedClips, setListenedClips] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!courseId || !lessonId) return;
+    getListenedClips(courseId, lessonId).then(setListenedClips).catch(console.error);
+  }, [courseId, lessonId]);
 
   useEffect(() => {
     if (!user?.id || !lessonId) return;
@@ -176,6 +186,11 @@ export default function LessonPlayerScreen() {
     setIsPlaying(status.isPlaying);
     if (status.didJustFinish) {
       setIsPlaying(false);
+      // Mark clip as listened
+      if (courseId && lessonId && clips[currentClipIdx]) {
+        setListenedClips((prev) => new Set([...prev, clips[currentClipIdx].filename]));
+        markClipListened(courseId, lessonId, clips[currentClipIdx].filename).catch(console.error);
+      }
       // Auto-advance to next clip
       if (currentClipIdx < clips.length - 1) {
         playClip(currentClipIdx + 1);
@@ -454,12 +469,6 @@ export default function LessonPlayerScreen() {
     (hasImages && !spokenContent)
   );
 
-  useEffect(() => {
-    if (!hasContentTab && activeTab !== 'vocab') {
-      setActiveTab('vocab');
-    }
-  }, [activeTab, hasContentTab]);
-
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView
@@ -476,26 +485,31 @@ export default function LessonPlayerScreen() {
               style={styles.clipScroll}
               contentContainerStyle={styles.clipRow}
             >
-              {clips.map((clip, idx) => (
-                <Pressable
-                  key={clip.filename}
-                  style={[
-                    styles.clipChip,
-                    idx === currentClipIdx && styles.clipChipActive,
-                  ]}
-                  onPress={() => playClip(idx)}
-                >
-                  <Text
+              {clips.map((clip, idx) => {
+                const isListened = listenedClips.has(clip.filename);
+                return (
+                  <Pressable
+                    key={clip.filename}
                     style={[
-                      styles.clipChipText,
-                      idx === currentClipIdx && styles.clipChipTextActive,
+                      styles.clipChip,
+                      idx === currentClipIdx && styles.clipChipActive,
+                      isListened && idx !== currentClipIdx && styles.clipChipListened,
                     ]}
-                    numberOfLines={1}
+                    onPress={() => playClip(idx)}
                   >
-                    {clip.label || clip.filename.replace('.mp3', '')}
-                  </Text>
-                </Pressable>
-              ))}
+                    <Text
+                      style={[
+                        styles.clipChipText,
+                        idx === currentClipIdx && styles.clipChipTextActive,
+                        isListened && idx !== currentClipIdx && styles.clipChipTextListened,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {isListened ? '\u2713 ' : ''}{clip.label || clip.filename.replace('.mp3', '')}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </ScrollView>
           )}
 
@@ -560,7 +574,12 @@ export default function LessonPlayerScreen() {
         {hasContentTab ? (
           <View style={styles.tabBar}>
             <Pressable
-              onPress={() => setActiveTab('content')}
+              onPress={() => {
+                setActiveTab('content');
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollTo({ y: contentScrollY.current, animated: false });
+                }, 0);
+              }}
               style={[styles.tabButton, activeTab === 'content' && styles.tabButtonActive]}
             >
               <Text
@@ -570,7 +589,12 @@ export default function LessonPlayerScreen() {
               </Text>
             </Pressable>
             <Pressable
-              onPress={() => setActiveTab('vocab')}
+              onPress={() => {
+                setActiveTab('vocab');
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+                }, 0);
+              }}
               style={[styles.tabButton, activeTab === 'vocab' && styles.tabButtonActive]}
             >
               <Text
@@ -591,6 +615,12 @@ export default function LessonPlayerScreen() {
           ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          onScroll={(e) => {
+            if (activeTab === 'content') {
+              contentScrollY.current = e.nativeEvent.contentOffset.y;
+            }
+          }}
+          scrollEventThrottle={16}
         >
           {hasContentTab && activeTab === 'content' ? (
             <>
@@ -1009,6 +1039,12 @@ export default function LessonPlayerScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+  },
   headerLink: {
     maxWidth: 240,
   },
@@ -1045,8 +1081,10 @@ const styles = StyleSheet.create({
     maxWidth: 100,
   },
   clipChipActive: { backgroundColor: Colors.primary },
+  clipChipListened: { backgroundColor: '#e8f5e9', borderWidth: 1, borderColor: Colors.correct },
   clipChipText: { fontSize: FontSize.xs, color: Colors.textSecondary },
   clipChipTextActive: { color: '#fff', fontWeight: '700' },
+  clipChipTextListened: { color: Colors.correct },
   progressBar: {
     height: 6,
     backgroundColor: Colors.border,

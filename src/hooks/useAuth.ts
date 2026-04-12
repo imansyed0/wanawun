@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/src/lib/supabase';
+import { nativeGoogleSignIn } from '@/src/lib/googleSignIn';
 import type { Session, User } from '@supabase/supabase-js';
 import type { Profile } from '@/src/types';
 
@@ -103,6 +104,16 @@ export function useAuth() {
     return data;
   }
 
+  async function signInWithGoogle() {
+    const idToken = await nativeGoogleSignIn();
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'google',
+      token: idToken,
+    });
+    if (error) throw error;
+    return data;
+  }
+
   async function signOut() {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
@@ -115,6 +126,7 @@ export function useAuth() {
     loading,
     signUp,
     signIn,
+    signInWithGoogle,
     signOut,
   };
 }
