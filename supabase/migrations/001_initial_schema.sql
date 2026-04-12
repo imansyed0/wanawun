@@ -65,7 +65,7 @@ alter table public.sentence_templates enable row level security;
 create policy "Templates are viewable by everyone" on public.sentence_templates
   for select using (true);
 
--- Sync games (Koshur Duel)
+-- Sync games (Koshur Clash)
 create table public.sync_games (
   id uuid primary key default gen_random_uuid(),
   player_a uuid not null references public.profiles(id),

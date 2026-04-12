@@ -13,7 +13,7 @@ function generateRoomCode(): string {
   return code;
 }
 
-// ============ SYNC GAME (Koshur Duel) ============
+// ============ SYNC GAME (Koshur Clash) ============
 
 export async function createSyncGame(playerId: string): Promise<SyncGame> {
   const roomCode = generateRoomCode();
@@ -109,7 +109,7 @@ export async function generateRounds(gameId: string): Promise<SyncRound[]> {
   try {
     const allWords = await getDuelWordPool(gameId);
     if (allWords.length < 2) {
-      throw new Error('Both players need to add some lesson vocabulary before starting a duel.');
+      throw new Error('Both players need to add some lesson vocabulary before starting a clash.');
     }
 
     const gameWords = getRandomWords(
@@ -139,6 +139,81 @@ export async function generateRounds(gameId: string): Promise<SyncRound[]> {
     return rounds;
   } finally {
     _generatingRounds.delete(gameId);
+  }
+}
+
+// ============ ELO RATING ============
+
+/**
+ * Update ELO ratings for both players after a sync game completes.
+ * Uses standard ELO formula with K-factor of 32.
+ * Also increments games_played for both players.
+ */
+export async function updateEloRatings(
+  playerAId: string,
+  playerBId: string,
+  winnerId: string | null // null = draw
+): Promise<void> {
+  // Fetch both players' current ratings
+  const { data: profiles, error: fetchError } = await supabase
+    .from('profiles')
+    .select('id, elo_rating, games_played')
+    .in('id', [playerAId, playerBId]);
+
+  if (fetchError || !profiles || profiles.length < 2) {
+    console.error('Failed to fetch profiles for ELO update:', fetchError);
+    return;
+  }
+
+  const profileA = profiles.find(p => p.id === playerAId)!;
+  const profileB = profiles.find(p => p.id === playerBId)!;
+
+  const ratingA = profileA.elo_rating ?? 1000;
+  const ratingB = profileB.elo_rating ?? 1000;
+
+  // Expected scores
+  const expectedA = 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
+  const expectedB = 1 / (1 + Math.pow(10, (ratingA - ratingB) / 400));
+
+  // Actual scores: 1 for win, 0.5 for draw, 0 for loss
+  let actualA: number;
+  let actualB: number;
+  if (winnerId === null) {
+    actualA = 0.5;
+    actualB = 0.5;
+  } else if (winnerId === playerAId) {
+    actualA = 1;
+    actualB = 0;
+  } else {
+    actualA = 0;
+    actualB = 1;
+  }
+
+  const K = 32;
+  const newRatingA = Math.round(ratingA + K * (actualA - expectedA));
+  const newRatingB = Math.round(ratingB + K * (actualB - expectedB));
+
+  // Update both profiles
+  const updates = [
+    supabase
+      .from('profiles')
+      .update({
+        elo_rating: newRatingA,
+        games_played: (profileA.games_played ?? 0) + 1,
+      })
+      .eq('id', playerAId),
+    supabase
+      .from('profiles')
+      .update({
+        elo_rating: newRatingB,
+        games_played: (profileB.games_played ?? 0) + 1,
+      })
+      .eq('id', playerBId),
+  ];
+
+  const results = await Promise.all(updates);
+  for (const { error } of results) {
+    if (error) console.error('Failed to update ELO rating:', error);
   }
 }
 

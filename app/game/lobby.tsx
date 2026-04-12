@@ -89,7 +89,7 @@ export default function LobbyScreen() {
       <Card style={styles.createSection}>
         <Text style={styles.sectionTitle}>Create a Game</Text>
         <Text style={styles.sectionDesc}>
-          Start a new Koshur Duel and share the room code with a friend
+          Start a new Koshur Clash and share the room code with a friend
         </Text>
         <Button
           title={loading ? 'Creating...' : 'Create Room'}

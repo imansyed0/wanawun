@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '@/src/components/ui/Button';
 import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
@@ -7,13 +7,14 @@ import { useAuth } from '@/src/hooks/useAuth';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { signUp } = useAuth();
+  const { signUp, signInWithGoogle } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   async function handleRegister() {
     setError('');
@@ -38,6 +39,19 @@ export default function RegisterScreen() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    setError('');
+    setSuccess('');
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setGoogleLoading(false);
     }
   }
 
@@ -82,6 +96,26 @@ export default function RegisterScreen() {
           disabled={loading}
           size="lg"
         />
+
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <Pressable
+          onPress={handleGoogleSignIn}
+          disabled={googleLoading}
+          style={({ pressed }) => [
+            styles.googleButton,
+            pressed && styles.googleButtonPressed,
+            googleLoading && styles.googleButtonDisabled,
+          ]}
+        >
+          <Text style={styles.googleButtonText}>
+            {googleLoading ? 'Connecting...' : 'Sign up with Google'}
+          </Text>
+        </Pressable>
       </View>
 
       <Button
@@ -146,5 +180,44 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0fdf4',
     borderRadius: BorderRadius.sm,
     overflow: 'hidden',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing.sm,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  dividerText: {
+    marginHorizontal: Spacing.md,
+    fontSize: FontSize.sm,
+    color: Colors.textLight,
+    fontWeight: '500',
+  },
+  googleButton: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleButtonPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
+  googleButtonDisabled: {
+    opacity: 0.5,
+  },
+  googleButtonText: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: Colors.text,
+    letterSpacing: 0.3,
   },
 });

@@ -1,20 +1,44 @@
 import { useState } from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '@/src/components/ui/Button';
 import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 import { useAuth } from '@/src/hooks/useAuth';
+import { supabase } from '@/src/lib/supabase';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
+  const [resetting, setResetting] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  async function handleResetPassword() {
+    setError('');
+    setResetMessage('');
+    if (!email.trim()) {
+      setError('Please enter your email address first');
+      return;
+    }
+    setResetting(true);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email);
+      if (resetError) throw resetError;
+      setResetMessage('Check your email for a reset link');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setResetting(false);
+    }
+  }
 
   async function handleLogin() {
     setError('');
+    setResetMessage('');
     if (!email || !password) {
       setError('Please fill in all fields');
       return;
@@ -30,6 +54,19 @@ export default function LoginScreen() {
     }
   }
 
+  async function handleGoogleSignIn() {
+    setError('');
+    setResetMessage('');
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setGoogleLoading(false);
+    }
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome Back</Text>
@@ -37,6 +74,7 @@ export default function LoginScreen() {
 
       <View style={styles.form}>
         {error ? <Text style={styles.error}>{error}</Text> : null}
+        {resetMessage ? <Text style={styles.success}>{resetMessage}</Text> : null}
 
         <TextInput
           style={styles.input}
@@ -57,11 +95,37 @@ export default function LoginScreen() {
           secureTextEntry
         />
         <Button
+          title={resetting ? 'Sending...' : 'Forgot Password?'}
+          onPress={handleResetPassword}
+          variant="ghost"
+          disabled={resetting}
+        />
+        <Button
           title={loading ? 'Signing in...' : 'Sign In'}
           onPress={handleLogin}
           disabled={loading}
           size="lg"
         />
+
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <Pressable
+          onPress={handleGoogleSignIn}
+          disabled={googleLoading}
+          style={({ pressed }) => [
+            styles.googleButton,
+            pressed && styles.googleButtonPressed,
+            googleLoading && styles.googleButtonDisabled,
+          ]}
+        >
+          <Text style={styles.googleButtonText}>
+            {googleLoading ? 'Connecting...' : 'Sign in with Google'}
+          </Text>
+        </Pressable>
       </View>
 
       <Button
@@ -117,5 +181,53 @@ const styles = StyleSheet.create({
     backgroundColor: '#fef2f2',
     borderRadius: BorderRadius.sm,
     overflow: 'hidden',
+  },
+  success: {
+    color: Colors.primary,
+    fontSize: FontSize.sm,
+    textAlign: 'center',
+    padding: Spacing.sm,
+    backgroundColor: '#f0fdf4',
+    borderRadius: BorderRadius.sm,
+    overflow: 'hidden',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing.sm,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  dividerText: {
+    marginHorizontal: Spacing.md,
+    fontSize: FontSize.sm,
+    color: Colors.textLight,
+    fontWeight: '500',
+  },
+  googleButton: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleButtonPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
+  googleButtonDisabled: {
+    opacity: 0.5,
+  },
+  googleButtonText: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: Colors.text,
+    letterSpacing: 0.3,
   },
 });

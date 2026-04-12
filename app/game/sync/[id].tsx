@@ -68,7 +68,7 @@ export default function SyncGameScreen() {
             variant="outline"
             onPress={() =>
               Share.share({
-                message: `Join my Koshur Duel! Room code: ${roomCode}`,
+                message: `Join my Koshur Clash! Room code: ${roomCode}`,
               })
             }
           />
