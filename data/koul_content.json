@@ -1,0 +1,2417 @@
+[
+  {
+    "chapter": 1,
+    "title": "Lesson 1",
+    "audioPrefix": "audio/",
+    "sections": {
+      "lesson": [
+        {
+          "image": "1.1.jpg",
+          "audio": "1.1.mp3"
+        },
+        {
+          "image": "1.2.jpg",
+          "audio": "1.2.mp3"
+        },
+        {
+          "image": "1.3.jpg",
+          "audio": "1.3.mp3"
+        },
+        {
+          "image": "1.4.jpg",
+          "audio": "1.4.mp3"
+        },
+        {
+          "image": "1.5.jpg",
+          "audio": "1.5.mp3"
+        },
+        {
+          "image": "1.6.jpg",
+          "audio": "1.6.mp3"
+        },
+        {
+          "image": "1.7.jpg",
+          "audio": "1.7.mp3"
+        },
+        {
+          "image": "1.8.jpg",
+          "audio": "1.8.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "1.9.jpg",
+          "audio": "1.9.mp3"
+        },
+        {
+          "image": "1.10.jpg",
+          "audio": "1.10.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "1.11.jpg",
+          "audio": "1.11.mp3"
+        },
+        {
+          "image": "1.12.jpg",
+          "audio": "1.12.mp3"
+        },
+        {
+          "image": "1.13.jpg",
+          "audio": "1.13.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "1.14.jpg",
+          "audio": "1.14.mp3"
+        },
+        {
+          "image": "1.15.jpg",
+          "audio": "1.15.mp3"
+        },
+        {
+          "image": "1.16.jpg",
+          "audio": "1.16.mp3"
+        },
+        {
+          "image": "1.17.jpg",
+          "audio": "1.17.mp3"
+        },
+        {
+          "image": "1.18.jpg",
+          "audio": "1.18.mp3"
+        },
+        {
+          "image": "1.19.jpg",
+          "audio": "1.19.mp3"
+        },
+        {
+          "image": "1.20.jpg",
+          "audio": "1.20.mp3"
+        },
+        {
+          "image": "1.21.jpg",
+          "audio": "1.21.mp3"
+        },
+        {
+          "image": "1.22.jpg",
+          "audio": "1.22.mp3"
+        },
+        {
+          "image": "1.23.jpg",
+          "audio": "1.23.mp3"
+        },
+        {
+          "image": "1.24.jpg",
+          "audio": "1.24.mp3"
+        },
+        {
+          "image": "1.25.jpg",
+          "audio": "1.25.mp3"
+        },
+        {
+          "image": "1.26.jpg",
+          "audio": "1.26.mp3"
+        },
+        {
+          "image": "1.27.jpg",
+          "audio": "1.27.mp3"
+        },
+        {
+          "image": "1.28.jpg",
+          "audio": "1.28.mp3"
+        },
+        {
+          "image": "1.29.jpg",
+          "audio": "1.29.mp3"
+        },
+        {
+          "image": "1.30.jpg",
+          "audio": "1.30.mp3"
+        },
+        {
+          "image": "1.31.jpg",
+          "audio": "1.31.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "1.32.jpg",
+          "audio": "1.32.mp3"
+        },
+        {
+          "image": "1.33.jpg",
+          "audio": "1.33.mp3"
+        },
+        {
+          "image": "1.34.jpg",
+          "audio": "1.34.mp3"
+        },
+        {
+          "image": "1.35.jpg",
+          "audio": "1.35.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 2,
+    "title": "Lesson 2",
+    "audioPrefix": "audio/",
+    "sections": {
+      "lesson": [
+        {
+          "image": "2.1.jpg",
+          "audio": "2.1.mp3"
+        },
+        {
+          "image": "2.2.jpg",
+          "audio": "2.2.mp3"
+        },
+        {
+          "image": "2.3.jpg",
+          "audio": "2.3.mp3"
+        },
+        {
+          "image": "2.4.jpg",
+          "audio": "2.4.mp3"
+        },
+        {
+          "image": "2.5.jpg",
+          "audio": "2.5.mp3"
+        },
+        {
+          "image": "2.6.jpg",
+          "audio": "2.6.mp3"
+        },
+        {
+          "image": "2.7.jpg",
+          "audio": "2.7.mp3"
+        },
+        {
+          "image": "2.8.jpg",
+          "audio": "2.8.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "2.9.jpg",
+          "audio": "2.9.mp3"
+        },
+        {
+          "image": "2.10.jpg",
+          "audio": "2.10.mp3"
+        },
+        {
+          "image": "2.11.jpg",
+          "audio": "2.11.mp3"
+        },
+        {
+          "image": "2.12.jpg",
+          "audio": "2.12.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "2.13.jpg",
+          "audio": "2.13.mp3"
+        },
+        {
+          "image": "2.14.jpg",
+          "audio": "2.14.mp3"
+        },
+        {
+          "image": "2.15.jpg",
+          "audio": "2.15.mp3"
+        },
+        {
+          "image": "2.16.jpg",
+          "audio": "2.16.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "2.17.jpg",
+          "audio": "2.17.mp3"
+        },
+        {
+          "image": "2.18.jpg",
+          "audio": "2.18.mp3"
+        },
+        {
+          "image": "2.19.jpg",
+          "audio": "2.19.mp3"
+        },
+        {
+          "image": "2.20.jpg",
+          "audio": "2.20.mp3"
+        },
+        {
+          "image": "2.21.jpg",
+          "audio": "2.21.mp3"
+        },
+        {
+          "image": "2.22.jpg",
+          "audio": "2.22.mp3"
+        },
+        {
+          "image": "2.23.jpg",
+          "audio": "2.23.mp3"
+        },
+        {
+          "image": "2.24.jpg",
+          "audio": "2.24.mp3"
+        },
+        {
+          "image": "2.25.jpg",
+          "audio": "2.25.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "2.26.jpg",
+          "audio": "2.26.mp3"
+        },
+        {
+          "image": "2.27.jpg",
+          "audio": "2.27.mp3"
+        },
+        {
+          "image": "2.28.jpg",
+          "audio": "2.28.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 3,
+    "title": "Lesson 3",
+    "audioPrefix": "audio/",
+    "sections": {
+      "lesson": [
+        {
+          "image": "3.1.jpg",
+          "audio": "3.1.mp3"
+        },
+        {
+          "image": "3.2.jpg",
+          "audio": "3.2.mp3"
+        },
+        {
+          "image": "3.3.jpg",
+          "audio": "3.3.mp3"
+        },
+        {
+          "image": "3.4.jpg",
+          "audio": "3.4.mp3"
+        },
+        {
+          "image": "3.5.jpg",
+          "audio": "3.5.mp3"
+        },
+        {
+          "image": "3.6.jpg",
+          "audio": "3.6.mp3"
+        },
+        {
+          "image": "3.7.jpg",
+          "audio": "3.7.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "3.8.jpg",
+          "audio": "3.8.mp3"
+        },
+        {
+          "image": "3.9.jpg",
+          "audio": "3.9.mp3"
+        },
+        {
+          "image": "3.10.jpg",
+          "audio": "3.10.mp3"
+        },
+        {
+          "image": "3.11.jpg",
+          "audio": "3.11.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "3.12.jpg",
+          "audio": "3.12.mp3"
+        },
+        {
+          "image": "3.13.jpg",
+          "audio": "3.13.mp3"
+        },
+        {
+          "image": "3.14.jpg",
+          "audio": "3.14.mp3"
+        },
+        {
+          "image": "3.15.jpg",
+          "audio": "3.15.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "3.16.jpg",
+          "audio": "3.16.mp3"
+        },
+        {
+          "image": "3.17.jpg",
+          "audio": "3.17.mp3"
+        },
+        {
+          "image": "3.18.jpg",
+          "audio": "3.18.mp3"
+        },
+        {
+          "image": "3.19.jpg",
+          "audio": "3.19.mp3"
+        },
+        {
+          "image": "3.20.jpg",
+          "audio": "3.20.mp3"
+        },
+        {
+          "image": "3.21.jpg",
+          "audio": "3.21.mp3"
+        },
+        {
+          "image": "3.22.jpg",
+          "audio": "3.22.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "3.23.jpg",
+          "audio": "3.23.mp3"
+        },
+        {
+          "image": "3.24.jpg",
+          "audio": "3.24.mp3"
+        },
+        {
+          "image": "3.25.jpg",
+          "audio": "3.25.mp3"
+        },
+        {
+          "image": "3.26.jpg",
+          "audio": "3.26.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 4,
+    "title": "Lesson 4",
+    "audioPrefix": "audio/",
+    "sections": {
+      "lesson": [
+        {
+          "image": "4.1.jpg",
+          "audio": "4.1.mp3"
+        },
+        {
+          "image": "4.2.jpg",
+          "audio": "4.2.mp3"
+        },
+        {
+          "image": "4.3.jpg",
+          "audio": "4.3.mp3"
+        },
+        {
+          "image": "4.4.jpg",
+          "audio": "4.4.mp3"
+        },
+        {
+          "image": "4.5.jpg",
+          "audio": "4.5.mp3"
+        },
+        {
+          "image": "4.6.jpg",
+          "audio": "4.6.mp3"
+        },
+        {
+          "image": "4.7.jpg",
+          "audio": "4.7.mp3"
+        },
+        {
+          "image": "4.8.jpg",
+          "audio": "4.8.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "4.9.jpg",
+          "audio": "4.9.mp3"
+        },
+        {
+          "image": "4.10.jpg",
+          "audio": "4.10.mp3"
+        },
+        {
+          "image": "4.11.jpg",
+          "audio": "4.11.mp3"
+        },
+        {
+          "image": "4.12.jpg",
+          "audio": "4.12.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "4.13.jpg",
+          "audio": "4.13.mp3"
+        },
+        {
+          "image": "4.14.jpg",
+          "audio": "4.14.mp3"
+        },
+        {
+          "image": "4.15.jpg",
+          "audio": "4.15.mp3"
+        },
+        {
+          "image": "4.16.jpg",
+          "audio": "4.16.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "4.17.jpg",
+          "audio": "4.17.mp3"
+        },
+        {
+          "image": "4.18.jpg",
+          "audio": "4.18.mp3"
+        },
+        {
+          "image": "4.19.jpg",
+          "audio": "4.19.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "4.20.jpg",
+          "audio": "4.20.mp3"
+        },
+        {
+          "image": "4.21.jpg",
+          "audio": "4.21.mp3"
+        },
+        {
+          "image": "4.22.jpg",
+          "audio": "4.22.mp3"
+        },
+        {
+          "image": "4.23.jpg",
+          "audio": "4.23.mp3"
+        },
+        {
+          "image": "4.24.jpg",
+          "audio": "4.24.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 5,
+    "title": "Lesson 5",
+    "audioPrefix": "",
+    "sections": {
+      "lesson": [
+        {
+          "image": "5.1.jpg",
+          "audio": "5.1.mp3"
+        },
+        {
+          "image": "5.2.jpg",
+          "audio": "5.2.mp3"
+        },
+        {
+          "image": "5.3.jpg",
+          "audio": "5.3.mp3"
+        },
+        {
+          "image": "5.4.jpg",
+          "audio": "5.4.mp3"
+        },
+        {
+          "image": "5.5.jpg",
+          "audio": "5.5.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "5.6.jpg",
+          "audio": "5.6.mp3"
+        },
+        {
+          "image": "5.7.jpg",
+          "audio": "5.7.mp3"
+        },
+        {
+          "image": "5.8.jpg",
+          "audio": "5.8.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "5.9.jpg",
+          "audio": "5.9.mp3"
+        },
+        {
+          "image": "5.10.jpg",
+          "audio": "5.10.mp3"
+        },
+        {
+          "image": "5.11.jpg",
+          "audio": "5.11.mp3"
+        },
+        {
+          "image": "5.12.jpg",
+          "audio": "5.12.mp3"
+        },
+        {
+          "image": "5.13.jpg",
+          "audio": "5.13.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "5.14.jpg",
+          "audio": "5.14.mp3"
+        },
+        {
+          "image": "5.15.jpg",
+          "audio": "5.15.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "5.16.jpg",
+          "audio": "5.16.mp3"
+        },
+        {
+          "image": "5.17.jpg",
+          "audio": "5.17.mp3"
+        },
+        {
+          "image": "5.18.jpg",
+          "audio": "5.18.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 6,
+    "title": "Lesson 6",
+    "audioPrefix": "",
+    "sections": {
+      "lesson": [
+        {
+          "image": "6.1.jpg",
+          "audio": "6.1.mp3"
+        },
+        {
+          "image": "6.2.jpg",
+          "audio": "6.2.mp3"
+        },
+        {
+          "image": "6.3.jpg",
+          "audio": "6.3.mp3"
+        },
+        {
+          "image": "6.4.jpg",
+          "audio": "6.4.mp3"
+        },
+        {
+          "image": "6.5.jpg",
+          "audio": "6.5.mp3"
+        },
+        {
+          "image": "6.6.jpg",
+          "audio": "6.6.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "6.7.jpg",
+          "audio": "6.7.mp3"
+        },
+        {
+          "image": "6.8.jpg",
+          "audio": "6.8.mp3"
+        },
+        {
+          "image": "6.9.jpg",
+          "audio": "6.9.mp3"
+        },
+        {
+          "image": "6.10.jpg",
+          "audio": "6.10.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "6.11.jpg",
+          "audio": "6.11.mp3"
+        },
+        {
+          "image": "6.12.jpg",
+          "audio": "6.12.mp3"
+        },
+        {
+          "image": "6.13.jpg",
+          "audio": "6.13.mp3"
+        },
+        {
+          "image": "6.14.jpg",
+          "audio": "6.14.mp3"
+        },
+        {
+          "image": "6.15.jpg",
+          "audio": "6.15.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "6.16.jpg",
+          "audio": "6.16.mp3"
+        },
+        {
+          "image": "6.17.jpg",
+          "audio": "6.17.mp3"
+        },
+        {
+          "image": "6.18.jpg",
+          "audio": "6.18.mp3"
+        },
+        {
+          "image": "6.19.jpg",
+          "audio": "6.19.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "6.20.jpg",
+          "audio": "6.20.mp3"
+        },
+        {
+          "image": "6.21.jpg",
+          "audio": "6.21.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 7,
+    "title": "Lesson 7",
+    "audioPrefix": "",
+    "sections": {
+      "lesson": [
+        {
+          "image": "7.1.jpg",
+          "audio": "7.1.mp3"
+        },
+        {
+          "image": "7.2.jpg",
+          "audio": "7.2.mp3"
+        },
+        {
+          "image": "7.3.jpg",
+          "audio": "7.3.mp3"
+        },
+        {
+          "image": "7.4.jpg",
+          "audio": "7.4.mp3"
+        },
+        {
+          "image": "7.5.jpg",
+          "audio": "7.5.mp3"
+        },
+        {
+          "image": "7.6.jpg",
+          "audio": "7.6.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "7.7.jpg",
+          "audio": "7.7.mp3"
+        },
+        {
+          "image": "7.8.jpg",
+          "audio": "7.8.mp3"
+        },
+        {
+          "image": "7.9.jpg",
+          "audio": "7.9.mp3"
+        },
+        {
+          "image": "7.10.jpg",
+          "audio": "7.10.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "7.11.jpg",
+          "audio": "7.11.mp3"
+        },
+        {
+          "image": "7.12.jpg",
+          "audio": "7.12.mp3"
+        },
+        {
+          "image": "7.13.jpg",
+          "audio": "7.13.mp3"
+        },
+        {
+          "image": "7.14.jpg",
+          "audio": "7.14.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "7.15.jpg",
+          "audio": "7.15.mp3"
+        },
+        {
+          "image": "7.16.jpg",
+          "audio": "7.16.mp3"
+        },
+        {
+          "image": "7.17.jpg",
+          "audio": "7.17.mp3"
+        },
+        {
+          "image": "7.18.jpg",
+          "audio": "7.18.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "7.19.jpg",
+          "audio": "7.19.mp3"
+        },
+        {
+          "image": "7.20.jpg",
+          "audio": "7.20.mp3"
+        },
+        {
+          "image": "7.21.jpg",
+          "audio": "7.21.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 8,
+    "title": "Lesson 8",
+    "audioPrefix": "",
+    "sections": {
+      "lesson": [
+        {
+          "image": "8.1.jpg",
+          "audio": "8.1.mp3"
+        },
+        {
+          "image": "8.2.jpg",
+          "audio": "8.2.mp3"
+        },
+        {
+          "image": "8.3.jpg",
+          "audio": "8.3.mp3"
+        },
+        {
+          "image": "8.4.jpg",
+          "audio": "8.4.mp3"
+        },
+        {
+          "image": "8.5.jpg",
+          "audio": "8.5.mp3"
+        },
+        {
+          "image": "8.6.jpg",
+          "audio": "8.6.mp3"
+        },
+        {
+          "image": "8.7.jpg",
+          "audio": "8.7.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "8.8.jpg",
+          "audio": "8.8.mp3"
+        },
+        {
+          "image": "8.9.jpg",
+          "audio": "8.9.mp3"
+        },
+        {
+          "image": "8.10.jpg",
+          "audio": "8.10.mp3"
+        },
+        {
+          "image": "8.11.jpg",
+          "audio": "8.11.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "8.12.jpg",
+          "audio": "8.12.mp3"
+        },
+        {
+          "image": "8.13.jpg",
+          "audio": "8.13.mp3"
+        },
+        {
+          "image": "8.14.jpg",
+          "audio": "8.14.mp3"
+        },
+        {
+          "image": "8.15.jpg",
+          "audio": "8.15.mp3"
+        },
+        {
+          "image": "8.16.jpg",
+          "audio": "8.16.mp3"
+        },
+        {
+          "image": "8.17.jpg",
+          "audio": "8.17.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "8.18.jpg",
+          "audio": "8.18.mp3"
+        },
+        {
+          "image": "8.20.jpg",
+          "audio": "8.20.mp3"
+        },
+        {
+          "image": "8.21.jpg",
+          "audio": "8.21.mp3"
+        },
+        {
+          "image": "8.22.jpg",
+          "audio": "8.22.mp3"
+        },
+        {
+          "image": "8.23.jpg",
+          "audio": "8.23.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "8.24.jpg",
+          "audio": "8.24.mp3"
+        },
+        {
+          "image": "8.25.jpg",
+          "audio": "8.25.mp3"
+        },
+        {
+          "image": "8.26.jpg",
+          "audio": "8.26.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 9,
+    "title": "Lesson 9",
+    "audioPrefix": "",
+    "sections": {
+      "lesson": [
+        {
+          "image": "9.1.jpg",
+          "audio": "9.1.mp3"
+        },
+        {
+          "image": "9.2.jpg",
+          "audio": "9.2.mp3"
+        },
+        {
+          "image": "9.3.jpg",
+          "audio": "9.3.mp3"
+        },
+        {
+          "image": "9.4.jpg",
+          "audio": "9.4.mp3"
+        },
+        {
+          "image": "9.5.jpg",
+          "audio": "9.5.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "9.6.jpg",
+          "audio": "9.6.mp3"
+        },
+        {
+          "image": "9.7.jpg",
+          "audio": "9.7.mp3"
+        },
+        {
+          "image": "9.8.jpg",
+          "audio": "9.8.mp3"
+        },
+        {
+          "image": "9.9.jpg",
+          "audio": "9.9.mp3"
+        },
+        {
+          "image": "9.10.jpg",
+          "audio": "9.10.mp3"
+        },
+        {
+          "image": "9.11.jpg",
+          "audio": "9.11.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "9.12.jpg",
+          "audio": "9.12.mp3"
+        },
+        {
+          "image": "9.13.jpg",
+          "audio": "9.13.mp3"
+        },
+        {
+          "image": "9.14.jpg",
+          "audio": "9.14.mp3"
+        },
+        {
+          "image": "9.15.jpg",
+          "audio": "9.15.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "9.17.jpg",
+          "audio": "9.17.mp3"
+        },
+        {
+          "image": "9.18.jpg",
+          "audio": "9.18.mp3"
+        },
+        {
+          "image": "9.19.jpg",
+          "audio": "9.19.mp3"
+        },
+        {
+          "image": "9.20.jpg",
+          "audio": "9.20.mp3"
+        },
+        {
+          "image": "9.21.jpg",
+          "audio": "9.21.mp3"
+        },
+        {
+          "image": "9.22.jpg",
+          "audio": "9.22.mp3"
+        },
+        {
+          "image": "9.23.jpg",
+          "audio": "9.23.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "9.24.jpg",
+          "audio": "9.24.mp3"
+        },
+        {
+          "image": "9.25.jpg",
+          "audio": "9.25.mp3"
+        },
+        {
+          "image": "9.26.jpg",
+          "audio": "9.26.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 10,
+    "title": "Lesson 10",
+    "audioPrefix": "",
+    "sections": {
+      "lesson": [
+        {
+          "image": "10.1.jpg",
+          "audio": "10.1.mp3"
+        },
+        {
+          "image": "10.2.jpg",
+          "audio": "10.2.mp3"
+        },
+        {
+          "image": "10.3.jpg",
+          "audio": "10.3.mp3"
+        },
+        {
+          "image": "10.4.jpg",
+          "audio": "10.4.mp3"
+        },
+        {
+          "image": "10.5.jpg",
+          "audio": "10.5.mp3"
+        },
+        {
+          "image": "10.6.jpg",
+          "audio": "10.6.mp3"
+        },
+        {
+          "image": "10.7.jpg",
+          "audio": "10.7.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "10.8.jpg",
+          "audio": "10.8.mp3"
+        },
+        {
+          "image": "10.9.jpg",
+          "audio": "10.9.mp3"
+        },
+        {
+          "image": "10.10.jpg",
+          "audio": "10.10.mp3"
+        },
+        {
+          "image": "10.11.jpg",
+          "audio": "10.11.mp3"
+        },
+        {
+          "image": "10.12.jpg",
+          "audio": "10.12.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "10.13.jpg",
+          "audio": "10.13.mp3"
+        },
+        {
+          "image": "10.14.jpg",
+          "audio": "10.14.mp3"
+        },
+        {
+          "image": "10.15.jpg",
+          "audio": "10.15.mp3"
+        },
+        {
+          "image": "10.17.jpg",
+          "audio": "10.17.mp3"
+        },
+        {
+          "image": "10.18.jpg",
+          "audio": "10.18.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "10.19.jpg",
+          "audio": "10.19.mp3"
+        },
+        {
+          "image": "10.20.jpg",
+          "audio": "10.20.mp3"
+        },
+        {
+          "image": "10.21.jpg",
+          "audio": "10.21.mp3"
+        },
+        {
+          "image": "10.22.jpg",
+          "audio": "10.22.mp3"
+        },
+        {
+          "image": "10.23.jpg",
+          "audio": "10.23.mp3"
+        },
+        {
+          "image": "10.24.jpg",
+          "audio": "10.24.mp3"
+        },
+        {
+          "image": "10.25.jpg",
+          "audio": "10.25.mp3"
+        },
+        {
+          "image": "10.26.jpg",
+          "audio": "10.26.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "10.27.jpg",
+          "audio": "10.27.mp3"
+        },
+        {
+          "image": "10.28.jpg",
+          "audio": "10.28.mp3"
+        },
+        {
+          "image": "10.29.jpg",
+          "audio": "10.29.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 11,
+    "title": "Lesson 11",
+    "audioPrefix": "",
+    "sections": {
+      "lesson": [
+        {
+          "image": "11.1.jpg",
+          "audio": "11.1.mp3"
+        },
+        {
+          "image": "11.2.jpg",
+          "audio": "11.2.mp3"
+        },
+        {
+          "image": "11.3.jpg",
+          "audio": "11.3.mp3"
+        },
+        {
+          "image": "11.4.jpg",
+          "audio": "11.4.mp3"
+        },
+        {
+          "image": "11.5.jpg",
+          "audio": "11.5.mp3"
+        },
+        {
+          "image": "11.6.jpg",
+          "audio": "11.6.mp3"
+        },
+        {
+          "image": "11.7.jpg",
+          "audio": "11.7.mp3"
+        },
+        {
+          "image": "11.8.jpg",
+          "audio": "11.8.mp3"
+        },
+        {
+          "image": "11.9.jpg",
+          "audio": "11.9.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "11.10.jpg",
+          "audio": "11.10.mp3"
+        },
+        {
+          "image": "11.11.jpg",
+          "audio": "11.11.mp3"
+        },
+        {
+          "image": "11.12.jpg",
+          "audio": "11.12.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "11.13.jpg",
+          "audio": "11.13.mp3"
+        },
+        {
+          "image": "11.14.jpg",
+          "audio": "11.14.mp3"
+        },
+        {
+          "image": "11.15.jpg",
+          "audio": "11.15.mp3"
+        },
+        {
+          "image": "11.16.jpg",
+          "audio": "11.16.mp3"
+        },
+        {
+          "image": "11.26.jpg",
+          "audio": "11.26.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "11.17.jpg",
+          "audio": "11.17.mp3"
+        },
+        {
+          "image": "11.18.jpg",
+          "audio": "11.18.mp3"
+        },
+        {
+          "image": "11.19.jpg",
+          "audio": "11.19.mp3"
+        },
+        {
+          "image": "11.20.jpg",
+          "audio": "11.20.mp3"
+        },
+        {
+          "image": "11.21.jpg",
+          "audio": "11.21.mp3"
+        },
+        {
+          "image": "11.22.jpg",
+          "audio": "11.22.mp3"
+        },
+        {
+          "image": "11.23.jpg",
+          "audio": "11.23.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "11.24.jpg",
+          "audio": "11.24.mp3"
+        },
+        {
+          "image": "11.25.jpg",
+          "audio": "11.25.mp3"
+        },
+        {
+          "image": "11.27.jpg",
+          "audio": "11.27.mp3"
+        },
+        {
+          "image": "11.28.jpg",
+          "audio": "11.28.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 12,
+    "title": "Lesson 12",
+    "audioPrefix": "",
+    "sections": {
+      "lesson": [
+        {
+          "image": "12.1.jpg",
+          "audio": "12.1.mp3"
+        },
+        {
+          "image": "12.2.jpg",
+          "audio": "12.2.mp3"
+        },
+        {
+          "image": "12.3.jpg",
+          "audio": "12.3.mp3"
+        },
+        {
+          "image": "12.4.jpg",
+          "audio": "12.4.mp3"
+        },
+        {
+          "image": "12.5.jpg",
+          "audio": "12.5.mp3"
+        },
+        {
+          "image": "12.6.jpg",
+          "audio": "12.6.mp3"
+        },
+        {
+          "image": "12.7.jpg",
+          "audio": "12.7.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "12.8.jpg",
+          "audio": "12.8.mp3"
+        },
+        {
+          "image": "12.9.jpg",
+          "audio": "12.9.mp3"
+        },
+        {
+          "image": "12.10.jpg",
+          "audio": "12.10.mp3"
+        },
+        {
+          "image": "12.11.jpg",
+          "audio": "12.11.mp3"
+        },
+        {
+          "image": "12.12.jpg",
+          "audio": "12.12.mp3"
+        },
+        {
+          "image": "12.13.jpg",
+          "audio": "12.13.mp3"
+        },
+        {
+          "image": "12.14.jpg",
+          "audio": "12.14.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "12.15.jpg",
+          "audio": "12.15.mp3"
+        },
+        {
+          "image": "12.16.jpg",
+          "audio": "12.16.mp3"
+        },
+        {
+          "image": "12.17.jpg",
+          "audio": "12.17.mp3"
+        },
+        {
+          "image": "12.18.jpg",
+          "audio": "12.18.mp3"
+        },
+        {
+          "image": "12.19.jpg",
+          "audio": "12.19.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "12.20.jpg",
+          "audio": "12.20.mp3"
+        },
+        {
+          "image": "12.21.jpg",
+          "audio": "12.21.mp3"
+        },
+        {
+          "image": "12.22.jpg",
+          "audio": "12.22.mp3"
+        },
+        {
+          "image": "12.23.jpg",
+          "audio": "12.23.mp3"
+        },
+        {
+          "image": "12.24.jpg",
+          "audio": "12.24.mp3"
+        },
+        {
+          "image": "12.25.jpg",
+          "audio": "12.25.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "12.26.jpg",
+          "audio": "12.26.mp3"
+        },
+        {
+          "image": "12.27.jpg",
+          "audio": "12.27.mp3"
+        },
+        {
+          "image": "12.28.jpg",
+          "audio": "12.28.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 13,
+    "title": "Lesson 13",
+    "audioPrefix": "",
+    "sections": {
+      "lesson": [
+        {
+          "image": "13.1.jpg",
+          "audio": "13.1.mp3"
+        },
+        {
+          "image": "13.2.jpg",
+          "audio": "13.2.mp3"
+        },
+        {
+          "image": "13.3.jpg",
+          "audio": "13.3.mp3"
+        },
+        {
+          "image": "13.4.jpg",
+          "audio": "13.4.mp3"
+        },
+        {
+          "image": "13.5.jpg",
+          "audio": "13.5.mp3"
+        },
+        {
+          "image": "13.6.jpg",
+          "audio": "13.6.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "13.7.jpg",
+          "audio": "13.7.mp3"
+        },
+        {
+          "image": "13.8.jpg",
+          "audio": "13.8.mp3"
+        },
+        {
+          "image": "13.9.jpg",
+          "audio": "13.9.mp3"
+        },
+        {
+          "image": "13.10.jpg",
+          "audio": "13.10.mp3"
+        },
+        {
+          "image": "13.11.jpg",
+          "audio": "13.11.mp3"
+        },
+        {
+          "image": "13.12.jpg",
+          "audio": "13.12.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "13.13.jpg",
+          "audio": "13.13.mp3"
+        },
+        {
+          "image": "13.14.jpg",
+          "audio": "13.14.mp3"
+        },
+        {
+          "image": "13.15.jpg",
+          "audio": "13.15.mp3"
+        },
+        {
+          "image": "13.16.jpg",
+          "audio": "13.16.mp3"
+        },
+        {
+          "image": "13.17.jpg",
+          "audio": "13.17.mp3"
+        }
+      ],
+      "notes": [],
+      "vocabulary": [
+        {
+          "image": "13.18.jpg",
+          "audio": "13.18.mp3"
+        },
+        {
+          "image": "13.19.jpg",
+          "audio": "13.19.mp3"
+        },
+        {
+          "image": "13.20.jpg",
+          "audio": "13.20.mp3"
+        },
+        {
+          "image": "13.21.jpg",
+          "audio": "13.21.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 14,
+    "title": "Lesson 14",
+    "audioPrefix": "",
+    "sections": {
+      "lesson": [
+        {
+          "image": "14.1.jpg",
+          "audio": "14.1.mp3"
+        },
+        {
+          "image": "14.2.jpg",
+          "audio": "14.2.mp3"
+        },
+        {
+          "image": "14.3.jpg",
+          "audio": "14.3.mp3"
+        },
+        {
+          "image": "14.4.jpg",
+          "audio": "14.4.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "14.6.jpg",
+          "audio": "14.6.mp3"
+        },
+        {
+          "image": "14.7.jpg",
+          "audio": "14.7.mp3"
+        },
+        {
+          "image": "14.8.jpg",
+          "audio": "14.8.mp3"
+        },
+        {
+          "image": "14.9.jpg",
+          "audio": "14.9.mp3"
+        },
+        {
+          "image": "14.10.jpg",
+          "audio": "14.10.mp3"
+        },
+        {
+          "image": "14.11.jpg",
+          "audio": "14.11.mp3"
+        },
+        {
+          "image": "14.12.jpg",
+          "audio": "14.12.mp3"
+        },
+        {
+          "image": "14.13.jpg",
+          "audio": "14.13.mp3"
+        },
+        {
+          "image": "14.14.jpg",
+          "audio": "14.14.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "14.15.jpg",
+          "audio": "14.15.mp3"
+        },
+        {
+          "image": "14.16.jpg",
+          "audio": "14.16.mp3"
+        },
+        {
+          "image": "14.17.jpg",
+          "audio": "14.17.mp3"
+        },
+        {
+          "image": "14.18.jpg",
+          "audio": "14.18.mp3"
+        },
+        {
+          "image": "14.19.jpg",
+          "audio": "14.19.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "14.20.jpg",
+          "audio": "14.20.mp3"
+        },
+        {
+          "image": "14.21.jpg",
+          "audio": "14.21.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "14.22.jpg",
+          "audio": "14.22.mp3"
+        },
+        {
+          "image": "14.23.jpg",
+          "audio": "14.23.mp3"
+        },
+        {
+          "image": "14.24.jpg",
+          "audio": "14.24.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 15,
+    "title": "Lesson 15",
+    "audioPrefix": "",
+    "sections": {
+      "lesson": [
+        {
+          "image": "15.1.jpg",
+          "audio": "15.1.mp3"
+        },
+        {
+          "image": "15.2.jpg",
+          "audio": "15.2.mp3"
+        },
+        {
+          "image": "15.3.jpg",
+          "audio": "15.3.mp3"
+        },
+        {
+          "image": "15.4.jpg",
+          "audio": "15.4.mp3"
+        },
+        {
+          "image": "15.5.jpg",
+          "audio": "15.5.mp3"
+        },
+        {
+          "image": "15.6.jpg",
+          "audio": "15.6.mp3"
+        },
+        {
+          "image": "15.7.jpg",
+          "audio": "15.7.mp3"
+        },
+        {
+          "image": "15.8.jpg",
+          "audio": "15.8.mp3"
+        },
+        {
+          "image": "15.9.jpg",
+          "audio": "15.9.mp3"
+        },
+        {
+          "image": "15.10.jpg",
+          "audio": "15.10.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "15.11.jpg",
+          "audio": "15.11.mp3"
+        },
+        {
+          "image": "15.12.jpg",
+          "audio": "15.12.mp3"
+        },
+        {
+          "image": "15.13.jpg",
+          "audio": "15.13.mp3"
+        },
+        {
+          "image": "15.14.jpg",
+          "audio": "15.14.mp3"
+        },
+        {
+          "image": "15.15.jpg",
+          "audio": "15.15.mp3"
+        },
+        {
+          "image": "15.16.jpg",
+          "audio": "15.16.mp3"
+        },
+        {
+          "image": "15.17.jpg",
+          "audio": "15.17.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "15.18.jpg",
+          "audio": "15.18.mp3"
+        },
+        {
+          "image": "15.19.jpg",
+          "audio": "15.19.mp3"
+        },
+        {
+          "image": "15.20.jpg",
+          "audio": "15.20.mp3"
+        },
+        {
+          "image": "15.21.jpg",
+          "audio": "15.21.mp3"
+        },
+        {
+          "image": "15.22.jpg",
+          "audio": "15.22.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "15.23.jpg",
+          "audio": "15.23.mp3"
+        },
+        {
+          "image": "15.24.jpg",
+          "audio": "15.24.mp3"
+        },
+        {
+          "image": "15.25.jpg",
+          "audio": "15.25.mp3"
+        },
+        {
+          "image": "15.26.jpg",
+          "audio": "15.26.mp3"
+        },
+        {
+          "image": "15.27.jpg",
+          "audio": "15.27.mp3"
+        },
+        {
+          "image": "15.28.jpg",
+          "audio": "15.28.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "15.29.jpg",
+          "audio": "15.29.mp3"
+        },
+        {
+          "image": "15.30.jpg",
+          "audio": "15.30.mp3"
+        },
+        {
+          "image": "15.31.jpg",
+          "audio": "15.31.mp3"
+        },
+        {
+          "image": "15.32.jpg",
+          "audio": "15.32.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 16,
+    "title": "Lesson 16",
+    "audioPrefix": "",
+    "sections": {
+      "lesson": [
+        {
+          "image": "16.1.jpg",
+          "audio": "16.1.mp3"
+        },
+        {
+          "image": "16.2.jpg",
+          "audio": "16.2.mp3"
+        },
+        {
+          "image": "16.3.jpg",
+          "audio": "16.3.mp3"
+        },
+        {
+          "image": "16.4.jpg",
+          "audio": "16.4.mp3"
+        },
+        {
+          "image": "16.5.jpg",
+          "audio": "16.5.mp3"
+        },
+        {
+          "image": "16.6.jpg",
+          "audio": "16.6.mp3"
+        },
+        {
+          "image": "16.7.jpg",
+          "audio": "16.7.mp3"
+        },
+        {
+          "image": "16.8.jpg",
+          "audio": "16.8.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "16.9.jpg",
+          "audio": "16.9.mp3"
+        },
+        {
+          "image": "16.10.jpg",
+          "audio": "16.10.mp3"
+        },
+        {
+          "image": "16.11.jpg",
+          "audio": "16.11.mp3"
+        },
+        {
+          "image": "16.12.jpg",
+          "audio": "16.12.mp3"
+        },
+        {
+          "image": "16.13.jpg",
+          "audio": "16.13.mp3"
+        },
+        {
+          "image": "16.14.jpg",
+          "audio": "16.14.mp3"
+        },
+        {
+          "image": "16.15.jpg",
+          "audio": "16.15.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "16.16.jpg",
+          "audio": "16.16.mp3"
+        },
+        {
+          "image": "16.17.jpg",
+          "audio": "16.17.mp3"
+        },
+        {
+          "image": "16.18.jpg",
+          "audio": "16.18.mp3"
+        },
+        {
+          "image": "16.19.jpg",
+          "audio": "16.19.mp3"
+        },
+        {
+          "image": "16.20.jpg",
+          "audio": "16.20.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "16.21.jpg",
+          "audio": "16.21.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "16.22.jpg",
+          "audio": "16.22.mp3"
+        },
+        {
+          "image": "16.23.jpg",
+          "audio": "16.23.mp3"
+        },
+        {
+          "image": "16.24.jpg",
+          "audio": "16.24.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 17,
+    "title": "Lesson 17",
+    "audioPrefix": "",
+    "sections": {
+      "lesson": [
+        {
+          "image": "17.1.jpg",
+          "audio": "17.1.mp3"
+        },
+        {
+          "image": "17.2.jpg",
+          "audio": "17.2.mp3"
+        },
+        {
+          "image": "17.3.jpg",
+          "audio": "17.3.mp3"
+        },
+        {
+          "image": "17.4.jpg",
+          "audio": "17.4.mp3"
+        },
+        {
+          "image": "17.5.jpg",
+          "audio": "17.5.mp3"
+        },
+        {
+          "image": "17.6.jpg",
+          "audio": "17.6.mp3"
+        },
+        {
+          "image": "17.7.jpg",
+          "audio": "17.7.mp3"
+        },
+        {
+          "image": "17.8.jpg",
+          "audio": "17.8.mp3"
+        },
+        {
+          "image": "17.9.jpg",
+          "audio": "17.9.mp3"
+        },
+        {
+          "image": "17.10.jpg",
+          "audio": "17.10.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "17.11.jpg",
+          "audio": "17.11.mp3"
+        },
+        {
+          "image": "17.12.jpg",
+          "audio": "17.12.mp3"
+        },
+        {
+          "image": "17.13.jpg",
+          "audio": "17.13.mp3"
+        },
+        {
+          "image": "17.14.jpg",
+          "audio": "17.14.mp3"
+        },
+        {
+          "image": "17.16.jpg",
+          "audio": "17.16.mp3"
+        },
+        {
+          "image": "17.17.jpg",
+          "audio": "17.17.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "17.18.jpg",
+          "audio": "17.18.mp3"
+        },
+        {
+          "image": "17.19.jpg",
+          "audio": "17.19.mp3"
+        },
+        {
+          "image": "17.20.jpg",
+          "audio": "17.20.mp3"
+        },
+        {
+          "image": "17.21.jpg",
+          "audio": "17.21.mp3"
+        },
+        {
+          "image": "17.22.jpg",
+          "audio": "17.22.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "17.23.jpg",
+          "audio": "17.23.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "17.24.jpg",
+          "audio": "17.24.mp3"
+        },
+        {
+          "image": "17.25.jpg",
+          "audio": "17.25.mp3"
+        },
+        {
+          "image": "17.26.jpg",
+          "audio": "17.26.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 18,
+    "title": "Lesson 18",
+    "audioPrefix": "",
+    "sections": {
+      "lesson": [
+        {
+          "image": "18.1.jpg",
+          "audio": "18.1.mp3"
+        },
+        {
+          "image": "18.2.jpg",
+          "audio": "18.2.mp3"
+        },
+        {
+          "image": "18.3.jpg",
+          "audio": "18.3.mp3"
+        },
+        {
+          "image": "18.4.jpg",
+          "audio": "18.4.mp3"
+        },
+        {
+          "image": "18.5.jpg",
+          "audio": "18.5.mp3"
+        },
+        {
+          "image": "18.6.jpg",
+          "audio": "18.6.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "18.7.jpg",
+          "audio": "18.7.mp3"
+        },
+        {
+          "image": "18.8.jpg",
+          "audio": "18.8.mp3"
+        },
+        {
+          "image": "18.9.jpg",
+          "audio": "18.9.mp3"
+        },
+        {
+          "image": "18.10.jpg",
+          "audio": "18.10.mp3"
+        },
+        {
+          "image": "18.11.jpg",
+          "audio": "18.11.mp3"
+        },
+        {
+          "image": "18.12.jpg",
+          "audio": "18.12.mp3"
+        },
+        {
+          "image": "18.13.jpg",
+          "audio": "18.13.mp3"
+        },
+        {
+          "image": "18.14.jpg",
+          "audio": "18.14.mp3"
+        },
+        {
+          "image": "18.15.jpg",
+          "audio": "18.15.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "18.16.jpg",
+          "audio": "18.16.mp3"
+        },
+        {
+          "image": "18.17.jpg",
+          "audio": "18.17.mp3"
+        },
+        {
+          "image": "18.18.jpg",
+          "audio": "18.18.mp3"
+        },
+        {
+          "image": "18.19.jpg",
+          "audio": "18.19.mp3"
+        },
+        {
+          "image": "18.20.jpg",
+          "audio": "18.20.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "18.21.jpg",
+          "audio": "18.21.mp3"
+        },
+        {
+          "image": "18.22.jpg",
+          "audio": "18.22.mp3"
+        },
+        {
+          "image": "18.23.jpg",
+          "audio": "18.23.mp3"
+        },
+        {
+          "image": "18.24.jpg",
+          "audio": "18.24.mp3"
+        },
+        {
+          "image": "18.25.jpg",
+          "audio": "18.25.mp3"
+        },
+        {
+          "image": "18.26.jpg",
+          "audio": "18.26.mp3"
+        },
+        {
+          "image": "18.27.jpg",
+          "audio": "18.27.mp3"
+        },
+        {
+          "image": "18.28.jpg",
+          "audio": "18.28.mp3"
+        },
+        {
+          "image": "18.29.jpg",
+          "audio": "18.29.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "18.30.jpg",
+          "audio": "18.30.mp3"
+        },
+        {
+          "image": "18.31.jpg",
+          "audio": "18.31.mp3"
+        },
+        {
+          "image": "18.32.jpg",
+          "audio": "18.32.mp3"
+        },
+        {
+          "image": "18.33.jpg",
+          "audio": "18.33.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 19,
+    "title": "Lesson 19",
+    "audioPrefix": "",
+    "sections": {
+      "lesson": [
+        {
+          "image": "19.1.jpg",
+          "audio": "19.1.mp3"
+        },
+        {
+          "image": "19.2.jpg",
+          "audio": "19.2.mp3"
+        },
+        {
+          "image": "19.3.jpg",
+          "audio": "19.3.mp3"
+        },
+        {
+          "image": "19.4.jpg",
+          "audio": "19.4.mp3"
+        },
+        {
+          "image": "19.5.jpg",
+          "audio": "19.5.mp3"
+        },
+        {
+          "image": "19.6.jpg",
+          "audio": "19.6.mp3"
+        },
+        {
+          "image": "19.7.jpg",
+          "audio": "19.7.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "19.8.jpg",
+          "audio": "19.8.mp3"
+        },
+        {
+          "image": "19.9.jpg",
+          "audio": "19.9.mp3"
+        },
+        {
+          "image": "19.10.jpg",
+          "audio": "19.10.mp3"
+        },
+        {
+          "image": "19.11.jpg",
+          "audio": "19.11.mp3"
+        },
+        {
+          "image": "19.12.jpg",
+          "audio": "19.12.mp3"
+        },
+        {
+          "image": "19.13.jpg",
+          "audio": "19.13.mp3"
+        },
+        {
+          "image": "19.14.jpg",
+          "audio": "19.14.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "19.15.jpg",
+          "audio": "19.15.mp3"
+        },
+        {
+          "image": "19.16.jpg",
+          "audio": "19.16.mp3"
+        },
+        {
+          "image": "19.17.jpg",
+          "audio": "19.17.mp3"
+        },
+        {
+          "image": "19.18.jpg",
+          "audio": "19.18.mp3"
+        },
+        {
+          "image": "19.19.jpg",
+          "audio": "19.19.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "19.20.jpg",
+          "audio": "19.20.mp3"
+        },
+        {
+          "image": "19.21.jpg",
+          "audio": "19.21.mp3"
+        },
+        {
+          "image": "19.22.jpg",
+          "audio": "19.22.mp3"
+        },
+        {
+          "image": "19.23.jpg",
+          "audio": "19.23.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "19.24.jpg",
+          "audio": "19.24.mp3"
+        },
+        {
+          "image": "19.25.jpg",
+          "audio": "19.25.mp3"
+        },
+        {
+          "image": "19.26.jpg",
+          "audio": "19.26.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "chapter": 20,
+    "title": "Lesson 20",
+    "audioPrefix": "",
+    "sections": {
+      "lesson": [
+        {
+          "image": "20.1.jpg",
+          "audio": "20.1.mp3"
+        },
+        {
+          "image": "20.2.jpg",
+          "audio": "20.2.mp3"
+        },
+        {
+          "image": "20.3.jpg",
+          "audio": "20.3.mp3"
+        },
+        {
+          "image": "20.4.jpg",
+          "audio": "20.4.mp3"
+        },
+        {
+          "image": "20.5.jpg",
+          "audio": "20.5.mp3"
+        },
+        {
+          "image": "20.6.jpg",
+          "audio": "20.6.mp3"
+        },
+        {
+          "image": "20.7.jpg",
+          "audio": "20.7.mp3"
+        },
+        {
+          "image": "20.8.jpg",
+          "audio": "20.8.mp3"
+        },
+        {
+          "image": "20.9.jpg",
+          "audio": "20.9.mp3"
+        },
+        {
+          "image": "20.10.jpg",
+          "audio": "20.10.mp3"
+        }
+      ],
+      "drills": [
+        {
+          "image": "20.11.jpg",
+          "audio": "20.11.mp3"
+        },
+        {
+          "image": "20.12.jpg",
+          "audio": "20.12.mp3"
+        },
+        {
+          "image": "20.13.jpg",
+          "audio": "20.13.mp3"
+        },
+        {
+          "image": "20.14.jpg",
+          "audio": "20.14.mp3"
+        },
+        {
+          "image": "20.15.jpg",
+          "audio": "20.15.mp3"
+        },
+        {
+          "image": "20.16.jpg",
+          "audio": "20.16.mp3"
+        },
+        {
+          "image": "20.17.jpg",
+          "audio": "20.17.mp3"
+        },
+        {
+          "image": "20.18.jpg",
+          "audio": "20.18.mp3"
+        },
+        {
+          "image": "20.19.jpg",
+          "audio": "20.19.mp3"
+        },
+        {
+          "image": "20.20.jpg",
+          "audio": "20.20.mp3"
+        }
+      ],
+      "exercises": [
+        {
+          "image": "20.21.jpg",
+          "audio": "20.21.mp3"
+        },
+        {
+          "image": "20.22.jpg",
+          "audio": "20.22.mp3"
+        },
+        {
+          "image": "20.23.jpg",
+          "audio": "20.23.mp3"
+        },
+        {
+          "image": "20.24.jpg",
+          "audio": "20.24.mp3"
+        },
+        {
+          "image": "20.25.jpg",
+          "audio": "20.25.mp3"
+        }
+      ],
+      "notes": [
+        {
+          "image": "20.26.jpg",
+          "audio": "20.26.mp3"
+        }
+      ],
+      "vocabulary": [
+        {
+          "image": "20.27.jpg",
+          "audio": "20.27.mp3"
+        },
+        {
+          "image": "20.28.jpg",
+          "audio": "20.28.mp3"
+        }
+      ]
+    }
+  }
+]
