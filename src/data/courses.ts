@@ -1,12 +1,27 @@
 // Course metadata — audio and images streamed from koshur.org
 
+import {
+  getAllKoulChapters,
+  KOUL_SECTION_LABELS,
+  KOUL_SECTION_ORDER,
+  type KoulSectionKey,
+} from './koulContent';
+import { getKachruChapterVocabulary } from './kachruVocabulary';
+
 export interface AudioClip {
   filename: string; // e.g. "conv1a.mp3"
   label?: string;   // optional display label
+  section?: KoulSectionKey; // Koul: which sub-section this clip belongs to
+  sectionLabel?: string; // Koul: display label for the sub-section
+  audioUrl?: string;   // absolute URL override (some courses host audio outside the base path)
+  imageUrl?: string;   // absolute URL override for the paired image
 }
 
 export interface LessonImage {
   filename: string; // e.g. "1a.jpg"
+  section?: KoulSectionKey; // Koul: which sub-section this image belongs to
+  sectionLabel?: string;    // Koul: display label for the sub-section
+  imageUrl?: string;        // absolute URL override
 }
 
 export interface Lesson {
@@ -85,54 +100,136 @@ const spokenKashmiriChapters: { n: number; title: string; clips: string[]; imgs:
   { n: 50, title: 'Dina Nath \'Nadim\' (Poems)', clips: ['1','2','3','4','5','6','7','8','dal','hay','title1'], imgs: ['1','2','3','4','5','6','7','8'] },
 ];
 
+// Build vocabulary clips (scraped from each chapter's vocabulary.html) that
+// get prepended to the lesson's audioClips. Using absolute URLs lets the clip
+// strip reference files under the chapter's own audio/ folder without
+// interfering with the base URL that the rest of the clips share.
+function buildSpokenVocabClips(chapter: number): AudioClip[] {
+  const vocab = getKachruChapterVocabulary(chapter);
+  if (!vocab) return [];
+  const clips: AudioClip[] = [];
+  const audioBase = `https://koshur.org/SpokenKashmiri/Chapter${chapter}/audio/`;
+  for (const group of vocab.groups) {
+    group.items.forEach((item, idx) => {
+      const label =
+        group.items.length > 1
+          ? `Vocab: ${group.title} ${idx + 1}`
+          : `Vocab: ${group.title}`;
+      clips.push({
+        filename: item.audio,
+        label,
+        audioUrl: `${audioBase}${item.audio}`,
+      });
+    });
+  }
+  return clips;
+}
+
 export const spokenKashmiri: Course = {
   id: 'spoken-kashmiri',
   title: 'Introduction to Spoken Kashmiri',
   author: 'Prof. Braj B. Kachru',
   description: '50 chapters of functional conversations, narratives, and poems with audio and transliterations.',
-  lessons: spokenKashmiriChapters.map(ch => ({
-    id: `spoken-ch${ch.n}`,
-    number: ch.n,
-    title: ch.title,
-    pageUrl: `https://koshur.org/SpokenKashmiri/Chapter${ch.n}/`,
-    audioBaseUrl: `https://koshur.org/SpokenKashmiri/Chapter${ch.n}/audio/`,
-    audioClips: ch.clips.map(c => ({ filename: `${c}.mp3`, label: c })),
-    imageBaseUrl: `https://koshur.org/SpokenKashmiri/Chapter${ch.n}/images/`,
-    images: ch.imgs.map(i => ({ filename: `${i}.jpg` })),
-  })),
+  lessons: spokenKashmiriChapters.map(ch => {
+    const vocabClips = buildSpokenVocabClips(ch.n);
+    return {
+      id: `spoken-ch${ch.n}`,
+      number: ch.n,
+      title: ch.title,
+      pageUrl: `https://koshur.org/SpokenKashmiri/Chapter${ch.n}/`,
+      audioBaseUrl: `https://koshur.org/SpokenKashmiri/Chapter${ch.n}/audio/`,
+      audioClips: [
+        ...vocabClips,
+        ...ch.clips.map(c => ({ filename: `${c}.mp3`, label: c })),
+      ],
+      imageBaseUrl: `https://koshur.org/SpokenKashmiri/Chapter${ch.n}/images/`,
+      images: ch.imgs.map(i => ({ filename: `${i}.jpg` })),
+    };
+  }),
 };
 
 // ---------------------------------------------------------------------------
 // 2. Spoken Kashmiri: A Language Course — Omkar N. Koul
 // ---------------------------------------------------------------------------
 
-const koulChapters: { n: number; title: string; clipCount: number }[] = [
-  { n: 1, title: 'Lesson 1: Greetings & Introduction', clipCount: 8 },
-  { n: 2, title: 'Lesson 2: Shopping', clipCount: 8 },
-  { n: 3, title: 'Lesson 3: Food & Drink', clipCount: 7 },
-  { n: 4, title: 'Lesson 4: Travel & Transport', clipCount: 8 },
-];
+// Topic titles for each Koul chapter, sourced from koshur.org's chapter index.
+const KOUL_CHAPTER_TITLES: Record<number, string> = {
+  1: 'Greetings & Introductions',
+  2: 'Personal Information',
+  3: 'Family & Relations',
+  4: 'Everyday Objects',
+  5: 'Numbers & Counting',
+  6: 'Time & Days',
+  7: 'Food & Drink',
+  8: 'Shopping',
+  9: 'Directions & Travel',
+  10: 'Health & Body',
+  11: 'At Home',
+  12: 'Weather & Seasons',
+  13: 'Clothing',
+  14: 'At Work',
+  15: 'Leisure & Hobbies',
+  16: 'Telephone & Communication',
+  17: 'Making Plans',
+  18: 'Describing People',
+  19: 'Stories & Narratives',
+  20: 'Review & Conversation',
+};
 
 export const kashmiriKoul: Course = {
   id: 'kashmiri-koul',
   title: 'Spoken Kashmiri: A Language Course',
   author: 'Omkar N. Koul',
-  description: 'Structured language course with drills, exercises, and vocabulary.',
-  lessons: koulChapters.map(ch => ({
-    id: `koul-ch${ch.n}`,
-    number: ch.n,
-    title: ch.title,
-    pageUrl: `https://koshur.org/Kashmiri/chapter${ch.n}/`,
-    audioBaseUrl: `https://koshur.org/Kashmiri/chapter${ch.n}/audio/`,
-    audioClips: Array.from({ length: ch.clipCount }, (_, i) => ({
-      filename: `${ch.n}.${i + 1}.mp3`,
-      label: `${ch.n}.${i + 1}`,
-    })),
-    imageBaseUrl: `https://koshur.org/Kashmiri/chapter${ch.n}/images/`,
-    images: Array.from({ length: ch.clipCount }, (_, i) => ({
-      filename: `${ch.n}.${i + 1}.jpg`,
-    })),
-  })),
+  description:
+    '20 chapters with lessons, drills, exercises, notes, and vocabulary. Audio streamed from koshur.org.',
+  lessons: getAllKoulChapters()
+    .slice()
+    .sort((a, b) => a.chapter - b.chapter)
+    .map((ch) => {
+      const chapterRoot = `https://koshur.org/Kashmiri/chapter${ch.chapter}/`;
+      const audioRoot = `${chapterRoot}${ch.audioPrefix}`;
+      const imageRoot = `${chapterRoot}images/`;
+
+      const audioClips: AudioClip[] = [];
+      const images: LessonImage[] = [];
+
+      for (const sectionKey of KOUL_SECTION_ORDER) {
+        const sectionLabel = KOUL_SECTION_LABELS[sectionKey];
+        const pairs = ch.sections[sectionKey] ?? [];
+        for (const pair of pairs) {
+          audioClips.push({
+            filename: pair.audio,
+            label: pair.audio.replace('.mp3', ''),
+            section: sectionKey,
+            sectionLabel,
+            audioUrl: audioRoot + pair.audio,
+            imageUrl: imageRoot + pair.image,
+          });
+          images.push({
+            filename: pair.image,
+            section: sectionKey,
+            sectionLabel,
+            imageUrl: imageRoot + pair.image,
+          });
+        }
+      }
+
+      const topic = KOUL_CHAPTER_TITLES[ch.chapter];
+      const title = topic
+        ? `Lesson ${ch.chapter}: ${topic}`
+        : `Lesson ${ch.chapter}`;
+
+      return {
+        id: `koul-ch${ch.chapter}`,
+        number: ch.chapter,
+        title,
+        pageUrl: chapterRoot,
+        audioBaseUrl: audioRoot,
+        audioClips,
+        imageBaseUrl: imageRoot,
+        images,
+      };
+    }),
 };
 
 // ---------------------------------------------------------------------------

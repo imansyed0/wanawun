@@ -28,6 +28,12 @@ import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/const
 import { allCourses, type AudioClip } from '@/src/data/courses';
 import { getSpokenKashmiriChapterContent } from '@/src/data/spokenKashmiriContent';
 import { getLessonCourseContext } from '@/src/data/courseContext';
+import { getKachruChapterVocabulary } from '@/src/data/kachruVocabulary';
+import {
+  KOUL_SECTION_LABELS,
+  KOUL_SECTION_ORDER,
+  type KoulSectionKey,
+} from '@/src/data/koulContent';
 import { ExternalLink } from '@/components/ExternalLink';
 import { useAuth } from '@/src/hooks/useAuth';
 import {
@@ -57,10 +63,18 @@ export default function LessonPlayerScreen() {
 
   const course = allCourses.find((c) => c.id === courseId);
   const lesson = course?.lessons.find((l) => l.id === lessonId);
+  const isKoul = course?.id === 'kashmiri-koul';
   const spokenContent =
     course?.id === 'spoken-kashmiri' && lesson
       ? getSpokenKashmiriChapterContent(lesson.number)
       : null;
+  const kachruVocab =
+    course?.id === 'spoken-kashmiri' && lesson
+      ? getKachruChapterVocabulary(lesson.number)
+      : null;
+  const hasKachruVocab = !!(
+    kachruVocab && kachruVocab.groups.some((g) => g.items.length > 0)
+  );
   const lessonContext =
     course && lesson ? getLessonCourseContext(course.id, lesson.id) : null;
   const hasLessonContext = !!(
@@ -103,6 +117,9 @@ export default function LessonPlayerScreen() {
   const [activeTab, setActiveTab] = useState<'content' | 'vocab'>('content');
   const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, number>>({});
   const [learnHtmlHeight, setLearnHtmlHeight] = useState(900);
+  const [koulSection, setKoulSection] = useState<KoulSectionKey>('lesson');
+  const [koulPickerOpen, setKoulPickerOpen] = useState(false);
+  const [kachruVocabPlaying, setKachruVocabPlaying] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView | null>(null);
   const kashmiriInputRef = useRef<TextInput | null>(null);
   const englishInputRef = useRef<TextInput | null>(null);
@@ -120,7 +137,6 @@ export default function LessonPlayerScreen() {
   const [vocabSavingId, setVocabSavingId] = useState<string | null>(null);
   const vocabRecordingRef = useRef<AudioRecorder | null>(null);
 
-  // Clip listen tracking
   const [listenedClips, setListenedClips] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -178,26 +194,50 @@ export default function LessonPlayerScreen() {
     };
   }, [stopLessonAudio]);
 
+
   useEffect(() => {
-    if (!lessonImageBaseUrl) return;
+    return () => {
+      void stopLessonAudio(true);
+    };
+  }, [stopLessonAudio]);
+
+  useEffect(() => {
+    if (!lessonImageBaseUrl && course?.id !== 'kashmiri-koul' && course?.id !== 'spoken-kashmiri') {
+      return;
+    }
 
     const pendingSpoken =
-      spokenContent?.exchanges.filter(
-        (exchange) => imageAspectRatios[exchange.image] == null
-      ) ?? [];
+      spokenContent?.exchanges
+        .filter((exchange) => imageAspectRatios[exchange.image] == null)
+        .map((exchange) => ({
+          filename: exchange.image,
+          uri: (lessonImageBaseUrl ?? '') + exchange.image,
+        })) ?? [];
     const pendingLessonImages =
-      course?.id === 'learn-kashmiri'
-        ? (lesson?.images ?? []).filter((img) => imageAspectRatios[img.filename] == null)
+      course?.id === 'learn-kashmiri' || course?.id === 'kashmiri-koul'
+        ? (lesson?.images ?? [])
+            .filter((img) => imageAspectRatios[img.filename] == null)
+            .map((img) => ({
+              filename: img.filename,
+              uri: img.imageUrl ?? (lessonImageBaseUrl ?? '') + img.filename,
+            }))
         : [];
-    const pending = [
-      ...pendingSpoken.map((exchange) => exchange.image),
-      ...pendingLessonImages.map((img) => img.filename),
-    ];
+    const pendingKachruVocab =
+      kachruVocab && course?.id === 'spoken-kashmiri'
+        ? kachruVocab.groups
+            .flatMap((g) => g.items)
+            .filter((it) => imageAspectRatios[it.image] == null)
+            .map((it) => ({
+              filename: it.image,
+              uri: (lessonImageBaseUrl ?? '') + it.image,
+            }))
+        : [];
+    const pending = [...pendingSpoken, ...pendingLessonImages, ...pendingKachruVocab];
 
     if (pending.length === 0) return;
 
-    pending.forEach((filename) => {
-      const uri = lessonImageBaseUrl + filename;
+    pending.forEach(({ filename, uri }) => {
+      if (!uri) return;
       Image.getSize(
         uri,
         (width, height) => {
@@ -210,7 +250,7 @@ export default function LessonPlayerScreen() {
         () => {}
       );
     });
-  }, [spokenContent, lessonImageBaseUrl, imageAspectRatios, course?.id, lesson?.images]);
+  }, [spokenContent, kachruVocab, lessonImageBaseUrl, imageAspectRatios, course?.id, lesson?.images]);
 
   if (!course || !lesson) {
     return (
@@ -220,8 +260,25 @@ export default function LessonPlayerScreen() {
     );
   }
 
-  const clips = lesson.audioClips;
-  const currentClip = clips[currentClipIdx];
+  const clips = isKoul
+    ? lesson.audioClips.filter((c) => c.section === koulSection)
+    : lesson.audioClips;
+  const displayImages = isKoul
+    ? (lesson.images ?? []).filter((img) => img.section === koulSection)
+    : lesson.images ?? [];
+  // Guard against stale currentClipIdx during Koul section transitions.
+  const safeCurrentClipIdx = Math.min(
+    currentClipIdx,
+    Math.max(clips.length - 1, 0)
+  );
+  const currentClip = clips[safeCurrentClipIdx];
+
+  const availableKoulSections = isKoul
+    ? KOUL_SECTION_ORDER.filter((key) =>
+        lesson.audioClips.some((c) => c.section === key)
+      )
+    : [];
+
 
   const onPlaybackStatusUpdate = useCallback((status: AudioStatus, clipIdx: number, sound: AudioPlayer) => {
     if (!status.isLoaded) return;
@@ -238,12 +295,12 @@ export default function LessonPlayerScreen() {
       }
       setIsPlaying(false);
 
-      // Mark the clip that just finished as listened
       if (courseId && lessonId && clips[clipIdx]) {
         const finishedFilename = clips[clipIdx].filename;
         setListenedClips((prev) => new Set([...prev, finishedFilename]));
         markClipListened(user?.id, courseId, lessonId, finishedFilename).catch(console.error);
       }
+
 
       if (clipIdx < clips.length - 1) {
         void playClip(clipIdx + 1);
@@ -278,7 +335,7 @@ export default function LessonPlayerScreen() {
         return;
       }
 
-      const uri = lesson.audioBaseUrl + clips[idx].filename;
+      const uri = clips[idx].audioUrl ?? lesson.audioBaseUrl + clips[idx].filename;
       const sound = createAudioPlayer({ uri }, { updateInterval: 250 });
       soundRef.current = sound;
       sound.addListener('playbackStatusUpdate', (status) => {
@@ -362,6 +419,26 @@ export default function LessonPlayerScreen() {
     }
 
     return <Text style={styles.playIcon}>{'\u25B6'}</Text>;
+  };
+
+  const handleKachruVocabPlay = async (audioFilename: string) => {
+    if (!lesson.audioBaseUrl) return;
+    if (kachruVocabPlaying === audioFilename) {
+      await stopAudio();
+      setKachruVocabPlaying(null);
+      return;
+    }
+    try {
+      await stopLessonAudio();
+      setVocabPlayingId(null);
+      setKachruVocabPlaying(audioFilename);
+      await playAudio(lesson.audioBaseUrl + audioFilename, {
+        onFinish: () => setKachruVocabPlaying(null),
+      });
+    } catch (e) {
+      console.error('Kachru vocab playback error:', e);
+      setKachruVocabPlaying(null);
+    }
   };
 
   const handleVocabPlay = async (entry: LessonVocabEntry) => {
@@ -470,7 +547,7 @@ export default function LessonPlayerScreen() {
     spokenContent?.intro && !spokenContent.intro.includes('.mp3')
       ? spokenContent.intro
       : '';
-  const hasImages = lesson.images && lesson.images.length > 0;
+  const hasImages = displayImages.length > 0;
   const shouldRenderLearnHtml = !!(
     course?.id === 'learn-kashmiri' &&
     lessonContext?.htmlContent
@@ -543,7 +620,9 @@ export default function LessonPlayerScreen() {
   const hasContentTab = !!(
     (spokenContent && (spokenIntro || spokenContent.exchanges.length > 0)) ||
     hasLessonContext ||
-    (hasImages && !spokenContent)
+    (hasImages && !spokenContent) ||
+    hasKachruVocab ||
+    (isKoul && availableKoulSections.length > 0)
   );
 
   useEffect(() => {
@@ -551,6 +630,13 @@ export default function LessonPlayerScreen() {
       setActiveTab('vocab');
     }
   }, [activeTab, hasContentTab]);
+
+  useEffect(() => {
+    if (!isKoul) return;
+    setCurrentClipIdx(0);
+    currentClipIdxRef.current = 0;
+    void stopLessonAudio(true);
+  }, [isKoul, koulSection, stopLessonAudio]);
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -560,6 +646,95 @@ export default function LessonPlayerScreen() {
       >
         {/* Pinned Audio Player */}
         <View style={styles.playerCard}>
+          {/* Koul section picker */}
+          {isKoul && availableKoulSections.length > 1 && (
+            <View style={styles.koulPickerWrap}>
+              <Pressable
+                style={[
+                  styles.koulPickerBtn,
+                  koulPickerOpen && styles.koulPickerBtnOpen,
+                ]}
+                onPress={() => setKoulPickerOpen((v) => !v)}
+                accessibilityRole="button"
+                accessibilityLabel={`Section: ${KOUL_SECTION_LABELS[koulSection]}. Tap to change.`}
+                accessibilityState={{ expanded: koulPickerOpen }}
+              >
+                <View style={styles.koulPickerTextBlock}>
+                  <Text style={styles.koulPickerPrefix}>SECTION</Text>
+                  <Text style={styles.koulPickerLabel} numberOfLines={1}>
+                    {KOUL_SECTION_LABELS[koulSection]}
+                  </Text>
+                </View>
+                <Text style={styles.koulPickerCount}>
+                  {clips.length} clip{clips.length === 1 ? '' : 's'}
+                </Text>
+                <View
+                  style={[
+                    styles.koulPickerChevronBadge,
+                    koulPickerOpen && styles.koulPickerChevronBadgeOpen,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.koulPickerChevron,
+                      koulPickerOpen && styles.koulPickerChevronOpen,
+                    ]}
+                  >
+                    {koulPickerOpen ? '\u2303' : '\u2304'}
+                  </Text>
+                </View>
+              </Pressable>
+              {koulPickerOpen && (
+                <View style={styles.koulPickerMenu}>
+                  {availableKoulSections.map((key) => {
+                    const count = lesson.audioClips.filter(
+                      (c) => c.section === key
+                    ).length;
+                    const active = key === koulSection;
+                    return (
+                      <Pressable
+                        key={key}
+                        onPress={() => {
+                          setKoulSection(key);
+                          setKoulPickerOpen(false);
+                        }}
+                        style={[
+                          styles.koulPickerItem,
+                          active && styles.koulPickerItemActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.koulPickerItemCheck,
+                            active && styles.koulPickerItemCheckActive,
+                          ]}
+                        >
+                          {active ? '\u2713' : ''}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.koulPickerItemText,
+                            active && styles.koulPickerItemTextActive,
+                          ]}
+                        >
+                          {KOUL_SECTION_LABELS[key]}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.koulPickerItemCount,
+                            active && styles.koulPickerItemCountActive,
+                          ]}
+                        >
+                          {count}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          )}
+
           {/* Clip selector for multi-clip lessons */}
           {clips.length > 1 && (
             <ScrollView
@@ -570,21 +745,22 @@ export default function LessonPlayerScreen() {
             >
               {clips.map((clip, idx) => {
                 const isListened = listenedClips.has(clip.filename);
+                const isActive = idx === safeCurrentClipIdx;
                 return (
                   <Pressable
-                    key={clip.filename}
+                    key={`${clip.section ?? 'section'}-${clip.filename}-${idx}`}
                     style={[
                       styles.clipChip,
-                      idx === currentClipIdx && styles.clipChipActive,
-                      isListened && idx !== currentClipIdx && styles.clipChipListened,
+                      isActive && styles.clipChipActive,
+                      isListened && !isActive && styles.clipChipListened,
                     ]}
                     onPress={() => playClip(idx)}
                   >
                     <Text
                       style={[
                         styles.clipChipText,
-                        idx === currentClipIdx && styles.clipChipTextActive,
-                        isListened && idx !== currentClipIdx && styles.clipChipTextListened,
+                        isActive && styles.clipChipTextActive,
+                        isListened && !isActive && styles.clipChipTextListened,
                       ]}
                       numberOfLines={1}
                     >
@@ -606,7 +782,7 @@ export default function LessonPlayerScreen() {
             <Text style={styles.timeText}>{formatTime(position)}</Text>
             <Text style={styles.timeText}>
               {clips.length > 1
-                ? `Clip ${currentClipIdx + 1}/${clips.length}`
+                ? `Clip ${safeCurrentClipIdx + 1}/${clips.length}`
                 : ''}
             </Text>
             <Text style={styles.timeText}>
@@ -619,21 +795,21 @@ export default function LessonPlayerScreen() {
             {clips.length > 1 ? (
               <>
                 <Pressable
-                  onPress={() => { if (currentClipIdx > 0) playClip(currentClipIdx - 1); }}
+                  onPress={() => { if (safeCurrentClipIdx > 0) playClip(safeCurrentClipIdx - 1); }}
                   style={styles.seekBtn}
-                  disabled={currentClipIdx === 0}
+                  disabled={safeCurrentClipIdx === 0}
                 >
-                  <Text style={[styles.seekText, currentClipIdx === 0 && { color: Colors.border }]}>{'\u23EE'}</Text>
+                  <Text style={[styles.seekText, safeCurrentClipIdx === 0 && { color: Colors.border }]}>{'\u23EE'}</Text>
                 </Pressable>
                 <Pressable onPress={togglePlayPause} style={[styles.playBtn, isLoading && styles.playBtnLoading]} disabled={isLoading}>
                   {renderPlayPauseIcon()}
                 </Pressable>
                 <Pressable
-                  onPress={() => { if (currentClipIdx < clips.length - 1) playClip(currentClipIdx + 1); }}
+                  onPress={() => { if (safeCurrentClipIdx < clips.length - 1) playClip(safeCurrentClipIdx + 1); }}
                   style={styles.seekBtn}
-                  disabled={currentClipIdx === clips.length - 1}
+                  disabled={safeCurrentClipIdx === clips.length - 1}
                 >
-                  <Text style={[styles.seekText, currentClipIdx === clips.length - 1 && { color: Colors.border }]}>{'\u23ED'}</Text>
+                  <Text style={[styles.seekText, safeCurrentClipIdx === clips.length - 1 && { color: Colors.border }]}>{'\u23ED'}</Text>
                 </Pressable>
               </>
             ) : (
@@ -691,6 +867,70 @@ export default function LessonPlayerScreen() {
         >
           {hasContentTab && activeTab === 'content' ? (
             <>
+              {/* Kachru vocabulary — rendered at the top of each lesson tab */}
+              {hasKachruVocab && kachruVocab && (
+                <View style={styles.imagesSection}>
+                  <Text style={styles.sectionTitle}>Vocabulary</Text>
+                  {kachruVocab.groups.map((group) => (
+                    <View key={group.title} style={styles.kachruVocabGroup}>
+                      <Text style={styles.contextSectionTitle}>{group.title}</Text>
+                      {group.items.map((item) => {
+                        const imageUri = lesson.imageBaseUrl
+                          ? lesson.imageBaseUrl + item.image
+                          : undefined;
+                        const aspect = imageAspectRatios[item.image];
+                        const isPlaying = kachruVocabPlaying === item.audio;
+                        return (
+                          <Pressable
+                            key={`${group.title}-${item.audio}`}
+                            onPress={() => handleKachruVocabPlay(item.audio)}
+                            style={styles.kachruVocabCard}
+                          >
+                            {imageUri ? (
+                              <View
+                                style={[
+                                  styles.translationImageFrame,
+                                  aspect
+                                    ? { aspectRatio: aspect, height: undefined }
+                                    : null,
+                                ]}
+                              >
+                                <Image
+                                  source={{ uri: imageUri }}
+                                  style={styles.translationImage}
+                                  resizeMode="contain"
+                                />
+                              </View>
+                            ) : null}
+                            <View style={styles.kachruVocabPlayRow}>
+                              <View
+                                style={[
+                                  styles.kachruVocabPlayBtn,
+                                  isPlaying && styles.kachruVocabPlayBtnActive,
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.kachruVocabPlayIcon,
+                                    isPlaying &&
+                                      styles.kachruVocabPlayIconActive,
+                                  ]}
+                                >
+                                  {isPlaying ? '\u23F9' : '\u25B6'}
+                                </Text>
+                              </View>
+                              <Text style={styles.kachruVocabPlayLabel}>
+                                {isPlaying ? 'Stop' : 'Play'}
+                              </Text>
+                            </View>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  ))}
+                </View>
+              )}
+
               {/* Structured page content for Spoken Kashmiri */}
               {spokenContent && (spokenIntro || spokenContent.exchanges.length > 0) && (
                 <View style={styles.imagesSection}>
@@ -942,15 +1182,30 @@ export default function LessonPlayerScreen() {
               {/* Image-only course content */}
               {hasImages && !spokenContent && !hasLessonContext && (
                 <View style={styles.imagesSection}>
-                  <Text style={styles.sectionTitle}>Lesson Content</Text>
-                  {lesson.images!.map((img) => (
-                    <Image
-                      key={img.filename}
-                      source={{ uri: lesson.imageBaseUrl + img.filename }}
-                      style={styles.lessonImage}
-                      resizeMode="contain"
-                    />
-                  ))}
+                  <Text style={styles.sectionTitle}>
+                    {isKoul
+                      ? KOUL_SECTION_LABELS[koulSection]
+                      : 'Lesson Content'}
+                  </Text>
+                  {displayImages.map((img, idx) => {
+                    const uri = img.imageUrl ?? lesson.imageBaseUrl + img.filename;
+                    const aspect = imageAspectRatios[img.filename];
+                    return (
+                      <View
+                        key={`${img.filename}-${idx}`}
+                        style={[
+                          styles.koulImageFrame,
+                          aspect ? { aspectRatio: aspect, height: undefined } : null,
+                        ]}
+                      >
+                        <Image
+                          source={{ uri }}
+                          style={styles.koulImage}
+                          resizeMode="contain"
+                        />
+                      </View>
+                    );
+                  })}
                 </View>
               )}
             </>
@@ -1574,6 +1829,185 @@ const styles = StyleSheet.create({
     color: Colors.textLight,
     fontSize: FontSize.sm,
     marginTop: Spacing.lg,
+  },
+
+  // Koul section picker
+  koulPickerWrap: {
+    marginBottom: Spacing.sm,
+    position: 'relative',
+    zIndex: 2,
+  },
+  koulPickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.sm,
+    shadowColor: Colors.primaryDark,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  koulPickerBtnOpen: {
+    borderColor: Colors.primaryDark,
+    backgroundColor: Colors.surfaceLight,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  koulPickerTextBlock: {
+    flex: 1,
+  },
+  koulPickerPrefix: {
+    fontSize: 10,
+    letterSpacing: 1.2,
+    fontWeight: '700',
+    color: Colors.primary,
+    marginBottom: 1,
+  },
+  koulPickerLabel: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: Colors.primaryDark,
+  },
+  koulPickerCount: {
+    fontSize: FontSize.xs,
+    color: Colors.textLight,
+    fontVariant: ['tabular-nums'],
+  },
+  koulPickerChevronBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  koulPickerChevronBadgeOpen: {
+    backgroundColor: Colors.primaryDark,
+  },
+  koulPickerChevron: {
+    fontSize: 18,
+    lineHeight: 20,
+    color: '#fff',
+    fontWeight: '700',
+  },
+  koulPickerChevronOpen: {
+    color: '#fff',
+  },
+  koulPickerMenu: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: Colors.surface,
+    borderWidth: 1.5,
+    borderTopWidth: 0,
+    borderColor: Colors.primaryDark,
+    borderBottomLeftRadius: BorderRadius.md,
+    borderBottomRightRadius: BorderRadius.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  koulPickerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  koulPickerItemActive: {
+    backgroundColor: Colors.surfaceLight,
+  },
+  koulPickerItemCheck: {
+    width: 16,
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: Colors.primary,
+    textAlign: 'center',
+  },
+  koulPickerItemCheckActive: {
+    color: Colors.primary,
+  },
+  koulPickerItemText: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    color: Colors.text,
+  },
+  koulPickerItemTextActive: {
+    color: Colors.primaryDark,
+    fontWeight: '700',
+  },
+  koulPickerItemCount: {
+    fontSize: FontSize.xs,
+    color: Colors.textLight,
+    fontVariant: ['tabular-nums'],
+  },
+  koulPickerItemCountActive: {
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+
+  // Koul image rendering
+  koulImageFrame: {
+    width: '100%',
+    marginTop: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+    backgroundColor: Colors.surfaceLight,
+  },
+  koulImage: {
+    width: '100%',
+    height: '100%',
+  },
+
+  // Kachru vocabulary block
+  kachruVocabGroup: {
+    marginTop: Spacing.md,
+    gap: Spacing.xs,
+  },
+  kachruVocabCard: {
+    marginTop: Spacing.sm,
+    width: '100%',
+  },
+  kachruVocabPlayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: 4,
+  },
+  kachruVocabPlayBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.surfaceLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  kachruVocabPlayBtnActive: {
+    backgroundColor: Colors.primary,
+  },
+  kachruVocabPlayIcon: {
+    fontSize: 12,
+    color: Colors.primary,
+  },
+  kachruVocabPlayIconActive: {
+    color: '#fff',
+  },
+  kachruVocabPlayLabel: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    fontWeight: '600',
   },
   errorText: {
     textAlign: 'center',
