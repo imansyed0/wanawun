@@ -21,7 +21,7 @@ export async function getLessonVocab(
     .select('*, words:word_id(audio_url)')
     .eq('user_id', userId)
     .eq('lesson_id', lessonId)
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: false });
   if (error) throw error;
   // Flatten the joined audio_url onto the entry
   return (data ?? []).map((row: any) => ({

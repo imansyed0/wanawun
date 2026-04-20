@@ -11,14 +11,28 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        setLoading(true);
-        fetchProfile(session.user);
-      }
-      else setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        setSession(session);
+        if (session?.user) {
+          setLoading(true);
+          fetchProfile(session.user);
+        } else {
+          setLoading(false);
+        }
+      })
+      .catch(async (error) => {
+        const message = error?.message ?? '';
+        if (/refresh token|jwt expired|not authenticated/i.test(message)) {
+          await supabase.auth.signOut().catch(() => {});
+        } else {
+          console.warn('Failed to restore auth session', error);
+        }
+        setSession(null);
+        setProfile(null);
+        setLoading(false);
+      });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
