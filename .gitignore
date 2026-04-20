@@ -44,3 +44,6 @@ yarn-error.*
 # local tool output
 /supabase/.temp/
 /test-results/
+
+# local agent worktrees
+/.claude/
