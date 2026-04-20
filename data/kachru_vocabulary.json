@@ -1,0 +1,1280 @@
+[
+  {
+    "chapter": 1,
+    "groups": [
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 2,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 3,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adjectives",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 4,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 5,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adjectives",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 6,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          },
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 7,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 8,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adjectives",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 9,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Postpositions",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 10,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Conjunct Verbs",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 11,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Conjunct Verbs",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 12,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adjectives",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 13,
+    "groups": [
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 14,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adjectives",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v4.jpg",
+            "audio": "v4.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 15,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 16,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adjectives",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v4.jpg",
+            "audio": "v4.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 17,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Conjunct Verbs",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adjectives",
+        "items": [
+          {
+            "image": "v4.jpg",
+            "audio": "v4.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v5.jpg",
+            "audio": "v5.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 18,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Conjunct Verbs",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adjectives",
+        "items": [
+          {
+            "image": "v4.jpg",
+            "audio": "v4.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v5.jpg",
+            "audio": "v5.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 19,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Conjunct Verbs",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adjectives",
+        "items": [
+          {
+            "image": "v4.jpg",
+            "audio": "v4.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v5.jpg",
+            "audio": "v5.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 20,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Conjunct Verbs",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v4.jpg",
+            "audio": "v4.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 21,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1a.jpg",
+            "audio": "v1a.mp3"
+          },
+          {
+            "image": "v1b.jpg",
+            "audio": "v1b.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Conjunct Verbs",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adjectives",
+        "items": [
+          {
+            "image": "v4.jpg",
+            "audio": "v4.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v5.jpg",
+            "audio": "v5.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 22,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1a.jpg",
+            "audio": "v1a.mp3"
+          },
+          {
+            "image": "v1b.jpg",
+            "audio": "v1b.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Conjunct Verbs",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v4.jpg",
+            "audio": "v4.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 23,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Conjunct Verbs",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adjectives",
+        "items": [
+          {
+            "image": "v4.jpg",
+            "audio": "v4.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v5.jpg",
+            "audio": "v5.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 24,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Conjunct Verbs",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adjectives",
+        "items": [
+          {
+            "image": "v4.jpg",
+            "audio": "v4.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v5.jpg",
+            "audio": "v5.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 25,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adjectives",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v4.jpg",
+            "audio": "v4.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 26,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adjectives",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 27,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Conjunct Verbs",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Compound Verbs",
+        "items": [
+          {
+            "image": "v4.jpg",
+            "audio": "v4.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v5.jpg",
+            "audio": "v5.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 28,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Conjunct Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 29,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1a.jpg",
+            "audio": "v1a.mp3"
+          },
+          {
+            "image": "v1b.jpg",
+            "audio": "v1b.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Conjunct Verbs",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adjectives",
+        "items": [
+          {
+            "image": "v4.jpg",
+            "audio": "v4.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v5.jpg",
+            "audio": "v5.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 30,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Conjunct Verbs",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adjectives",
+        "items": [
+          {
+            "image": "v4.jpg",
+            "audio": "v4.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v5.jpg",
+            "audio": "v5.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 31,
+    "groups": [
+      {
+        "title": "Nouns",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Conjunct Verbs",
+        "items": [
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Compound Verbs",
+        "items": [
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      },
+      {
+        "title": "Adverbs",
+        "items": [
+          {
+            "image": "v4.jpg",
+            "audio": "v4.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 32,
+    "groups": []
+  },
+  {
+    "chapter": 33,
+    "groups": []
+  },
+  {
+    "chapter": 34,
+    "groups": []
+  },
+  {
+    "chapter": 35,
+    "groups": []
+  },
+  {
+    "chapter": 36,
+    "groups": []
+  },
+  {
+    "chapter": 37,
+    "groups": []
+  },
+  {
+    "chapter": 38,
+    "groups": []
+  },
+  {
+    "chapter": 39,
+    "groups": []
+  },
+  {
+    "chapter": 40,
+    "groups": []
+  },
+  {
+    "chapter": 41,
+    "groups": []
+  },
+  {
+    "chapter": 42,
+    "groups": []
+  },
+  {
+    "chapter": 43,
+    "groups": []
+  },
+  {
+    "chapter": 44,
+    "groups": []
+  },
+  {
+    "chapter": 45,
+    "groups": []
+  },
+  {
+    "chapter": 46,
+    "groups": [
+      {
+        "title": "Vocabulary",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          },
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          },
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 47,
+    "groups": [
+      {
+        "title": "Vocabulary",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          },
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 48,
+    "groups": [
+      {
+        "title": "Vocabulary",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          },
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 49,
+    "groups": [
+      {
+        "title": "Vocabulary",
+        "items": [
+          {
+            "image": "v.jpg",
+            "audio": "v.mp3"
+          },
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          },
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "chapter": 50,
+    "groups": [
+      {
+        "title": "Vocabulary",
+        "items": [
+          {
+            "image": "v1.jpg",
+            "audio": "v1.mp3"
+          },
+          {
+            "image": "v2.jpg",
+            "audio": "v2.mp3"
+          },
+          {
+            "image": "v3.jpg",
+            "audio": "v3.mp3"
+          },
+          {
+            "image": "v4.jpg",
+            "audio": "v4.mp3"
+          }
+        ]
+      }
+    ]
+  }
+]
