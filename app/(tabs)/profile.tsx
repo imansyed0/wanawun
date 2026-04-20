@@ -5,36 +5,63 @@ import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/src/components/ui/Button';
 import { Card } from '@/src/components/ui/Card';
-import { ChinarLeaf } from '@/src/components/ui/ChinarLeaf';
 import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
-import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 import { useAuth } from '@/src/hooks/useAuth';
+import { supabase } from '@/src/lib/supabase';
 import { getGlossaryWords } from '@/src/services/wordService';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, profile, loading, signOut } = useAuth();
   const [wordCount, setWordCount] = useState(0);
+  const [gameCount, setGameCount] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
 
-      async function loadWordCount() {
+      async function loadProgressCounts() {
         if (!user?.id) {
-          if (active) setWordCount(0);
+          if (active) {
+            setWordCount(0);
+            setGameCount(0);
+          }
           return;
         }
 
         try {
-          const words = await getGlossaryWords(user.id);
-          if (active) setWordCount(words.length);
+          const [
+            words,
+            syncGamesResult,
+            asyncGamesResult,
+          ] = await Promise.all([
+            getGlossaryWords(user.id),
+            supabase
+              .from('sync_games')
+              .select('*', { count: 'exact', head: true })
+              .or(`player_a.eq.${user.id},player_b.eq.${user.id}`)
+              .not('player_b', 'is', null)
+              .neq('status', 'waiting'),
+            supabase
+              .from('async_games')
+              .select('*', { count: 'exact', head: true })
+              .or(`player_a.eq.${user.id},player_b.eq.${user.id}`),
+          ]);
+
+          if (!active) return;
+
+          setWordCount(words.length);
+          setGameCount((syncGamesResult.count ?? 0) + (asyncGamesResult.count ?? 0));
         } catch {
-          if (active) setWordCount(0);
+          if (active) {
+            setWordCount(0);
+            setGameCount(0);
+          }
         }
       }
 
-      loadWordCount();
+      loadProgressCounts();
 
       return () => {
         active = false;
@@ -54,7 +81,6 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.authPrompt}>
-          <ChinarLeaf size={64} color={Colors.primary} opacity={0.1} style={{ alignSelf: 'center' }} />
           <Text style={styles.title}>Join Wanawun</Text>
           <Text style={styles.subtitle}>
             Sign in to track your progress and play with friends
@@ -98,7 +124,7 @@ export default function ProfileScreen() {
             <Text style={styles.statLabel}>Rating</Text>
           </Card>
           <Card style={styles.statCard}>
-            <Text style={styles.statValue}>{profile?.games_played ?? 0}</Text>
+            <Text style={styles.statValue}>{gameCount}</Text>
             <Text style={styles.statLabel}>Games</Text>
           </Card>
           <Card style={styles.statCard}>
@@ -107,6 +133,11 @@ export default function ProfileScreen() {
           </Card>
         </View>
 
+        <Button
+          title="How to use the app"
+          onPress={() => router.push('/onboarding?replay=1')}
+          variant="outline"
+        />
         <Button
           title="Sign Out"
           onPress={signOut}
@@ -139,7 +170,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: FontSize.xxl,
-    fontWeight: '800',
+    fontFamily: FontFamily.headingBold,
     color: Colors.primaryDark,
     textAlign: 'center',
   },
@@ -169,12 +200,12 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: FontSize.xxl,
-    fontWeight: '800',
+    fontFamily: FontFamily.bodyHeavy,
     color: '#fff',
   },
   displayName: {
     fontSize: FontSize.xl,
-    fontWeight: '700',
+    fontFamily: FontFamily.heading,
     color: Colors.text,
     marginTop: Spacing.md,
   },
@@ -194,7 +225,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: FontSize.xl,
-    fontWeight: '800',
+    fontFamily: FontFamily.headingBold,
     color: Colors.primary,
   },
   statLabel: {

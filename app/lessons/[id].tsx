@@ -3,23 +3,25 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
-import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 import { allCourses } from '@/src/data/courses';
 import { getFullyListenedLessonIds } from '@/src/services/clipProgressService';
+import { useAuth } from '@/src/hooks/useAuth';
 
 export default function CourseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useAuth();
   const course = allCourses.find((c) => c.id === id);
   const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(new Set());
 
   useFocusEffect(
     useCallback(() => {
       if (!id || !course) return;
-      getFullyListenedLessonIds(id, course.lessons)
+      getFullyListenedLessonIds(user?.id, id, course.lessons)
         .then((ids) => setCompletedLessonIds(new Set(ids)))
         .catch(() => {});
-    }, [id, course])
+    }, [id, course, user?.id])
   );
 
   if (!course) {
@@ -37,7 +39,7 @@ export default function CourseDetailScreen() {
           <Text style={styles.backText}>{'\u2190'}</Text>
         </Pressable>
         <View style={styles.headerInfo}>
-          <Text style={styles.title} numberOfLines={1}>
+          <Text style={styles.title}>
             {course.title}
           </Text>
           <Text style={styles.author}>{course.author}</Text>
@@ -96,13 +98,19 @@ const styles = StyleSheet.create({
   },
   backBtn: { padding: Spacing.xs },
   backText: { fontSize: 24, color: Colors.primary },
-  headerInfo: { flex: 1 },
-  title: { fontSize: FontSize.xl, fontWeight: '700', color: Colors.primaryDark },
+  headerInfo: { flex: 1, minWidth: 0 },
+  title: {
+    fontSize: FontSize.xl,
+    fontFamily: FontFamily.heading,
+    color: Colors.primaryDark,
+    flexShrink: 1,
+    lineHeight: 30,
+  },
   author: { fontSize: FontSize.sm, color: Colors.textSecondary, fontStyle: 'italic' },
   list: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xxl },
   lessonCard: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
@@ -133,14 +141,20 @@ const styles = StyleSheet.create({
   checkText: {
     color: '#fff',
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: FontFamily.bodyBold,
     lineHeight: 14,
   },
-  lessonNumberText: { color: '#fff', fontWeight: '700', fontSize: FontSize.sm },
-  lessonInfo: { flex: 1 },
-  lessonTitle: { fontSize: FontSize.md, fontWeight: '600', color: Colors.text },
+  lessonNumberText: { color: '#fff', fontFamily: FontFamily.bodyBold, fontSize: FontSize.sm },
+  lessonInfo: { flex: 1, minWidth: 0 },
+  lessonTitle: {
+    fontSize: FontSize.md,
+    fontFamily: FontFamily.bodySemi,
+    color: Colors.text,
+    flexShrink: 1,
+    lineHeight: 22,
+  },
   lessonMeta: { fontSize: FontSize.xs, color: Colors.textLight, marginTop: 2 },
-  chevron: { fontSize: 24, color: Colors.textLight },
+  chevron: { fontSize: 24, color: Colors.textLight, marginTop: 2 },
   errorText: {
     textAlign: 'center',
     color: Colors.wrong,

@@ -36,6 +36,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-audio",
       ["@react-native-google-signin/google-signin", { "iosUrlScheme": "com.googleusercontent.apps.634866738820-9o9o2cod17nkvld9n6lep7gio788b241" }]
     ],
     "experiments": {

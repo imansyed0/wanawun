@@ -200,38 +200,74 @@ export const ciilCourse: Course = {
 };
 
 // ---------------------------------------------------------------------------
-// 4. Let's Learn Kashmiri — 12 audio tracks across 35 chapters
+// 4. Let's Learn Kashmiri — 34 chapters with per-clip audio
 // ---------------------------------------------------------------------------
+// Course chapter N maps to site chapter siteN (siteN = N + 1).
+// Each chapter has its own audio directory at /LearnKashmiri/chapter{siteN}/audio/.
+// Image/clip basenames are listed explicitly to handle gaps and alphanumeric suffixes.
 
-const learnKashmiriChapters: { n: number; title: string; trackNum: number; imgCount: number }[] = [
-  { n: 1, title: 'Words', trackNum: 2, imgCount: 10 },
-  { n: 2, title: 'Counting Numbers', trackNum: 3, imgCount: 13 },
-  { n: 3, title: 'A Short Story', trackNum: 4, imgCount: 10 },
-  { n: 4, title: 'Some Special Usages', trackNum: 5, imgCount: 2 },
-  { n: 5, title: 'More Words', trackNum: 6, imgCount: 8 },
-  { n: 6, title: 'Differentiating Sounds', trackNum: 7, imgCount: 13 },
-  { n: 7, title: 'Short Sentences', trackNum: 8, imgCount: 6 },
-  { n: 8, title: 'Some Notes on Grammar', trackNum: 9, imgCount: 11 },
-  { n: 9, title: 'Order of Words', trackNum: 10, imgCount: 40 },
-  { n: 10, title: 'Questions & Answers', trackNum: 11, imgCount: 28 },
-  { n: 11, title: 'Where, Who, What, When', trackNum: 12, imgCount: 47 },
-  { n: 12, title: 'Question Sentences', trackNum: 13, imgCount: 33 },
+const learnKashmiriChapters: { n: number; siteN: number; title: string; imgs: string[]; clips: string[] }[] = [
+  { n: 1, siteN: 2, title: 'Words', imgs: ['1','2','3','4','5','6','7','8','9','10'], clips: ['1','2','3','4','5','6','7','8','9','10'] },
+  { n: 2, siteN: 3, title: 'Counting Numbers', imgs: ['1','2','3','4','5','6','7','8','9','10','11','12','13'], clips: ['1','2','3','4','5','6','7','8','9','10','11','12','13'] },
+  { n: 3, siteN: 4, title: 'A Short Story', imgs: ['1','2','3','4','5','6','7','8','9','10'], clips: ['1','2','3','4','5','6','7','8','9','10'] },
+  { n: 4, siteN: 5, title: 'Some Special Usages', imgs: ['1','2'], clips: ['1','2'] },
+  { n: 5, siteN: 6, title: 'More Words', imgs: ['1','1a','2','2a','3','3a','4','4a','4b','5','5a','6','6a','7','7a','8','8a'], clips: ['1','1a','2','2a','3','3a','4','4a','4b','5','5a','6','6a','7','7a','8','8a'] },
+  { n: 6, siteN: 7, title: 'Differentiating Sounds', imgs: ['1','2','3','4','5','6','7','8','9','10','11','12','13'], clips: ['1','2','3','4','5','6','7','8','9','10','11','12','13'] },
+  { n: 7, siteN: 8, title: 'Short Sentences', imgs: ['1','2','3','4','5','6'], clips: ['1','2','3','4','5','6'] },
+  { n: 8, siteN: 9, title: 'Some Notes on Grammar', imgs: ['1','2','3','4','5','6','7','8','9','10','11'], clips: ['1','2','3','4','5','6','7','8','9','10','11'] },
+  { n: 9, siteN: 10, title: 'Order of Words', imgs: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40'], clips: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40'] },
+  { n: 10, siteN: 11, title: 'Questions & Answers', imgs: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28'], clips: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28'] },
+  // ch11: clip 36 is missing on the site (imgs 1-47, clips 1-35 + 37-47).
+  { n: 11, siteN: 12, title: 'Where, Who, What, When', imgs: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47'], clips: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','37','38','39','40','41','42','43','44','45','46','47'] },
+  // ch12: imgs/clips skip 23 and 24.
+  { n: 12, siteN: 13, title: 'Question Sentences', imgs: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','25','26','27','28','29','30','31','32','33'], clips: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','25','26','27','28','29','30','31','32','33'] },
+  { n: 13, siteN: 14, title: 'Time', imgs: ['1','2','3','4','5','6','7','8','9','10','11','12'], clips: ['1','2','3','4','5','6','7','8','9','10','11','12'] },
+  { n: 14, siteN: 15, title: 'Verbs', imgs: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18'], clips: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18'] },
+  // ch15: site numbering starts at 2 (no item 1).
+  { n: 15, siteN: 16, title: 'Days of the Week', imgs: ['2','3','4','5','6','7','8','9','10','11','12','13','14','15','16'], clips: ['2','3','4','5','6','7','8','9','10','11','12','13','14','15','16'] },
+  { n: 16, siteN: 17, title: 'Ordinal and Fractional Numbers and Multiples', imgs: ['1','2','3','4','5','6','7','8'], clips: ['1','2','3','4','5','6','7','8'] },
+  { n: 17, siteN: 18, title: 'Pronouns', imgs: ['1','2','3','4'], clips: ['1','2','3','4'] },
+  { n: 18, siteN: 19, title: 'Important Adjectives: A Short Glossary', imgs: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24'], clips: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24'] },
+  // ch19: imgs skip 27; clips skip 27 but include an extra 48.
+  { n: 19, siteN: 20, title: 'More about Grammar', imgs: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47'], clips: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47','48'] },
+  { n: 20, siteN: 21, title: 'Relations', imgs: ['1','2','3','4','5','6','7'], clips: ['1','2','3','4','5','6','7'] },
+  { n: 21, siteN: 22, title: 'Sentences showing use of Prepositions', imgs: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34'], clips: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34'] },
+  { n: 22, siteN: 23, title: 'Some Antonyms', imgs: ['1','2','3','4','5'], clips: ['1','2','3','4','5'] },
+  // ch23: extra 'title.mp3' clip at end.
+  { n: 23, siteN: 24, title: "God's Eleven", imgs: ['1','2','3','4','5','6','7','8','9','10','11','12','13'], clips: ['1','2','3','4','5','6','7','8','9','10','11','12','13','title'] },
+  // ch24: no audio clips on site.
+  { n: 24, siteN: 25, title: 'Some Idiomatic Phrases', imgs: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35'], clips: [] },
+  { n: 25, siteN: 26, title: 'More Proverbs/Idioms', imgs: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'], clips: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'] },
+  { n: 26, siteN: 27, title: 'A Letter in Kashmiri', imgs: ['1','2','3','4','5','6'], clips: ['1','2','3','4','5','6'] },
+  // ch27: extra 'title.mp3'.
+  { n: 27, siteN: 28, title: 'Well Cooked Rice', imgs: ['1','2','3','4','5','6','7','8','9','10'], clips: ['1','2','3','4','5','6','7','8','9','10','title'] },
+  // ch28: imgs/clips skip 2; extra 'title.mp3'.
+  { n: 28, siteN: 29, title: 'A Pick Pocket', imgs: ['1','3','4','5','6','7','8','9','10','11','12','13'], clips: ['1','3','4','5','6','7','8','9','10','11','12','13','title'] },
+  // ch29: no audio clips on site.
+  { n: 29, siteN: 30, title: 'A Riddle', imgs: ['1','2','3','4','5','6'], clips: [] },
+  // ch30: extra 'title.mp3'.
+  { n: 30, siteN: 31, title: 'An Affirmation of Human Oneness', imgs: ['1','2','3','4','5','6','7'], clips: ['1','2','3','4','5','6','7','title'] },
+  // ch31: no audio clips on site.
+  { n: 31, siteN: 32, title: 'The Dhammapada', imgs: ['1','2','3','4','5','6','7','8','9','10'], clips: [] },
+  { n: 32, siteN: 33, title: 'Some Common Usages', imgs: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15'], clips: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15'] },
+  { n: 33, siteN: 34, title: 'Some Couplets from Great Kashmiri Poets', imgs: ['1','2','3','4','5','6'], clips: ['1','2','3','4','5','6'] },
+  { n: 34, siteN: 35, title: 'To Remember by Heart', imgs: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21'], clips: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21'] },
 ];
 
 export const learnKashmiri: Course = {
   id: 'learn-kashmiri',
   title: "Let's Learn Kashmiri",
   author: 'Koshur.org',
-  description: '12 audio lessons covering vocabulary, grammar, and sentences.',
+  description: '34 chapters of vocabulary, grammar, conversations, and poetry with per-clip audio.',
   lessons: learnKashmiriChapters.map(ch => ({
     id: `learn-ch${ch.n}`,
     number: ch.n,
     title: `Chapter ${ch.n}: ${ch.title}`,
-    pageUrl: `https://koshur.org/LearnKashmiri/chapter${ch.n + 1}/`,
-    audioBaseUrl: `https://koshur.org/LearnKashmiri/mp3/audio/`,
-    audioClips: [{ filename: `${ch.trackNum}.mp3`, label: ch.title }],
-    imageBaseUrl: `https://koshur.org/LearnKashmiri/chapter${ch.n + 1}/images/`,
-    images: Array.from({ length: ch.imgCount }, (_, i) => ({ filename: `${i + 1}.jpg` })),
+    pageUrl: `https://koshur.org/LearnKashmiri/chapter${ch.siteN}/`,
+    audioBaseUrl: `https://koshur.org/LearnKashmiri/chapter${ch.siteN}/audio/`,
+    audioClips: ch.clips.map(c => ({ filename: `${c}.mp3`, label: c })),
+    imageBaseUrl: `https://koshur.org/LearnKashmiri/chapter${ch.siteN}/images/`,
+    images: ch.imgs.map(i => ({ filename: `${i}.jpg` })),
   })),
 };
 
@@ -243,5 +279,6 @@ export const allCourses: Course[] = [
   spokenKashmiri,
   kashmiriKoul,
   ciilCourse,
-  learnKashmiri,
+  // Temporarily hidden — the Let's Learn Kashmiri course is disabled in the app.
+  // learnKashmiri,
 ];

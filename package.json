@@ -11,12 +11,16 @@
     "build:android:production": "eas build -p android --profile production"
   },
   "dependencies": {
+    "@expo-google-fonts/cairo": "^0.4.2",
+    "@expo-google-fonts/fraunces": "^0.4.1",
+    "@expo-google-fonts/markazi-text": "^0.4.1",
+    "@expo-google-fonts/space-grotesk": "^0.4.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-google-signin/google-signin": "^16.1.2",
     "@react-navigation/native": "^7.1.33",
     "@supabase/supabase-js": "^2.99.3",
     "expo": "~55.0.8",
-    "expo-av": "^16.0.8",
+    "expo-audio": "~55.0.9",
     "expo-constants": "~55.0.9",
     "expo-device": "~55.0.10",
     "expo-font": "~55.0.4",

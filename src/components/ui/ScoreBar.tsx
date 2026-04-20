@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 
 interface ScoreBarProps {
   playerAName: string;
@@ -70,11 +70,11 @@ const styles = StyleSheet.create({
   playerName: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
-    fontWeight: '500',
+    fontFamily: FontFamily.bodySemi,
   },
   score: {
     fontSize: FontSize.xl,
-    fontWeight: '800',
+    fontFamily: FontFamily.headingBold,
     color: Colors.text,
   },
   roundBadge: {
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   },
   roundText: {
     fontSize: FontSize.sm,
-    fontWeight: '700',
+    fontFamily: FontFamily.bodyBold,
     color: '#fff',
   },
 });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Colors } from '@/src/constants/theme';
+import { Colors, FontFamily } from '@/src/constants/theme';
 import { SymbolView } from 'expo-symbols';
 
 export default function TabLayout() {
@@ -18,7 +18,7 @@ export default function TabLayout() {
           paddingTop: 4,
         },
         tabBarLabelStyle: {
-          fontWeight: '600',
+          fontFamily: FontFamily.bodySemi,
           fontSize: 11,
           letterSpacing: 0.2,
         },

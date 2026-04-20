@@ -3,6 +3,8 @@ import type { WordEntry } from '@/src/types';
 
 // Cache words locally after first fetch
 let cachedWords: WordEntry[] | null = null;
+const MANUAL_GLOSSARY_LESSON_ID = 'manual-glossary';
+const MANUAL_GLOSSARY_COURSE_ID = 'glossary';
 
 /** Invalidate cache so next getAllWords() re-fetches */
 export function invalidateWordCache() {
@@ -24,6 +26,22 @@ export async function getAllWords(): Promise<WordEntry[]> {
 
 function glossaryKey(kashmiri: string, english: string) {
   return `${kashmiri.trim().toLowerCase()}::${english.trim().toLowerCase()}`;
+}
+
+function mapGlossaryRowToWordEntry(row: any): WordEntry {
+  const linkedWord = Array.isArray(row.words) ? row.words[0] : row.words;
+
+  return {
+    id: row.word_id ?? `lesson-vocab:${row.id}`,
+    kashmiri: row.kashmiri,
+    english: row.english,
+    part_of_speech: 'other',
+    category: 'lesson',
+    difficulty: 1,
+    is_loan_word: false,
+    is_phrase: row.kashmiri.includes(' '),
+    audio_url: linkedWord?.audio_url ?? null,
+  };
 }
 
 /**
@@ -56,17 +74,7 @@ export async function getGlossaryWords(userId?: string): Promise<WordEntry[]> {
       continue;
     }
 
-    const lessonWord: WordEntry = {
-      id: row.word_id ?? `lesson-vocab:${row.id}`,
-      kashmiri: row.kashmiri,
-      english: row.english,
-      part_of_speech: 'other',
-      category: 'lesson',
-      difficulty: 1,
-      is_loan_word: false,
-      is_phrase: row.kashmiri.includes(' '),
-      audio_url: linkedWord?.audio_url ?? null,
-    };
+    const lessonWord = mapGlossaryRowToWordEntry(row);
 
     merged.set(lessonWord.id, lessonWord);
     merged.set(key, lessonWord);
@@ -77,6 +85,86 @@ export async function getGlossaryWords(userId?: string): Promise<WordEntry[]> {
       Array.from(merged.values()).map((word) => [word.id, word])
     ).values()
   ).sort((a, b) => a.kashmiri.localeCompare(b.kashmiri));
+}
+
+export async function addGlossaryWord(
+  userId: string,
+  kashmiri: string,
+  english: string
+): Promise<WordEntry> {
+  const trimmedKashmiri = kashmiri.trim();
+  const trimmedEnglish = english.trim();
+
+  if (!trimmedKashmiri || !trimmedEnglish) {
+    throw new Error('Both Kashmiri and English are required.');
+  }
+
+  const { data: existingGlossaryRow, error: existingGlossaryError } = await supabase
+    .from('lesson_vocab')
+    .select('id, kashmiri, english, word_id, words:word_id(audio_url)')
+    .eq('user_id', userId)
+    .ilike('kashmiri', trimmedKashmiri)
+    .ilike('english', trimmedEnglish)
+    .limit(1)
+    .maybeSingle();
+
+  if (existingGlossaryError) throw existingGlossaryError;
+  if (existingGlossaryRow) {
+    return mapGlossaryRowToWordEntry(existingGlossaryRow);
+  }
+
+  const { data: existingWord, error: existingWordError } = await supabase
+    .from('words')
+    .select('id, audio_url')
+    .ilike('kashmiri', trimmedKashmiri)
+    .ilike('english', trimmedEnglish)
+    .limit(1)
+    .maybeSingle();
+
+  if (existingWordError) throw existingWordError;
+
+  let wordId = existingWord?.id ?? null;
+  let audioUrl = existingWord?.audio_url ?? null;
+
+  if (!wordId) {
+    const { data: insertedWord, error: insertWordError } = await supabase
+      .from('words')
+      .insert({
+        kashmiri: trimmedKashmiri,
+        english: trimmedEnglish,
+        part_of_speech: 'other',
+        category: 'lesson',
+        difficulty: 1,
+        is_loan_word: false,
+        is_phrase: trimmedKashmiri.includes(' '),
+      })
+      .select('id, audio_url')
+      .single();
+
+    if (insertWordError) throw insertWordError;
+    wordId = insertedWord.id;
+    audioUrl = insertedWord.audio_url ?? null;
+  }
+
+  const { data: insertedGlossaryRow, error: insertGlossaryError } = await supabase
+    .from('lesson_vocab')
+    .insert({
+      user_id: userId,
+      lesson_id: MANUAL_GLOSSARY_LESSON_ID,
+      course_id: MANUAL_GLOSSARY_COURSE_ID,
+      kashmiri: trimmedKashmiri,
+      english: trimmedEnglish,
+      word_id: wordId,
+    })
+    .select('id, kashmiri, english, word_id')
+    .single();
+
+  if (insertGlossaryError) throw insertGlossaryError;
+
+  return {
+    ...mapGlossaryRowToWordEntry(insertedGlossaryRow),
+    audio_url: audioUrl,
+  };
 }
 
 export async function deleteGlossaryWord(
