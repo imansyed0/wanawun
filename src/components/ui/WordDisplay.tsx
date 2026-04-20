@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 
 interface WordDisplayProps {
   kashmiri: string;
@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   kashmiri: {
-    fontWeight: '700',
+    fontFamily: FontFamily.heading,
     color: Colors.accent,
     letterSpacing: 1,
   },

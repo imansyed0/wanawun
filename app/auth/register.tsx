@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '@/src/components/ui/Button';
-import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 import { useAuth } from '@/src/hooks/useAuth';
 
 export default function RegisterScreen() {
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: FontSize.xxl,
-    fontWeight: '800',
+    fontFamily: FontFamily.headingBold,
     color: Colors.primaryDark,
     textAlign: 'center',
   },
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.md,
     fontSize: FontSize.sm,
     color: Colors.textLight,
-    fontWeight: '500',
+    fontFamily: FontFamily.bodySemi,
   },
   googleButton: {
     backgroundColor: Colors.surface,
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   },
   googleButtonText: {
     fontSize: FontSize.md,
-    fontWeight: '700',
+    fontFamily: FontFamily.bodyBold,
     color: Colors.text,
     letterSpacing: 0.3,
   },

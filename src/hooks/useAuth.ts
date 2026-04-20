@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/src/lib/supabase';
 import { nativeGoogleSignIn } from '@/src/lib/googleSignIn';
+import { clearClipProgressCache } from '@/src/services/clipProgressService';
 import type { Session, User } from '@supabase/supabase-js';
 import type { Profile } from '@/src/types';
 
@@ -115,6 +116,7 @@ export function useAuth() {
   }
 
   async function signOut() {
+    await clearClipProgressCache();
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   }

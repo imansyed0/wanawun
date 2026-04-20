@@ -3,9 +3,8 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/src/components/ui/Button';
 import { Card } from '@/src/components/ui/Card';
-import { ChinarLeaf } from '@/src/components/ui/ChinarLeaf';
 import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
-import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -13,10 +12,8 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Hero header with chinar leaves */}
+        {/* Hero header */}
         <View style={styles.header}>
-          <ChinarLeaf size={56} color={Colors.primary} opacity={0.08} style={styles.leafLeft} />
-          <ChinarLeaf size={44} color={Colors.secondary} opacity={0.06} style={styles.leafRight} />
           <Text style={styles.title}>Wanawun</Text>
           <Text style={styles.subtitle}>Learn Koshur Together</Text>
           <Text style={styles.tagline}>
@@ -77,21 +74,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xl,
     position: 'relative',
   },
-  leafLeft: {
-    position: 'absolute',
-    top: 12,
-    left: 20,
-    transform: [{ rotate: '-25deg' }],
-  },
-  leafRight: {
-    position: 'absolute',
-    top: 8,
-    right: 24,
-    transform: [{ rotate: '20deg' }],
-  },
   title: {
     fontSize: FontSize.title,
-    fontWeight: '800',
+    fontFamily: FontFamily.headingBold,
     color: Colors.primaryDark,
     letterSpacing: -1,
   },
@@ -99,7 +84,7 @@ const styles = StyleSheet.create({
     fontSize: FontSize.lg,
     color: Colors.textSecondary,
     marginTop: Spacing.xs,
-    fontWeight: '500',
+    fontFamily: FontFamily.bodySemi,
   },
   tagline: {
     fontSize: FontSize.sm,
@@ -117,7 +102,7 @@ const styles = StyleSheet.create({
   },
   gameTitle: {
     fontSize: FontSize.xl,
-    fontWeight: '800',
+    fontFamily: FontFamily.headingBold,
     color: Colors.text,
   },
   gameSubtitle: {
@@ -133,7 +118,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: FontSize.xs,
-    fontWeight: '800',
+    fontFamily: FontFamily.bodyBold,
     color: '#fff',
     letterSpacing: 1,
   },
@@ -155,6 +140,6 @@ const styles = StyleSheet.create({
   statPillText: {
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
-    fontWeight: '600',
+    fontFamily: FontFamily.bodySemi,
   },
 });

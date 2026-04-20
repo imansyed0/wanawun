@@ -2,9 +2,8 @@ import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/src/components/ui/Card';
-import { ChinarLeaf } from '@/src/components/ui/ChinarLeaf';
 import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
-import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 import { allCourses } from '@/src/data/courses';
 
 const badges: Record<string, { label: string; color: string }> = {
@@ -32,7 +31,6 @@ export default function LessonsScreen() {
             <Text style={styles.title}>Lessons</Text>
             <Text style={styles.subtitle}>Audio courses from koshur.org</Text>
           </View>
-          <ChinarLeaf size={36} color={Colors.primary} opacity={0.12} />
         </View>
       </View>
 
@@ -54,16 +52,16 @@ export default function LessonsScreen() {
                 <View style={styles.cardTop}>
                   <Text style={styles.courseIcon}>{icon}</Text>
                   <View style={styles.cardTitleArea}>
-                    <Text style={styles.courseTitle} numberOfLines={1}>
+                    <Text style={styles.courseTitle}>
                       {item.title}
                     </Text>
                     <Text style={styles.author}>{item.author}</Text>
+                    {badge && (
+                      <View style={[styles.badge, { backgroundColor: badge.color }]}>
+                        <Text style={styles.badgeText}>{badge.label}</Text>
+                      </View>
+                    )}
                   </View>
-                  {badge && (
-                    <View style={[styles.badge, { backgroundColor: badge.color }]}>
-                      <Text style={styles.badgeText}>{badge.label}</Text>
-                    </View>
-                  )}
                 </View>
                 <Text style={styles.description} numberOfLines={2}>
                   {item.description}
@@ -85,32 +83,38 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  title: { fontSize: FontSize.xxl, fontWeight: '800', color: Colors.primaryDark },
+  title: { fontSize: FontSize.xxl, fontFamily: FontFamily.headingBold, color: Colors.primaryDark },
   subtitle: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: Spacing.xs },
   list: { padding: Spacing.lg, gap: Spacing.md, paddingBottom: Spacing.xxl },
   card: { gap: Spacing.sm },
   cardTop: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: Spacing.sm,
   },
   courseIcon: {
     fontSize: 28,
+    marginTop: 2,
   },
   cardTitleArea: {
     flex: 1,
+    minWidth: 0,
+    gap: 4,
   },
   courseTitle: {
     fontSize: FontSize.lg,
-    fontWeight: '700',
+    fontFamily: FontFamily.bodyBold,
     color: Colors.text,
+    flexShrink: 1,
+    lineHeight: 24,
   },
   badge: {
+    alignSelf: 'flex-start',
     paddingHorizontal: Spacing.sm,
     paddingVertical: 3,
     borderRadius: BorderRadius.sm,
   },
-  badgeText: { fontSize: FontSize.xs, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+  badgeText: { fontSize: FontSize.xs, fontFamily: FontFamily.bodyBold, color: '#fff', letterSpacing: 0.5 },
   author: { fontSize: FontSize.sm, color: Colors.textSecondary, fontStyle: 'italic' },
   description: { fontSize: FontSize.sm, color: Colors.textLight, lineHeight: 20 },
 });

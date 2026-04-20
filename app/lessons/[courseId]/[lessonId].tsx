@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -14,12 +14,17 @@ import {
 } from 'react-native';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useLayoutEffect } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Audio } from 'expo-av';
+import {
+  createAudioPlayer,
+  setAudioModeAsync,
+  type AudioPlayer,
+  type AudioRecorder,
+  type AudioStatus,
+} from 'expo-audio';
 import { WebView } from 'react-native-webview';
-import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 import { allCourses, type AudioClip } from '@/src/data/courses';
 import { getSpokenKashmiriChapterContent } from '@/src/data/spokenKashmiriContent';
 import { getLessonCourseContext } from '@/src/data/courseContext';
@@ -75,19 +80,20 @@ export default function LessonPlayerScreen() {
 
     navigation.setOptions({
       title: lesson.title,
-      headerTitle: () =>
+      headerTitle: () => <Text style={styles.headerLinkText}>{lesson.title}</Text>,
+      headerRight: () =>
         lesson.pageUrl ? (
-          <ExternalLink href={lesson.pageUrl} style={styles.headerLink}>
-            <Text style={styles.headerLinkText}>{lesson.title}</Text>
+          <ExternalLink href={lesson.pageUrl} style={styles.headerAction}>
+            <Text style={styles.headerActionText}>koshur.org {'\u2197'}</Text>
           </ExternalLink>
-        ) : (
-          <Text style={styles.headerLinkText}>{lesson.title}</Text>
-        ),
+        ) : null,
     });
   }, [course, lesson, navigation]);
 
   // Audio
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const soundRef = useRef<AudioPlayer | null>(null);
+  const playbackSessionRef = useRef(0);
+  const currentClipIdxRef = useRef(0);
   const [currentClipIdx, setCurrentClipIdx] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -98,7 +104,6 @@ export default function LessonPlayerScreen() {
   const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, number>>({});
   const [learnHtmlHeight, setLearnHtmlHeight] = useState(900);
   const scrollViewRef = useRef<ScrollView | null>(null);
-  const contentScrollY = useRef(0);
   const kashmiriInputRef = useRef<TextInput | null>(null);
   const englishInputRef = useRef<TextInput | null>(null);
 
@@ -113,15 +118,15 @@ export default function LessonPlayerScreen() {
   const [vocabPlayingId, setVocabPlayingId] = useState<string | null>(null);
   const [vocabRecordingId, setVocabRecordingId] = useState<string | null>(null);
   const [vocabSavingId, setVocabSavingId] = useState<string | null>(null);
-  const vocabRecordingRef = useRef<Audio.Recording | null>(null);
+  const vocabRecordingRef = useRef<AudioRecorder | null>(null);
 
   // Clip listen tracking
   const [listenedClips, setListenedClips] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!courseId || !lessonId) return;
-    getListenedClips(courseId, lessonId).then(setListenedClips).catch(console.error);
-  }, [courseId, lessonId]);
+    getListenedClips(user?.id, courseId, lessonId).then(setListenedClips).catch(console.error);
+  }, [courseId, lessonId, user?.id]);
 
   useEffect(() => {
     if (!user?.id || !lessonId) return;
@@ -129,10 +134,49 @@ export default function LessonPlayerScreen() {
   }, [user?.id, lessonId]);
 
   useEffect(() => {
-    return () => {
-      soundRef.current?.unloadAsync();
-    };
+    currentClipIdxRef.current = currentClipIdx;
+  }, [currentClipIdx]);
+
+  const stopLessonAudio = useCallback(async (resetProgress = false, invalidateSession = true) => {
+    if (invalidateSession) {
+      playbackSessionRef.current += 1;
+    }
+    const currentSound = soundRef.current;
+    soundRef.current = null;
+
+    if (currentSound) {
+      try {
+        currentSound.pause();
+      } catch {}
+      try {
+        currentSound.remove();
+      } catch {}
+    }
+
+    setIsPlaying(false);
+    setIsLoading(false);
+
+    if (resetProgress) {
+      setPosition(0);
+      setDuration(0);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        void stopLessonAudio(true);
+        void stopAudio();
+        setVocabPlayingId(null);
+      };
+    }, [stopLessonAudio])
+  );
+
+  useEffect(() => {
+    return () => {
+      void stopLessonAudio(true);
+    };
+  }, [stopLessonAudio]);
 
   useEffect(() => {
     if (!lessonImageBaseUrl) return;
@@ -179,57 +223,82 @@ export default function LessonPlayerScreen() {
   const clips = lesson.audioClips;
   const currentClip = clips[currentClipIdx];
 
-  const onPlaybackStatusUpdate = (status: any) => {
+  const onPlaybackStatusUpdate = useCallback((status: AudioStatus, clipIdx: number, sound: AudioPlayer) => {
     if (!status.isLoaded) return;
-    setPosition(status.positionMillis || 0);
-    setDuration(status.durationMillis || 0);
-    setIsPlaying(status.isPlaying);
-    if (status.didJustFinish) {
-      setIsPlaying(false);
-      // Mark clip as listened
-      if (courseId && lessonId && clips[currentClipIdx]) {
-        setListenedClips((prev) => new Set([...prev, clips[currentClipIdx].filename]));
-        markClipListened(courseId, lessonId, clips[currentClipIdx].filename).catch(console.error);
-      }
-      // Auto-advance to next clip
-      if (currentClipIdx < clips.length - 1) {
-        playClip(currentClipIdx + 1);
-      }
-    }
-  };
+    setPosition((status.currentTime || 0) * 1000);
+    setDuration((status.duration || 0) * 1000);
+    setIsPlaying(status.playing);
 
-  const playClip = async (idx: number) => {
-    setError('');
-    try {
-      if (soundRef.current) {
-        await soundRef.current.unloadAsync();
+    if (status.didJustFinish) {
+      try {
+        sound.remove();
+      } catch {}
+      if (soundRef.current === sound) {
         soundRef.current = null;
       }
+      setIsPlaying(false);
+
+      // Mark the clip that just finished as listened
+      if (courseId && lessonId && clips[clipIdx]) {
+        const finishedFilename = clips[clipIdx].filename;
+        setListenedClips((prev) => new Set([...prev, finishedFilename]));
+        markClipListened(user?.id, courseId, lessonId, finishedFilename).catch(console.error);
+      }
+
+      if (clipIdx < clips.length - 1) {
+        void playClip(clipIdx + 1);
+      }
+    }
+  }, [clips, courseId, lessonId, user?.id]);
+
+  const playClip = useCallback(async (idx: number) => {
+    setError('');
+    let sessionId = 0;
+
+    try {
+      await stopAudio();
+      setVocabPlayingId(null);
+      await stopLessonAudio(false, false);
+
+      playbackSessionRef.current += 1;
+      sessionId = playbackSessionRef.current;
+
       setCurrentClipIdx(idx);
+      currentClipIdxRef.current = idx;
       setIsLoading(true);
       setPosition(0);
       setDuration(0);
 
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: true,
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: false,
       });
 
+      if (playbackSessionRef.current !== sessionId) {
+        return;
+      }
+
       const uri = lesson.audioBaseUrl + clips[idx].filename;
-      const { sound } = await Audio.Sound.createAsync(
-        { uri },
-        { shouldPlay: true },
-        onPlaybackStatusUpdate
-      );
+      const sound = createAudioPlayer({ uri }, { updateInterval: 250 });
       soundRef.current = sound;
-      setIsPlaying(true);
+      sound.addListener('playbackStatusUpdate', (status) => {
+        if (playbackSessionRef.current !== sessionId || soundRef.current !== sound) {
+          return;
+        }
+        onPlaybackStatusUpdate(status, idx, sound);
+      });
+      sound.play();
     } catch (e: any) {
-      setError('Failed to load audio');
+      if (playbackSessionRef.current === sessionId) {
+        setError('Failed to load audio');
+      }
       console.error('Audio error:', e);
     } finally {
-      setIsLoading(false);
+      if (playbackSessionRef.current === sessionId) {
+        setIsLoading(false);
+      }
     }
-  };
+  }, [clips, lesson.audioBaseUrl, onPlaybackStatusUpdate, stopLessonAudio]);
 
   const scrollVocabInputsIntoView = (input: TextInput | null) => {
     requestAnimationFrame(() => {
@@ -247,32 +316,30 @@ export default function LessonPlayerScreen() {
 
   const togglePlayPause = async () => {
     if (!soundRef.current) {
-      playClip(currentClipIdx);
+      await playClip(currentClipIdxRef.current);
       return;
     }
-    const status = await soundRef.current.getStatusAsync();
-    if (!status.isLoaded) {
-      playClip(currentClipIdx);
+    if (!soundRef.current.isLoaded) {
+      await playClip(currentClipIdxRef.current);
       return;
     }
-    if (status.isPlaying) {
-      await soundRef.current.pauseAsync();
+    if (soundRef.current.playing) {
+      soundRef.current.pause();
       setIsPlaying(false);
     } else {
-      await soundRef.current.playAsync();
+      soundRef.current.play();
       setIsPlaying(true);
     }
   };
 
   const seekBy = async (ms: number) => {
     if (!soundRef.current) return;
-    const status = await soundRef.current.getStatusAsync();
-    if (!status.isLoaded) return;
+    if (!soundRef.current.isLoaded) return;
     const newPos = Math.max(
       0,
-      Math.min(status.positionMillis + ms, status.durationMillis || 0)
+      Math.min(position + ms, duration || 0)
     );
-    await soundRef.current.setPositionAsync(newPos);
+    await soundRef.current.seekTo(newPos / 1000);
   };
 
   const formatTime = (ms: number) => {
@@ -306,11 +373,14 @@ export default function LessonPlayerScreen() {
     }
     setVocabPlayingId(entry.id);
     try {
-      await playAudio(entry.audio_url);
+      await stopLessonAudio();
+      await playAudio(entry.audio_url, {
+        onFinish: () => setVocabPlayingId(null),
+      });
     } catch (e) {
       console.error('Vocab playback error:', e);
+      setVocabPlayingId(null);
     }
-    setVocabPlayingId(null);
   };
 
   const handleVocabRecord = async (entry: LessonVocabEntry) => {
@@ -321,12 +391,16 @@ export default function LessonPlayerScreen() {
       setVocabSavingId(entry.id);
       try {
         const url = await stopAndUploadRecording(vocabRecordingRef.current, user.id, entry.word_id);
-        await linkAudioToWord(entry.word_id, url);
-        invalidateWordCache();
         // Update local vocab state with new audio URL
         setVocab((prev) =>
           prev.map((v) => (v.id === entry.id ? { ...v, audio_url: url } : v))
         );
+        try {
+          await linkAudioToWord(entry.word_id, url);
+          invalidateWordCache();
+        } catch (linkError) {
+          console.error('Vocab recording link error:', linkError);
+        }
       } catch (e: any) {
         console.error('Vocab recording save error:', e);
       } finally {
@@ -339,8 +413,11 @@ export default function LessonPlayerScreen() {
 
     // Start recording
     try {
+      await stopLessonAudio();
+      await stopAudio();
+      setVocabPlayingId(null);
       if (vocabRecordingRef.current) {
-        await vocabRecordingRef.current.stopAndUnloadAsync();
+        await vocabRecordingRef.current.stop();
         vocabRecordingRef.current = null;
       }
       const recording = await startAudioRecording();
@@ -469,6 +546,12 @@ export default function LessonPlayerScreen() {
     (hasImages && !spokenContent)
   );
 
+  useEffect(() => {
+    if (!hasContentTab && activeTab !== 'vocab') {
+      setActiveTab('vocab');
+    }
+  }, [activeTab, hasContentTab]);
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView
@@ -574,12 +657,7 @@ export default function LessonPlayerScreen() {
         {hasContentTab ? (
           <View style={styles.tabBar}>
             <Pressable
-              onPress={() => {
-                setActiveTab('content');
-                setTimeout(() => {
-                  scrollViewRef.current?.scrollTo({ y: contentScrollY.current, animated: false });
-                }, 0);
-              }}
+              onPress={() => setActiveTab('content')}
               style={[styles.tabButton, activeTab === 'content' && styles.tabButtonActive]}
             >
               <Text
@@ -589,12 +667,7 @@ export default function LessonPlayerScreen() {
               </Text>
             </Pressable>
             <Pressable
-              onPress={() => {
-                setActiveTab('vocab');
-                setTimeout(() => {
-                  scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-                }, 0);
-              }}
+              onPress={() => setActiveTab('vocab')}
               style={[styles.tabButton, activeTab === 'vocab' && styles.tabButtonActive]}
             >
               <Text
@@ -615,12 +688,6 @@ export default function LessonPlayerScreen() {
           ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-          onScroll={(e) => {
-            if (activeTab === 'content') {
-              contentScrollY.current = e.nativeEvent.contentOffset.y;
-            }
-          }}
-          scrollEventThrottle={16}
         >
           {hasContentTab && activeTab === 'content' ? (
             <>
@@ -1039,20 +1106,25 @@ export default function LessonPlayerScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.background,
-  },
-  headerLink: {
-    maxWidth: 240,
-  },
   headerLinkText: {
     fontSize: FontSize.md,
-    fontWeight: '700',
-    color: Colors.primary,
-    textDecorationLine: 'underline',
+    fontFamily: FontFamily.bodyBold,
+    color: Colors.primaryDark,
+  },
+  headerAction: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surfaceLight,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginRight: Spacing.xs,
+  },
+  headerActionText: {
+    fontSize: FontSize.xs,
+    fontFamily: FontFamily.bodyBold,
+    color: Colors.primaryDark,
+    letterSpacing: 0.2,
   },
   scrollContent: { paddingBottom: Spacing.xxl },
   vocabScrollContent: { paddingBottom: Spacing.xxl * 3 },
@@ -1081,10 +1153,10 @@ const styles = StyleSheet.create({
     maxWidth: 100,
   },
   clipChipActive: { backgroundColor: Colors.primary },
-  clipChipListened: { backgroundColor: '#e8f5e9', borderWidth: 1, borderColor: Colors.correct },
+  clipChipListened: { backgroundColor: '#eef7f1' },
   clipChipText: { fontSize: FontSize.xs, color: Colors.textSecondary },
-  clipChipTextActive: { color: '#fff', fontWeight: '700' },
-  clipChipTextListened: { color: Colors.correct },
+  clipChipTextActive: { color: '#fff', fontFamily: FontFamily.bodyBold },
+  clipChipTextListened: { color: Colors.correct, fontFamily: FontFamily.bodyBold },
   progressBar: {
     height: 6,
     backgroundColor: Colors.border,
@@ -1114,7 +1186,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   seekBtn: { paddingHorizontal: Spacing.md, paddingVertical: 6 },
-  seekText: { fontSize: FontSize.md, color: Colors.textSecondary, fontWeight: '600' },
+  seekText: { fontSize: FontSize.md, color: Colors.textSecondary, fontFamily: FontFamily.bodySemi },
   playBtn: {
     width: 48,
     height: 48,
@@ -1154,7 +1226,7 @@ const styles = StyleSheet.create({
   contextNote: {
     fontSize: FontSize.sm,
     color: Colors.primaryDark,
-    fontWeight: '600',
+    fontFamily: FontFamily.bodySemi,
     lineHeight: 20,
   },
   contextIntro: {
@@ -1177,7 +1249,7 @@ const styles = StyleSheet.create({
   },
   contextSectionTitle: {
     fontSize: FontSize.sm,
-    fontWeight: '700',
+    fontFamily: FontFamily.bodyBold,
     color: Colors.primaryDark,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
@@ -1214,7 +1286,7 @@ const styles = StyleSheet.create({
   contextTableKashmiri: {
     flex: 1,
     fontSize: FontSize.sm,
-    fontWeight: '600',
+    fontFamily: FontFamily.bodySemi,
     color: Colors.accent,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
@@ -1252,7 +1324,7 @@ const styles = StyleSheet.create({
   },
   contextNumber: {
     fontSize: FontSize.sm,
-    fontWeight: '700',
+    fontFamily: FontFamily.bodyBold,
     color: Colors.primary,
     width: 24,
     textAlign: 'right',
@@ -1294,18 +1366,18 @@ const styles = StyleSheet.create({
   tabButtonText: {
     color: Colors.primaryDark,
     fontSize: FontSize.xs,
-    fontWeight: '800',
+    fontFamily: FontFamily.bodyBold,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
   tabButtonTextActive: {
     color: Colors.primary,
-    fontWeight: '900',
+    fontFamily: FontFamily.bodyBold,
   },
 
   // Images
   imagesSection: { marginTop: Spacing.lg, paddingHorizontal: Spacing.lg },
-  sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.text },
+  sectionTitle: { fontSize: FontSize.lg, fontFamily: FontFamily.heading, color: Colors.text },
   lessonImage: {
     width: '100%',
     height: 200,
@@ -1353,7 +1425,7 @@ const styles = StyleSheet.create({
   translationSpeaker: {
     color: Colors.primary,
     fontSize: FontSize.sm,
-    fontWeight: '700',
+    fontFamily: FontFamily.bodyBold,
   },
   translationEnglish: {
     color: Colors.text,
@@ -1372,7 +1444,7 @@ const styles = StyleSheet.create({
   vocabWarning: {
     fontSize: FontSize.xs,
     color: Colors.secondary,
-    fontWeight: '600',
+    fontFamily: FontFamily.bodySemi,
     marginBottom: Spacing.sm,
   },
   vocabError: {
@@ -1391,7 +1463,7 @@ const styles = StyleSheet.create({
   },
   audioGuideTitle: {
     fontSize: FontSize.sm,
-    fontWeight: '800',
+    fontFamily: FontFamily.bodyBold,
     color: Colors.primaryDark,
     marginBottom: 2,
   },
@@ -1420,7 +1492,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   addBtnDisabled: { backgroundColor: Colors.textLight },
-  addBtnText: { color: '#fff', fontSize: 22, fontWeight: '700', lineHeight: 24 },
+  addBtnText: { color: '#fff', fontSize: 22, fontFamily: FontFamily.bodyBold, lineHeight: 24 },
   vocabRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1430,7 +1502,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     marginBottom: Spacing.xs,
   },
-  vocabKashmiri: { fontSize: FontSize.md, fontWeight: '600', color: Colors.accent },
+  vocabKashmiri: { fontSize: FontSize.md, fontFamily: FontFamily.heading, color: Colors.accent },
   vocabEnglish: { fontSize: FontSize.sm, color: Colors.textSecondary },
   vocabActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   syncBadge: {
@@ -1441,7 +1513,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  syncBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  syncBadgeText: { color: '#fff', fontSize: 12, fontFamily: FontFamily.bodyBold },
   deleteBtn: {
     width: 28,
     height: 28,
@@ -1450,7 +1522,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  deleteBtnText: { color: Colors.wrong, fontSize: 18, fontWeight: '700', lineHeight: 20 },
+  deleteBtnText: { color: Colors.wrong, fontSize: 18, fontFamily: FontFamily.bodyBold, lineHeight: 20 },
   vocabAudioBtn: {
     minWidth: 28,
     height: 28,
@@ -1472,7 +1544,7 @@ const styles = StyleSheet.create({
   vocabRecordIcon: {
     color: Colors.wrong,
     fontSize: FontSize.xs,
-    fontWeight: '700',
+    fontFamily: FontFamily.bodyBold,
     letterSpacing: 0.2,
   },
   vocabRecordIconActive: { color: '#fff' },
@@ -1495,7 +1567,7 @@ const styles = StyleSheet.create({
   recordingText: {
     fontSize: FontSize.sm,
     color: Colors.wrong,
-    fontWeight: '600',
+    fontFamily: FontFamily.bodySemi,
   },
   emptyVocab: {
     textAlign: 'center',

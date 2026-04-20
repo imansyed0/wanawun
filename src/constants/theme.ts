@@ -58,6 +58,17 @@ export const FontSize = {
   title: 40,
 };
 
+// Font families — Space Grotesk for body/UI and Fraunces for headings/display.
+export const FontFamily = {
+  body: 'SpaceGrotesk_400Regular',
+  bodySemi: 'SpaceGrotesk_500Medium',
+  bodyBold: 'SpaceGrotesk_700Bold',
+  bodyHeavy: 'SpaceGrotesk_700Bold',
+  heading: 'Fraunces_600SemiBold',
+  headingBold: 'Fraunces_700Bold',
+  display: 'Fraunces_600SemiBold',
+};
+
 export const BorderRadius = {
   sm: 8,
   md: 12,
