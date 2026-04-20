@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
+  interpolateColor,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -17,7 +18,7 @@ type Props = { active: boolean };
 const INCOMING = [
   { kash: 'salaam', eng: 'hello' },
   { kash: 'shukriya', eng: 'thank you' },
-  { kash: 'kun', eng: 'one' },
+  { kash: 'akh', eng: 'one' },
 ];
 
 const CYCLE = 4200;
@@ -104,7 +105,11 @@ export function GlossaryScene({ active }: Props) {
   }));
 
   const highlightStyle = useAnimatedStyle(() => ({
-    backgroundColor: `rgba(82, 183, 136, ${highlight.value * 0.25})`,
+    backgroundColor: interpolateColor(
+      highlight.value,
+      [0, 1],
+      ['rgba(82, 183, 136, 0)', 'rgba(82, 183, 136, 0.25)']
+    ),
   }));
 
   return (
