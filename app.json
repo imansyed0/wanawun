@@ -10,20 +10,24 @@
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FEFAE0"
+      "backgroundColor": "#F5F3EC"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "org.koshur.wanawun",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSMicrophoneUsageDescription": "Wanawun uses the microphone so you can record Kashmiri words and phrases for practice."
+        "NSMicrophoneUsageDescription": "Wanawun uses the microphone so you can record Kashmiri words and phrases for practice.",
+        "NSLocalNetworkUsageDescription": "Wanawun uses your local network to connect to the development bundler during development.",
+        "NSBonjourServices": [
+          "_expo-dev-server._tcp"
+        ]
       }
     },
     "android": {
       "icon": "./assets/images/icon.png",
       "adaptiveIcon": {
-        "backgroundColor": "#FEFAE0",
+        "backgroundColor": "#F5F3EC",
         "foregroundImage": "./assets/images/icon.png"
       },
       "package": "org.koshur.wanawun"

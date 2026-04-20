@@ -108,7 +108,7 @@ export function GlossaryScene({ active }: Props) {
     backgroundColor: interpolateColor(
       highlight.value,
       [0, 1],
-      ['rgba(82, 183, 136, 0)', 'rgba(82, 183, 136, 0.25)']
+      ['rgba(142, 174, 162, 0)', 'rgba(142, 174, 162, 0.3)']
     ),
   }));
 

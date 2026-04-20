@@ -10,7 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  findNodeHandle,
+  Dimensions,
 } from 'react-native';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -48,9 +48,16 @@ import {
   startRecording as startAudioRecording,
   stopAndUploadRecording,
   linkAudioToWord,
+  attachVerbosePlaybackLogging,
 } from '@/src/services/audioService';
 import { invalidateWordCache } from '@/src/services/wordService';
 import { markClipListened, getListenedClips } from '@/src/services/clipProgressService';
+
+// Cap lesson images at a reasonable fraction of the screen so tall/portrait
+// images don't dominate the viewport. Width is always 100% of the card;
+// resizeMode="contain" ensures nothing is cropped when the cap kicks in.
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+const MAX_IMAGE_HEIGHT = Math.round(SCREEN_HEIGHT * 0.55);
 
 export default function LessonPlayerScreen() {
   const { courseId, lessonId } = useLocalSearchParams<{
@@ -121,8 +128,6 @@ export default function LessonPlayerScreen() {
   const [koulPickerOpen, setKoulPickerOpen] = useState(false);
   const [kachruVocabPlaying, setKachruVocabPlaying] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView | null>(null);
-  const kashmiriInputRef = useRef<TextInput | null>(null);
-  const englishInputRef = useRef<TextInput | null>(null);
 
   // Vocab
   const [vocab, setVocab] = useState<LessonVocabEntry[]>([]);
@@ -336,15 +341,42 @@ export default function LessonPlayerScreen() {
       }
 
       const uri = clips[idx].audioUrl ?? lesson.audioBaseUrl + clips[idx].filename;
-      const sound = createAudioPlayer({ uri }, { updateInterval: 250 });
+      const logTag = `lesson:${courseId}:${lessonId}:clip${idx}`;
+      console.log(`[audio:${logTag}] playClip`, {
+        idx,
+        filename: clips[idx]?.filename,
+        uri,
+        section: clips[idx]?.section,
+      });
+
+      let sound: AudioPlayer;
+      try {
+        sound = createAudioPlayer({ uri }, { updateInterval: 250 });
+      } catch (err) {
+        console.error(`[audio:${logTag}] createAudioPlayer threw`, { uri, err });
+        throw err;
+      }
+
       soundRef.current = sound;
+      const detachVerbose = attachVerbosePlaybackLogging(sound, uri, logTag);
+
       sound.addListener('playbackStatusUpdate', (status) => {
         if (playbackSessionRef.current !== sessionId || soundRef.current !== sound) {
           return;
         }
         onPlaybackStatusUpdate(status, idx, sound);
+        if (status.didJustFinish) {
+          detachVerbose();
+        }
       });
-      sound.play();
+
+      try {
+        sound.play();
+      } catch (err) {
+        console.error(`[audio:${logTag}] sound.play() threw`, { uri, err });
+        detachVerbose();
+        throw err;
+      }
     } catch (e: any) {
       if (playbackSessionRef.current === sessionId) {
         setError('Failed to load audio');
@@ -355,21 +387,7 @@ export default function LessonPlayerScreen() {
         setIsLoading(false);
       }
     }
-  }, [clips, lesson.audioBaseUrl, onPlaybackStatusUpdate, stopLessonAudio]);
-
-  const scrollVocabInputsIntoView = (input: TextInput | null) => {
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        const inputHandle = input ? findNodeHandle(input) : null;
-        if (!inputHandle) return;
-        scrollViewRef.current?.scrollResponderScrollNativeHandleToKeyboard(
-          inputHandle,
-          24,
-          true
-        );
-      }, 150);
-    });
-  };
+  }, [clips, lesson.audioBaseUrl, onPlaybackStatusUpdate, stopLessonAudio, courseId, lessonId]);
 
   const togglePlayPause = async () => {
     if (!soundRef.current) {
@@ -526,7 +544,7 @@ export default function LessonPlayerScreen() {
     setSaving(true);
     try {
       const entry = await addLessonVocab(user.id, lessonId, courseId, k, e);
-      setVocab((prev) => [...prev, entry]);
+      setVocab((prev) => [entry, ...prev]);
       setNewKashmiri('');
       setNewEnglish('');
     } catch (err: any) {
@@ -549,7 +567,7 @@ export default function LessonPlayerScreen() {
       : '';
   const hasImages = displayImages.length > 0;
   const shouldRenderLearnHtml = !!(
-    course?.id === 'learn-kashmiri' &&
+    (course?.id === 'learn-kashmiri' || course?.id === 'ciil') &&
     lessonContext?.htmlContent
   );
   const learnHtmlDocument = shouldRenderLearnHtml
@@ -576,14 +594,16 @@ export default function LessonPlayerScreen() {
       }
       img {
         display: block;
-        width: 100%;
+        max-width: 100%;
+        max-height: 60vh;
         height: auto;
-        background: #f6f1e7;
+        width: auto;
+        background: #E7E4D8;
         border-radius: 12px;
-        margin: 0 0 10px;
+        margin: 0 auto 10px;
       }
       a {
-        color: #2f6f53;
+        color: #547568;
       }
     </style>
   </head>
@@ -643,6 +663,7 @@ export default function LessonPlayerScreen() {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        enabled={Platform.OS !== 'ios'}
       >
         {/* Pinned Audio Player */}
         <View style={styles.playerCard}>
@@ -864,6 +885,8 @@ export default function LessonPlayerScreen() {
           ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          contentInsetAdjustmentBehavior="automatic"
         >
           {hasContentTab && activeTab === 'content' ? (
             <>
@@ -990,7 +1013,8 @@ export default function LessonPlayerScreen() {
                     <>
                       {Platform.OS === 'web' ? (
                         <Text style={styles.contextIntro}>
-                          Learn Kashmiri HTML rendering is available in the native app view.
+                          Open this lesson in the mobile app to view the full
+                          formatted content.
                         </Text>
                       ) : (
                         <View style={styles.learnWebViewFrame}>
@@ -1246,22 +1270,18 @@ export default function LessonPlayerScreen() {
 
               <View style={styles.addRow}>
                 <TextInput
-                  ref={kashmiriInputRef}
                   style={[styles.vocabInput, { flex: 1.2 }]}
                   placeholder="Kashmiri"
                   placeholderTextColor={Colors.textLight}
                   value={newKashmiri}
                   onChangeText={setNewKashmiri}
-                  onFocus={() => scrollVocabInputsIntoView(kashmiriInputRef.current)}
                 />
                 <TextInput
-                  ref={englishInputRef}
                   style={[styles.vocabInput, { flex: 1 }]}
                   placeholder="English"
                   placeholderTextColor={Colors.textLight}
                   value={newEnglish}
                   onChangeText={setNewEnglish}
-                  onFocus={() => scrollVocabInputsIntoView(englishInputRef.current)}
                 />
                 <Pressable
                   style={[
@@ -1408,7 +1428,7 @@ const styles = StyleSheet.create({
     maxWidth: 100,
   },
   clipChipActive: { backgroundColor: Colors.primary },
-  clipChipListened: { backgroundColor: '#eef7f1' },
+  clipChipListened: { backgroundColor: '#EAF1EE' },
   clipChipText: { fontSize: FontSize.xs, color: Colors.textSecondary },
   clipChipTextActive: { color: '#fff', fontFamily: FontFamily.bodyBold },
   clipChipTextListened: { color: Colors.correct, fontFamily: FontFamily.bodyBold },
@@ -1593,12 +1613,12 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     marginHorizontal: Spacing.lg,
-    backgroundColor: '#dfe9e3',
+    backgroundColor: '#DDE5E1',
     borderRadius: BorderRadius.lg,
     padding: 3,
     gap: 4,
     borderWidth: 1,
-    borderColor: '#c6d7cd',
+    borderColor: '#C4D3CC',
     marginTop: 6,
     marginBottom: 2,
   },
@@ -1654,6 +1674,7 @@ const styles = StyleSheet.create({
   translationImageFrame: {
     width: '100%',
     height: 220,
+    maxHeight: MAX_IMAGE_HEIGHT,
     borderRadius: BorderRadius.md,
     overflow: 'hidden',
     backgroundColor: 'transparent',
@@ -1708,9 +1729,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   audioGuideCard: {
-    backgroundColor: '#f0f7f3',
+    backgroundColor: '#EDF2EF',
     borderWidth: 1,
-    borderColor: '#cfe7d8',
+    borderColor: '#CEDBD4',
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.sm,

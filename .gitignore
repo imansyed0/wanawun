@@ -47,3 +47,6 @@ yarn-error.*
 
 # local agent worktrees
 /.claude/
+
+# generated preview HTML (regenerate via data/preview_ciil_locally.js etc.)
+/data/preview/
