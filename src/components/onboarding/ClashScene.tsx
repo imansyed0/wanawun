@@ -115,7 +115,7 @@ export function ClashScene({ active }: Props) {
     borderColor: Colors.border,
   }));
   const opt2Style = useAnimatedStyle(() => ({
-    backgroundColor: `rgba(45, 106, 79, ${opt2Highlight.value * 0.9 + 0.08})`,
+    backgroundColor: `rgba(110, 146, 133, ${opt2Highlight.value * 0.9 + 0.08})`,
     borderColor: opt2Highlight.value > 0.5 ? Colors.correct : Colors.border,
   }));
   const opt3Style = useAnimatedStyle(() => ({

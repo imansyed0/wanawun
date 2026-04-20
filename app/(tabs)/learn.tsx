@@ -9,7 +9,9 @@ import {
   ActivityIndicator,
   Modal,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { AudioRecorder } from 'expo-audio';
@@ -265,45 +267,58 @@ export default function LearnScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Glossary</Text>
-        <Text style={styles.subtitle}>{words.length} Kashmiri words</Text>
+      <View style={{ flex: 1 }}>
+        {/* Tap on the non-scrollable header area dismisses the keyboard.
+            We deliberately do NOT wrap the FlatList in TouchableWithoutFeedback
+            because that swallows the list's pan gesture on iOS and breaks
+            scrolling. The FlatList uses keyboardDismissMode="on-drag" so
+            scrolling the list also dismisses the keyboard. */}
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View>
+            <View style={styles.header}>
+              <Text style={styles.title}>Glossary</Text>
+              <Text style={styles.subtitle}>{words.length} Kashmiri words</Text>
+            </View>
+
+            <ScreenHeaderDecoration variant="teal" />
+
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search Kashmiri or English..."
+              placeholderTextColor={Colors.textLight}
+              value={search}
+              onChangeText={setSearch}
+            />
+
+            {recordingId && (
+              <View style={styles.recordingBanner}>
+                <View style={styles.recordingDot} />
+                <Text style={styles.recordingText}>Recording... Tap stop to save</Text>
+              </View>
+            )}
+          </View>
+        </TouchableWithoutFeedback>
+
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          renderItem={renderItem}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>
+              {loading
+                ? 'Loading glossary...'
+                : 'Your glossary is empty. Start working through lessons and adding vocabulary to build it up.'}
+            </Text>
+          }
+        />
+
+        <Pressable style={styles.fab} onPress={openAddModal}>
+          <Text style={styles.fabText}>+</Text>
+        </Pressable>
       </View>
-
-      <ScreenHeaderDecoration variant="teal" />
-
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Search Kashmiri or English..."
-        placeholderTextColor={Colors.textLight}
-        value={search}
-        onChangeText={setSearch}
-      />
-
-      {recordingId && (
-        <View style={styles.recordingBanner}>
-          <View style={styles.recordingDot} />
-          <Text style={styles.recordingText}>Recording... Tap stop to save</Text>
-        </View>
-      )}
-
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        renderItem={renderItem}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            {loading
-              ? 'Loading glossary...'
-              : 'Your glossary is empty. Start working through lessons and adding vocabulary to build it up.'}
-          </Text>
-        }
-      />
-
-      <Pressable style={styles.fab} onPress={openAddModal}>
-        <Text style={styles.fabText}>+</Text>
-      </Pressable>
 
       <Modal
         visible={isAddModalOpen}

@@ -69,6 +69,7 @@ export default function LoginScreen() {
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
+      router.back();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -221,7 +222,7 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     textAlign: 'center',
     padding: Spacing.sm,
-    backgroundColor: '#f0fdf4',
+    backgroundColor: '#EDF4F0',
     borderRadius: BorderRadius.sm,
     overflow: 'hidden',
   },

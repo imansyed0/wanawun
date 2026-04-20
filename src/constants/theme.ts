@@ -1,41 +1,42 @@
 export const Colors = {
-  // Kashmir-inspired palette
-  primary: '#2D6A4F',       // Deep green (Kashmir meadows, chinar canopy)
-  primaryLight: '#52B788',  // Spring meadow
-  primaryDark: '#1B4332',   // Dense deodar forest
-  secondary: '#C65D3E',     // Kashmiri saffron / terracotta
-  secondaryLight: '#E8985A', // Warm noon-kabab glow
-  accent: '#264653',        // Deep Dal Lake teal
-  accentLight: '#3A7D8C',   // Lighter teal
+  // Kashmir-inspired palette — "Dal Lake Morning"
+  // Soft, misty tones: muted lake green + dawn blue + warm saffron accent.
+  primary: '#6E9285',       // Muted lake green (Dal Lake at dawn)
+  primaryLight: '#8EAEA2',  // Misty reed green
+  primaryDark: '#547568',   // Pine forest shadow
+  secondary: '#C89B6A',     // Soft saffron / dawn gold
+  secondaryLight: '#DBB68C', // Pale saffron
+  accent: '#8FA3B2',        // Dawn blue (sky on the lake)
+  accentLight: '#B0BFCB',   // Light dawn blue
 
-  // Walnut wood tones (Kashmiri woodcraft)
-  walnut: '#5C4033',        // Dark walnut
-  walnutLight: '#8B6F4E',   // Light walnut
+  // Walnut wood tones (Kashmiri woodcraft) — softened
+  walnut: '#6B5A4A',        // Soft walnut
+  walnutLight: '#9B8976',   // Aged walnut
 
   // Game colors
-  correct: '#2D6A4F',
-  wrong: '#C0392B',
-  timer: '#E8985A',
-  streak: '#D4A843',        // Pashmina gold
+  correct: '#6E9285',       // Lake green
+  wrong: '#B86159',         // Muted chinar red (not harsh)
+  timer: '#C89B6A',         // Saffron
+  streak: '#D9B469',        // Soft pashmina gold
 
-  // Neutral — warm parchment tones
-  background: '#FBF7F0',    // Warm parchment / papier-mache base
+  // Neutral — misty ivory tones
+  background: '#F5F3EC',    // Misty ivory (morning mist on the lake)
   surface: '#FFFFFF',
-  surfaceLight: '#F5F0E8',  // Warm off-white
-  surfaceWarm: '#F0E8DA',   // Slightly warmer for accents
-  text: '#2C2418',          // Deep walnut-brown text
-  textSecondary: '#7A6B5D', // Muted brown
-  textLight: '#A89B8C',     // Faded walnut
-  border: '#DDD4C8',        // Warm border
+  surfaceLight: '#EFECE2',  // Warm off-white
+  surfaceWarm: '#E7E4D8',   // Stone/hairline for tab bars and chips
+  text: '#2F3A35',          // Deep pine
+  textSecondary: '#5A645F', // Muted forest
+  textLight: '#7D8882',     // Faded reed
+  border: '#E4E1D4',        // Soft stone border
 
-  // Dark mode
+  // Dark mode — deep misty lake at dusk
   dark: {
-    background: '#1A1A2E',
-    surface: '#16213E',
-    surfaceLight: '#0F3460',
-    text: '#E8E8E8',
-    textSecondary: '#A0A0A0',
-    border: '#2A2A4A',
+    background: '#1F2A2D',
+    surface: '#283639',
+    surfaceLight: '#324349',
+    text: '#E8E6DE',
+    textSecondary: '#A8B0AA',
+    border: '#3A4A4F',
   },
 };
 

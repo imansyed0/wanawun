@@ -880,7 +880,7 @@ const styles = StyleSheet.create({
     borderColor: '#e1b7b1',
   },
   swipeHintPillRight: {
-    borderColor: '#b8d5c7',
+    borderColor: '#BDD0C8',
   },
   swipeHintArrow: {
     fontSize: FontSize.md,
