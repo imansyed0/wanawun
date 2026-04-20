@@ -7,6 +7,7 @@ import {
   setAudioModeAsync,
   type AudioPlayer,
   type AudioRecorder,
+  type AudioStatus,
 } from 'expo-audio';
 import AudioModule from 'expo-audio/build/AudioModule';
 import { File } from 'expo-file-system';
@@ -15,6 +16,159 @@ import { Platform } from 'react-native';
 
 let _sound: AudioPlayer | null = null;
 let _onAudioFinish: (() => void) | null = null;
+
+// ---------------------------------------------------------------------------
+// Verbose playback logging
+// ---------------------------------------------------------------------------
+// Always on (harmless console output); can be toggled at runtime via
+// setAudioVerboseLogging(false). In addition to console.log output, every
+// line is appended to an in-memory ring buffer so the in-app debug panel
+// can render it on-device — useful on Release builds where Metro/Xcode
+// logs are not available to the user.
+// ---------------------------------------------------------------------------
+
+let _audioVerbose = true;
+
+const AUDIO_LOG_CAPACITY = 200;
+const _audioLog: string[] = [];
+const _audioLogListeners = new Set<(log: string[]) => void>();
+
+export function setAudioVerboseLogging(enabled: boolean) {
+  _audioVerbose = enabled;
+}
+
+export function getRecentAudioLog(): string[] {
+  return _audioLog.slice();
+}
+
+export function clearAudioLog(): void {
+  _audioLog.length = 0;
+  _audioLogListeners.forEach((fn) => {
+    try {
+      fn(_audioLog.slice());
+    } catch {}
+  });
+}
+
+export function subscribeAudioLog(fn: (log: string[]) => void): () => void {
+  _audioLogListeners.add(fn);
+  try {
+    fn(_audioLog.slice());
+  } catch {}
+  return () => {
+    _audioLogListeners.delete(fn);
+  };
+}
+
+function pushAudioLog(line: string) {
+  _audioLog.push(line);
+  if (_audioLog.length > AUDIO_LOG_CAPACITY) {
+    _audioLog.splice(0, _audioLog.length - AUDIO_LOG_CAPACITY);
+  }
+  _audioLogListeners.forEach((fn) => {
+    try {
+      fn(_audioLog.slice());
+    } catch {}
+  });
+}
+
+function formatLogArg(value: unknown): string {
+  if (typeof value === 'string') return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function tsLog(tag: string, startedAt: number, ...args: unknown[]) {
+  if (!_audioVerbose) return;
+  const delta = `+${String(Date.now() - startedAt).padStart(5, ' ')}ms`;
+  const prefix = `[audio:${tag}] ${delta}`;
+  console.log(prefix, ...args);
+  pushAudioLog(`${prefix} ${args.map(formatLogArg).join(' ')}`);
+}
+
+function summarizeStatus(s: AudioStatus) {
+  return {
+    isLoaded: s.isLoaded,
+    isBuffering: s.isBuffering,
+    playing: s.playing,
+    playbackState: s.playbackState,
+    timeControlStatus: s.timeControlStatus,
+    reasonForWaitingToPlay: s.reasonForWaitingToPlay,
+    duration: Number.isFinite(s.duration) ? s.duration : null,
+    currentTime: Number.isFinite(s.currentTime) ? s.currentTime : null,
+    didJustFinish: s.didJustFinish,
+    mediaServicesDidReset: s.mediaServicesDidReset,
+  };
+}
+
+/**
+ * Attach verbose diagnostic logging to an AudioPlayer instance.
+ *
+ * Logs:
+ *   - creation (with URL)
+ *   - every *change* in (playbackState / timeControlStatus / reason / loaded)
+ *   - the first moment the clip reports isLoaded
+ *   - a warning if isLoaded never fires within `loadTimeoutMs` (default 10s)
+ *
+ * Returns a cleanup function that removes the diagnostic listener and
+ * cancels the watchdog timer. Safe to call multiple times.
+ */
+export function attachVerbosePlaybackLogging(
+  sound: AudioPlayer,
+  url: string,
+  tag: string,
+  opts?: { loadTimeoutMs?: number }
+): () => void {
+  const startedAt = Date.now();
+  const loadTimeoutMs = opts?.loadTimeoutMs ?? 10000;
+
+  let lastSignature = '';
+  let loadedAt: number | null = null;
+
+  tsLog(tag, startedAt, 'createAudioPlayer', { url });
+
+  const subscription = sound.addListener('playbackStatusUpdate', (status: AudioStatus) => {
+    const sig = `${status.playbackState}|${status.timeControlStatus}|${status.reasonForWaitingToPlay}|${status.isLoaded}|${status.isBuffering}|${status.playing}`;
+    if (sig !== lastSignature) {
+      lastSignature = sig;
+      tsLog(tag, startedAt, 'status', summarizeStatus(status));
+    }
+    if (status.isLoaded && loadedAt === null) {
+      loadedAt = Date.now();
+      tsLog(tag, startedAt, 'LOADED', {
+        durationSec: status.duration,
+        tookMs: loadedAt - startedAt,
+      });
+    }
+    if (status.didJustFinish) {
+      tsLog(tag, startedAt, 'didJustFinish', {
+        loadedAfterMs: loadedAt != null ? loadedAt - startedAt : null,
+      });
+    }
+  });
+
+  const watchdog = setTimeout(() => {
+    if (loadedAt === null) {
+      tsLog(
+        tag,
+        startedAt,
+        `WARNING: clip never reached isLoaded after ${loadTimeoutMs}ms — likely failed to load`,
+        { url }
+      );
+    }
+  }, loadTimeoutMs);
+
+  return () => {
+    clearTimeout(watchdog);
+    try {
+      // EventSubscription.remove() is the standard expo-modules API.
+      (subscription as unknown as { remove?: () => void })?.remove?.();
+    } catch {}
+  };
+}
 
 const PLAYBACK_AUDIO_MODE = {
   allowsRecording: false,
@@ -136,21 +290,36 @@ function detectAudioFormatFromBytes(
 /** Play audio from a URL, stopping any currently playing sound */
 export async function playAudio(
   url: string,
-  options?: { onFinish?: () => void }
+  options?: { onFinish?: () => void; tag?: string }
 ): Promise<void> {
+  const tag = options?.tag ?? 'playAudio';
   await stopAudio();
   await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
-  const sound = createAudioPlayer(
-    { uri: url },
-    {
-      updateInterval: 250,
-      preferredForwardBufferDuration: 5,
-    }
-  );
+
+  let sound: AudioPlayer;
+  try {
+    sound = createAudioPlayer(
+      { uri: url },
+      {
+        updateInterval: 250,
+        preferredForwardBufferDuration: 5,
+      }
+    );
+  } catch (err: any) {
+    const msg = `[audio:${tag}] createAudioPlayer threw ${formatLogArg({ url, err: err?.message ?? String(err) })}`;
+    console.error(msg);
+    pushAudioLog(msg);
+    throw err;
+  }
+
   _sound = sound;
   _onAudioFinish = options?.onFinish ?? null;
+
+  const detachVerbose = attachVerbosePlaybackLogging(sound, url, tag);
+
   sound.addListener('playbackStatusUpdate', (status) => {
     if (status.didJustFinish) {
+      detachVerbose();
       try {
         sound.remove();
       } catch {}
@@ -162,7 +331,16 @@ export async function playAudio(
       finish?.();
     }
   });
-  sound.play();
+
+  try {
+    sound.play();
+  } catch (err: any) {
+    const msg = `[audio:${tag}] sound.play() threw ${formatLogArg({ url, err: err?.message ?? String(err) })}`;
+    console.error(msg);
+    pushAudioLog(msg);
+    detachVerbose();
+    throw err;
+  }
 }
 
 /** Stop currently playing audio */
