@@ -13,7 +13,9 @@ export type KoulSectionKey =
 export interface KoulChapterContent {
   chapter: number;
   title: string;
-  audioPrefix: string; // "audio/" for chapters 1-4, "" for 5-20
+  audioPrefix: string; // always "audio/"; the chapter HTML pages use broken
+                       // relative paths, but the real MP3s live under /audio/
+                       // on koshur.org for every chapter (verified April 2026).
   sections: Record<KoulSectionKey, KoulMediaPair[]>;
 }
 
