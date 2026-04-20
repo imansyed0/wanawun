@@ -83,9 +83,12 @@ function extractPairs(html) {
 // Detect where audio lives for a chapter. Chapters 1–4 use `audio/X.mp3`;
 // chapters 5–20 serve audio from the chapter root. We probe the index page
 // HTML once to decide the base URL suffix we'll encode into the JSON.
-function detectAudioPrefix(html) {
-  if (/<a\s+href="audio\/[^"]+\.mp3"/i.test(html)) return 'audio/';
-  return '';
+function detectAudioPrefix(_html) {
+  // Every Koul chapter on koshur.org stores its MP3s under /audio/, even
+  // though some chapter HTML pages (ch 5-20) link to them with broken
+  // relative paths as if they were in the chapter root. We always resolve
+  // the audio URLs against the /audio/ subdirectory.
+  return 'audio/';
 }
 
 async function fetchSubpageHtml(chapter, sub) {
