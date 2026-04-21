@@ -14,6 +14,16 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, {
+  Easing,
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import type { AudioRecorder } from 'expo-audio';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card } from '@/src/components/ui/Card';
@@ -59,6 +69,38 @@ export default function LearnScreen() {
       loadWords();
     }, [loadWords])
   );
+
+  // FAB attention pulse — runs a few cycles each time the tab is focused
+  // so the "add word" affordance is obvious on first (and repeat) visits.
+  const fabPulse = useSharedValue(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      fabPulse.value = 0;
+      fabPulse.value = withDelay(
+        250,
+        withRepeat(
+          withSequence(
+            withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) }),
+            withTiming(0, { duration: 0 })
+          ),
+          4,
+          false
+        )
+      );
+      return () => cancelAnimation(fabPulse);
+    }, [fabPulse])
+  );
+
+  const fabRingStyle = useAnimatedStyle(() => ({
+    opacity: (1 - fabPulse.value) * 0.55,
+    transform: [{ scale: 1 + fabPulse.value * 0.55 }],
+  }));
+
+  const fabScaleStyle = useAnimatedStyle(() => {
+    const t = Math.sin(fabPulse.value * Math.PI);
+    return { transform: [{ scale: 1 + t * 0.08 }] };
+  });
 
   const filtered = words.filter(
     (w) =>
@@ -315,9 +357,14 @@ export default function LearnScreen() {
           }
         />
 
-        <Pressable style={styles.fab} onPress={openAddModal}>
-          <Text style={styles.fabText}>+</Text>
-        </Pressable>
+        <View style={styles.fabWrap} pointerEvents="box-none">
+          <Animated.View style={[styles.fabRing, fabRingStyle]} pointerEvents="none" />
+          <Animated.View style={fabScaleStyle}>
+            <Pressable style={styles.fab} onPress={openAddModal}>
+              <Text style={styles.fabText}>+</Text>
+            </Pressable>
+          </Animated.View>
+        </View>
       </View>
 
       <Modal
@@ -409,10 +456,23 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     color: Colors.text,
   },
-  fab: {
+  fabWrap: {
     position: 'absolute',
     right: Spacing.lg,
     bottom: Spacing.xl,
+    width: 56,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fabRing: {
+    position: 'absolute',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.primaryLight,
+  },
+  fab: {
     width: 56,
     height: 56,
     borderRadius: 28,
