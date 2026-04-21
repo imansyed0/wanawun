@@ -25,7 +25,6 @@ interface GlossaryPromptModalProps {
   userId: string | null | undefined;
   opponentName: string;
   rounds: SyncRound[];
-  opponentCorrectRounds: number[];
   onClose: () => void;
 }
 
@@ -36,13 +35,16 @@ export function GlossaryPromptModal({
   userId,
   opponentName,
   rounds,
-  opponentCorrectRounds,
   onClose,
 }: GlossaryPromptModalProps) {
   const vocab = useMemo(() => {
-    const correctSet = new Set(opponentCorrectRounds);
-    return rounds.filter((r) => correctSet.has(r.round_number));
-  }, [rounds, opponentCorrectRounds]);
+    const seen = new Set<string>();
+    return rounds.filter((r) => {
+      if (seen.has(r.word_id)) return false;
+      seen.add(r.word_id);
+      return true;
+    });
+  }, [rounds]);
 
   const [selected, setSelected] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(vocab.map((r) => [r.word_id, true]))
@@ -131,8 +133,8 @@ export function GlossaryPromptModal({
             </View>
 
             <Text style={styles.subtitle}>
-              These are the words {opponentName} got right. Pick the ones you
-              want to add to your glossary.
+              These are the words from your clash with {opponentName}. Pick the
+              ones you want to add to your glossary.
             </Text>
 
             <ScrollView

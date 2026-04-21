@@ -16,7 +16,6 @@ interface SyncGameState {
   opponentName: string;
   roomCode: string;
   setupError: string;
-  opponentCorrectRounds: number[];
 }
 
 export function useSyncGame(gameId: string, userId: string) {
@@ -31,7 +30,6 @@ export function useSyncGame(gameId: string, userId: string) {
     opponentName: 'Opponent',
     roomCode: '',
     setupError: '',
-    opponentCorrectRounds: [],
   });
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -173,9 +171,6 @@ export function useSyncGame(gameId: string, userId: string) {
           setState(prev => ({
             ...prev,
             opponentScore: prev.opponentScore + payload.points,
-            opponentCorrectRounds: payload.is_correct
-              ? Array.from(new Set([...prev.opponentCorrectRounds, payload.round_number]))
-              : prev.opponentCorrectRounds,
           }));
         }
       })

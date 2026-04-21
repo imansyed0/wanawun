@@ -32,22 +32,17 @@ export default function SyncGameScreen() {
     opponentName,
     roomCode,
     setupError,
-    opponentCorrectRounds,
     submitAnswer,
     startGame,
   } = useSyncGame(id!, user?.id ?? '');
 
-  // When the game ends, prompt (once) to save opponent's vocab.
+  // Prompt (once) to save this game's vocab to the glossary when it ends.
   useEffect(() => {
-    if (
-      phase === 'finished' &&
-      !glossaryPromptShown &&
-      opponentCorrectRounds.length > 0
-    ) {
+    if (phase === 'finished' && !glossaryPromptShown && rounds.length > 0) {
       setGlossaryPromptVisible(true);
       setGlossaryPromptShown(true);
     }
-  }, [phase, glossaryPromptShown, opponentCorrectRounds.length]);
+  }, [phase, glossaryPromptShown, rounds.length]);
 
   // Countdown timer — only starts when we have rounds
   useEffect(() => {
@@ -141,9 +136,9 @@ export default function SyncGameScreen() {
           />
 
           <View style={styles.resultButtons}>
-            {opponentCorrectRounds.length > 0 && (
+            {rounds.length > 0 && (
               <Button
-                title="Save opponent's vocab"
+                title="Save vocab to glossary"
                 variant="secondary"
                 onPress={() => setGlossaryPromptVisible(true)}
               />
@@ -158,7 +153,6 @@ export default function SyncGameScreen() {
           userId={user?.id}
           opponentName={opponentName}
           rounds={rounds}
-          opponentCorrectRounds={opponentCorrectRounds}
           onClose={() => setGlossaryPromptVisible(false)}
         />
       </SafeAreaView>
