@@ -11,7 +11,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { SymbolView } from 'expo-symbols';
-import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 
 type Props = { active: boolean };
 
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   avatarText: {
     color: '#fff',
     fontSize: FontSize.xl,
-    fontWeight: '800',
+    fontFamily: FontFamily.bodyBold,
   },
   eloPop: {
     position: 'absolute',
@@ -260,11 +260,11 @@ const styles = StyleSheet.create({
   eloText: {
     color: '#fff',
     fontSize: FontSize.xs,
-    fontWeight: '800',
+    fontFamily: FontFamily.bodyBold,
   },
   playerName: {
     fontSize: FontSize.xs,
-    fontWeight: '700',
+    fontFamily: FontFamily.bodyBold,
     color: Colors.text,
     marginTop: 2,
   },
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   },
   vs: {
     fontSize: FontSize.lg,
-    fontWeight: '800',
+    fontFamily: FontFamily.headingBold,
     color: Colors.secondaryLight,
   },
   question: {
@@ -284,11 +284,11 @@ const styles = StyleSheet.create({
   qLabel: {
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
-    fontWeight: '600',
+    fontFamily: FontFamily.bodySemi,
   },
   qWord: {
     fontSize: FontSize.xl,
-    fontWeight: '800',
+    fontFamily: FontFamily.heading,
     color: Colors.text,
   },
   optionsRow: {
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   },
   optText: {
     fontSize: FontSize.sm,
-    fontWeight: '700',
+    fontFamily: FontFamily.bodyBold,
     color: Colors.text,
   },
 });

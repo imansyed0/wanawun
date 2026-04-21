@@ -266,6 +266,6 @@ const styles = StyleSheet.create({
   saveText: {
     color: '#fff',
     fontSize: FontSize.xs,
-    fontWeight: '700',
+    fontFamily: FontFamily.bodyBold,
   },
 });

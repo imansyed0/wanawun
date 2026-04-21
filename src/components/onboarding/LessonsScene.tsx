@@ -11,7 +11,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { SymbolView } from 'expo-symbols';
-import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 
 type Props = { active: boolean };
 
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   cardLabel: {
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
-    fontWeight: '600',
+    fontFamily: FontFamily.bodySemi,
     marginBottom: Spacing.sm,
   },
   bubble: {
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
   bubbleText: {
     color: '#fff',
     fontSize: FontSize.lg,
-    fontWeight: '700',
+    fontFamily: FontFamily.heading,
   },
   playRow: {
     flexDirection: 'row',

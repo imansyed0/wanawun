@@ -12,7 +12,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/src/components/ui/Button';
-import { Colors, FontSize, Spacing } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, Spacing } from '@/src/constants/theme';
 import { markOnboardingSeen } from '@/src/services/onboardingService';
 import { WelcomeScene } from '@/src/components/onboarding/WelcomeScene';
 import { LessonsScene } from '@/src/components/onboarding/LessonsScene';
@@ -197,12 +197,12 @@ const styles = StyleSheet.create({
   counter: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
-    fontWeight: '600',
+    fontFamily: FontFamily.bodySemi,
   },
   skipText: {
     fontSize: FontSize.md,
     color: Colors.textSecondary,
-    fontWeight: '600',
+    fontFamily: FontFamily.bodySemi,
   },
   slide: {
     flex: 1,
@@ -219,12 +219,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: FontSize.xxl,
-    fontWeight: '800',
+    fontFamily: FontFamily.headingBold,
     color: Colors.primaryDark,
     textAlign: 'center',
   },
   body: {
     fontSize: FontSize.md,
+    fontFamily: FontFamily.body,
     color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
