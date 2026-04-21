@@ -9,6 +9,7 @@ import { WordDisplay } from '@/src/components/ui/WordDisplay';
 import { Timer } from '@/src/components/ui/Timer';
 import { ScoreBar } from '@/src/components/ui/ScoreBar';
 import { MultipleChoice } from '@/src/components/game/MultipleChoice';
+import { GlossaryPromptModal } from '@/src/components/game/GlossaryPromptModal';
 import { useSyncGame } from '@/src/hooks/useSyncGame';
 import { useAuth } from '@/src/hooks/useAuth';
 import { SYNC_GAME } from '@/src/constants/gameConfig';
@@ -19,6 +20,8 @@ export default function SyncGameScreen() {
   const router = useRouter();
   const { user, profile } = useAuth();
   const [countdown, setCountdown] = useState(3);
+  const [glossaryPromptVisible, setGlossaryPromptVisible] = useState(false);
+  const [glossaryPromptShown, setGlossaryPromptShown] = useState(false);
 
   const {
     phase,
@@ -29,9 +32,22 @@ export default function SyncGameScreen() {
     opponentName,
     roomCode,
     setupError,
+    opponentCorrectRounds,
     submitAnswer,
     startGame,
   } = useSyncGame(id!, user?.id ?? '');
+
+  // When the game ends, prompt (once) to save opponent's vocab.
+  useEffect(() => {
+    if (
+      phase === 'finished' &&
+      !glossaryPromptShown &&
+      opponentCorrectRounds.length > 0
+    ) {
+      setGlossaryPromptVisible(true);
+      setGlossaryPromptShown(true);
+    }
+  }, [phase, glossaryPromptShown, opponentCorrectRounds.length]);
 
   // Countdown timer — only starts when we have rounds
   useEffect(() => {
@@ -125,10 +141,26 @@ export default function SyncGameScreen() {
           />
 
           <View style={styles.resultButtons}>
+            {opponentCorrectRounds.length > 0 && (
+              <Button
+                title="Save opponent's vocab"
+                variant="secondary"
+                onPress={() => setGlossaryPromptVisible(true)}
+              />
+            )}
             <Button title="Play Again" onPress={() => router.push('/game/lobby')} />
             <Button title="Home" variant="outline" onPress={() => router.push('/')} />
           </View>
         </View>
+
+        <GlossaryPromptModal
+          visible={glossaryPromptVisible}
+          userId={user?.id}
+          opponentName={opponentName}
+          rounds={rounds}
+          opponentCorrectRounds={opponentCorrectRounds}
+          onClose={() => setGlossaryPromptVisible(false)}
+        />
       </SafeAreaView>
     );
   }
