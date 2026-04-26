@@ -23,6 +23,10 @@ on:
   push:
     tags:
       - 'eas-build-*'
+    branches:
+      - 'claude/**'
+    paths:
+      - '.github/build-trigger/**'
 
 jobs:
   build:
