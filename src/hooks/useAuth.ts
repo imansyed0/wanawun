@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import * as Linking from 'expo-linking';
 import { supabase } from '@/src/lib/supabase';
 import { nativeGoogleSignIn } from '@/src/lib/googleSignIn';
 import { clearClipProgressCache } from '@/src/services/clipProgressService';
@@ -101,10 +102,14 @@ export function useAuth() {
   }
 
   async function signUp(email: string, password: string, displayName: string) {
+    const emailRedirectTo = Linking.createURL('/auth/callback');
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { data: { display_name: displayName.trim() } },
+      options: {
+        data: { display_name: displayName.trim() },
+        emailRedirectTo,
+      },
     });
     if (error) throw error;
     return data;
