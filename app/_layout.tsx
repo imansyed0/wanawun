@@ -83,6 +83,7 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="auth/login" options={{ title: 'Sign In', presentation: 'modal' }} />
         <Stack.Screen name="auth/register" options={{ title: 'Sign Up', presentation: 'modal' }} />
+        <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
         <Stack.Screen name="game/lobby" options={{ title: 'Find a Game' }} />
         <Stack.Screen name="game/sync/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="game/async/list" options={{ title: 'My Games' }} />

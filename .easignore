@@ -19,3 +19,8 @@ data/audio/
 data/*.js
 data/*.py
 scripts/
+
+# Marketing site is deployed separately via Netlify, not bundled into the app.
+site/
+netlify.toml
+.github/
