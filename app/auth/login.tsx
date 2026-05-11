@@ -12,7 +12,6 @@ import {
 import { useRouter } from 'expo-router';
 import { Button } from '@/src/components/ui/Button';
 import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
-import * as Linking from 'expo-linking';
 import { useAuth } from '@/src/hooks/useAuth';
 import { supabase } from '@/src/lib/supabase';
 
@@ -37,7 +36,7 @@ export default function LoginScreen() {
     setResetting(true);
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: Linking.createURL('/auth/callback'),
+        redirectTo: 'wanawun://auth/callback',
       });
       if (resetError) throw resetError;
       setResetMessage('Check your email for a reset link');
