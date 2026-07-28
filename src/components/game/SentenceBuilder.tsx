@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 import type { WordEntry, SentenceTemplate, SentenceSlot } from '@/src/types';
 
 interface SentenceBuilderProps {
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   },
   wordOptionKashmiri: {
     fontSize: FontSize.md,
-    fontWeight: '700',
+    fontFamily: FontFamily.kashmiri,
     color: Colors.accent,
   },
   wordOptionEnglish: {

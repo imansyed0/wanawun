@@ -59,15 +59,18 @@ export const FontSize = {
   title: 40,
 };
 
-// Font families — Space Grotesk for body/UI and Fraunces for headings/display.
+// Font families — Space Grotesk for body/UI, Rozha One for headings/display,
+// and Amiri (Perso-Arabic Naskh-style serif) for rendering Kashmiri word text.
 export const FontFamily = {
   body: 'SpaceGrotesk_400Regular',
   bodySemi: 'SpaceGrotesk_500Medium',
   bodyBold: 'SpaceGrotesk_700Bold',
   bodyHeavy: 'SpaceGrotesk_700Bold',
-  heading: 'Fraunces_600SemiBold',
-  headingBold: 'Fraunces_700Bold',
-  display: 'Fraunces_600SemiBold',
+  heading: 'RozhaOne_400Regular',
+  headingBold: 'RozhaOne_400Regular',
+  display: 'RozhaOne_400Regular',
+  kashmiri: 'Amiri_700Bold',
+  kashmiriRegular: 'Amiri_400Regular',
 };
 
 export const BorderRadius = {
