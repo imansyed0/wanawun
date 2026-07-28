@@ -19,6 +19,7 @@ import { BorderRadius, Colors, FontFamily, FontSize, Spacing } from '@/src/const
 import { playAudio, stopAudio } from '@/src/services/audioService';
 import { getGlossaryWords } from '@/src/services/wordService';
 import { useAuth } from '@/src/hooks/useAuth';
+import { useTutorialStore } from '@/src/stores/tutorialStore';
 import type { WordEntry } from '@/src/types';
 
 type FlashcardDirection = 'kashmiri_to_english' | 'english_to_kashmiri';
@@ -221,6 +222,8 @@ export default function FlashcardsScreen() {
   const handleAnswer = useCallback(
     (wasCorrect: boolean) => {
       if (!currentWord) return;
+
+      useTutorialStore.getState().notify('flashcardAnswered', { wasCorrect });
 
       if (wasCorrect) {
         setCorrectCount((value) => value + 1);
@@ -477,6 +480,7 @@ export default function FlashcardsScreen() {
                             isShortHeight && styles.kashmiriShort,
                             useCondensedPrompt && styles.kashmiriCondensed,
                             useUltraCondensedPrompt && styles.kashmiriUltraCondensed,
+                            currentDirection === 'kashmiri_to_english' && styles.kashmiriFont,
                           ]}
                           numberOfLines={isShortHeight ? 3 : 4}
                           adjustsFontSizeToFit
@@ -531,6 +535,7 @@ export default function FlashcardsScreen() {
                                 isShortHeight && styles.answerTextShort,
                                 useCondensedAnswer && styles.answerTextCondensed,
                                 useUltraCondensedAnswer && styles.answerTextUltraCondensed,
+                                currentDirection === 'english_to_kashmiri' && styles.kashmiriFont,
                               ]}
                               numberOfLines={isShortHeight ? 3 : 4}
                               adjustsFontSizeToFit
@@ -755,6 +760,9 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.headingBold,
     color: Colors.accent,
     textAlign: 'center',
+  },
+  kashmiriFont: {
+    fontFamily: FontFamily.kashmiri,
   },
   kashmiriCompact: {
     fontSize: 28,

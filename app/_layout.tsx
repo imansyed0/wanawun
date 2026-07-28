@@ -6,6 +6,8 @@ import {
   SpaceGrotesk_700Bold,
 } from '@expo-google-fonts/space-grotesk';
 import { Fraunces_600SemiBold, Fraunces_700Bold } from '@expo-google-fonts/fraunces';
+import { RozhaOne_400Regular } from '@expo-google-fonts/rozha-one';
+import { Amiri_400Regular, Amiri_700Bold } from '@expo-google-fonts/amiri';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
@@ -44,6 +46,9 @@ export default function RootLayout() {
     SpaceGrotesk_700Bold,
     Fraunces_600SemiBold,
     Fraunces_700Bold,
+    RozhaOne_400Regular,
+    Amiri_400Regular,
+    Amiri_700Bold,
   });
 
   useEffect(() => {
@@ -79,7 +84,6 @@ function RootLayoutNav() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="auth/login" options={{ title: 'Sign In', presentation: 'modal' }} />
         <Stack.Screen name="auth/register" options={{ title: 'Sign Up', presentation: 'modal' }} />

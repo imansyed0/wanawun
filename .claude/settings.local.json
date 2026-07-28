@@ -16,7 +16,8 @@
       "Bash(cp -r /Users/imans/wanawun-app/* /Users/imans/wanawun/)",
       "Bash(cp /Users/imans/wanawun-app/.* /Users/imans/wanawun/)",
       "Bash(rm -rf /Users/imans/wanawun-app)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(node -e \"console.log\\('expo', require\\('./node_modules/expo/package.json'\\).version\\)\")"
     ]
   }
 }
