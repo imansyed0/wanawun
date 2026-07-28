@@ -1778,7 +1778,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     marginBottom: Spacing.xs,
   },
-  vocabKashmiri: { fontSize: FontSize.md, fontFamily: FontFamily.heading, color: Colors.accent },
+  vocabKashmiri: { fontSize: FontSize.md, fontFamily: FontFamily.kashmiri, color: Colors.accent },
   vocabEnglish: { fontSize: FontSize.sm, color: Colors.textSecondary },
   vocabActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   syncBadge: {

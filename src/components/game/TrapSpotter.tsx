@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 import { Button } from '@/src/components/ui/Button';
 import type { MessengerTurn } from '@/src/types';
 
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   },
   wordChipKashmiri: {
     fontSize: FontSize.md,
-    fontWeight: '700',
+    fontFamily: FontFamily.kashmiri,
     color: Colors.text,
   },
   wordChipTextSelected: {

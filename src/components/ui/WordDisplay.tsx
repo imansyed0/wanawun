@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   kashmiri: {
-    fontFamily: FontFamily.heading,
+    fontFamily: FontFamily.kashmiri,
     color: Colors.accent,
     letterSpacing: 1,
   },
