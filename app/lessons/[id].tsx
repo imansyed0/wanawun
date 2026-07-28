@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
-import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
 import { allCourses } from '@/src/data/courses';
 import { getFullyListenedLessonIds } from '@/src/services/clipProgressService';
 import { useAuth } from '@/src/hooks/useAuth';
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.heading,
     color: Colors.primaryDark,
     flexShrink: 1,
-    lineHeight: 30,
+    lineHeight: LineHeight.heading(FontSize.xl),
   },
   author: { fontSize: FontSize.sm, color: Colors.textSecondary, fontStyle: 'italic' },
   list: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xxl },

@@ -24,7 +24,7 @@ import {
   type AudioStatus,
 } from 'expo-audio';
 import { WebView } from 'react-native-webview';
-import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
 import { allCourses, type AudioClip } from '@/src/data/courses';
 import { getSpokenKashmiriChapterContent } from '@/src/data/spokenKashmiriContent';
 import { getLessonCourseContext } from '@/src/data/courseContext';
@@ -1270,7 +1270,7 @@ export default function LessonPlayerScreen() {
 
               <View style={styles.addRow}>
                 <TextInput
-                  style={[styles.vocabInput, { flex: 1.2 }]}
+                  style={[styles.vocabInput, styles.vocabInputKashmiri, { flex: 1.2 }]}
                   placeholder="Kashmiri"
                   placeholderTextColor={Colors.textLight}
                   value={newKashmiri}
@@ -1756,8 +1756,18 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,
+    // Room for Kashmiri diacritics, and a 44pt-tall tap target either way.
+    minHeight: 44,
+    // Without this the fields keep their intrinsic width, overflow the row,
+    // and shove the Add button off the right edge of the screen.
+    minWidth: 0,
     fontSize: FontSize.sm,
     color: Colors.text,
+  },
+  vocabInputKashmiri: {
+    fontFamily: FontFamily.kashmiriRegular,
+    fontSize: FontSize.md,
+    minHeight: 48,
   },
   addBtn: {
     width: 40,
@@ -1778,8 +1788,17 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     marginBottom: Spacing.xs,
   },
-  vocabKashmiri: { fontSize: FontSize.md, fontFamily: FontFamily.kashmiri, color: Colors.accent },
-  vocabEnglish: { fontSize: FontSize.sm, color: Colors.textSecondary },
+  vocabKashmiri: {
+    fontSize: FontSize.md,
+    lineHeight: LineHeight.kashmiri(FontSize.md),
+    fontFamily: FontFamily.kashmiri,
+    color: Colors.accent,
+  },
+  vocabEnglish: {
+    fontSize: FontSize.sm,
+    lineHeight: LineHeight.body(FontSize.sm),
+    color: Colors.textSecondary,
+  },
   vocabActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   syncBadge: {
     width: 20,

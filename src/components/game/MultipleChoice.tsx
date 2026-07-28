@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
-import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
 
 interface MultipleChoiceProps {
   options: string[];
@@ -58,9 +58,8 @@ export function MultipleChoice({
             <Text style={styles.optionLabel}>
               {String.fromCharCode(65 + index)}
             </Text>
-            <Text style={getOptionTextStyle(option)} numberOfLines={2}>
-              {option}
-            </Text>
+            {/* No line clamp: a truncated option is an unanswerable question. */}
+            <Text style={getOptionTextStyle(option)}>{option}</Text>
           </Pressable>
         </Animated.View>
       ))}
@@ -74,7 +73,9 @@ const styles = StyleSheet.create({
   },
   option: {
     flexDirection: 'row',
-    alignItems: 'center',
+    // Top-aligned so the A/B/C badge stays put when an option runs long.
+    alignItems: 'flex-start',
+    minHeight: 52,
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.md,
     paddingVertical: Spacing.sm + 2,
@@ -113,6 +114,8 @@ const styles = StyleSheet.create({
   optionText: {
     flex: 1,
     fontSize: FontSize.md,
+    // Options can be Kashmiri, so they get the Kashmiri line box.
+    lineHeight: LineHeight.kashmiri(FontSize.md),
     fontWeight: '600',
     color: Colors.text,
   },

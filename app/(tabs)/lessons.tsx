@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/src/components/ui/Card';
 import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
-import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
 import { allCourses } from '@/src/data/courses';
 
 const badges: Record<string, { label: string; color: string }> = {
@@ -63,9 +63,7 @@ export default function LessonsScreen() {
                     )}
                   </View>
                 </View>
-                <Text style={styles.description} numberOfLines={2}>
-                  {item.description}
-                </Text>
+                <Text style={styles.description}>{item.description}</Text>
               </Card>
             </Pressable>
           );
@@ -106,7 +104,7 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bodyBold,
     color: Colors.text,
     flexShrink: 1,
-    lineHeight: 24,
+    lineHeight: LineHeight.body(FontSize.lg),
   },
   badge: {
     alignSelf: 'flex-start',
@@ -116,5 +114,9 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontSize: FontSize.xs, fontFamily: FontFamily.bodyBold, color: '#fff', letterSpacing: 0.5 },
   author: { fontSize: FontSize.sm, color: Colors.textSecondary, fontStyle: 'italic' },
-  description: { fontSize: FontSize.sm, color: Colors.textLight, lineHeight: 20 },
+  description: {
+    fontSize: FontSize.sm,
+    color: Colors.textLight,
+    lineHeight: LineHeight.body(FontSize.sm),
+  },
 });

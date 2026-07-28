@@ -73,6 +73,28 @@ export const FontFamily = {
   kashmiriRegular: 'Amiri_400Regular',
 };
 
+// Minimum line-height multipliers, taken from each family's own metrics.
+// Text set tighter than these gets its ascenders and descenders clipped by the
+// line box. It matters most for Kashmiri: Amiri reports a natural line height
+// of 1.76em, and vowelled Kashmiri actually inks 1.16em above the baseline and
+// 0.58em below it, so anything under ~1.75em cuts off the vowel diacritics —
+// the marks that tell the reader which word it is.
+const LineHeightRatio = {
+  body: 1.35,      // Space Grotesk: 1.275 natural
+  heading: 1.45,   // Rozha One: 1.42 natural
+  kashmiri: 1.85,  // Amiri: 1.76 natural, 1.74 of ink for vowelled Kashmiri
+};
+
+export const LineHeight = {
+  body: (fontSize: number) => Math.round(fontSize * LineHeightRatio.body),
+  heading: (fontSize: number) => Math.round(fontSize * LineHeightRatio.heading),
+  kashmiri: (fontSize: number) => Math.round(fontSize * LineHeightRatio.kashmiri),
+};
+
+// The tab bar's own content height, before the bottom safe-area inset is added.
+// Anything that has to float clear of the tab bar reads it from here.
+export const TabBarContentHeight = 60;
+
 export const BorderRadius = {
   sm: 8,
   md: 12,

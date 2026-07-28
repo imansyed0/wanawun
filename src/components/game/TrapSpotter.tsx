@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
 import { Button } from '@/src/components/ui/Button';
 import type { MessengerTurn } from '@/src/types';
 
@@ -159,7 +159,9 @@ const styles = StyleSheet.create({
     fontSize: FontSize.lg,
     fontWeight: '600',
     color: Colors.accent,
-    lineHeight: 28,
+    // This is the Kashmiri sentence the player has to read closely to find the
+    // trap word — clipping a vowel mark here changes what the word says.
+    lineHeight: LineHeight.kashmiri(FontSize.lg),
   },
   wordGrid: {
     flexDirection: 'row',
@@ -188,6 +190,7 @@ const styles = StyleSheet.create({
   },
   wordChipKashmiri: {
     fontSize: FontSize.md,
+    lineHeight: LineHeight.kashmiri(FontSize.md),
     fontFamily: FontFamily.kashmiri,
     color: Colors.text,
   },
@@ -231,7 +234,7 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: LineHeight.body(FontSize.sm),
   },
   pointsText: {
     fontSize: FontSize.xl,

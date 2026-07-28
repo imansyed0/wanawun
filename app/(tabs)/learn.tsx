@@ -18,7 +18,7 @@ import type { AudioRecorder } from 'expo-audio';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card } from '@/src/components/ui/Card';
 import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
-import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
 import { addGlossaryWord, deleteGlossaryWord, getGlossaryWords, invalidateWordCache } from '@/src/services/wordService';
 import {
   isPendingWordId,
@@ -371,7 +371,7 @@ export default function LearnScreen() {
                 </Pressable>
               </View>
               <TextInput
-                style={styles.addInput}
+                style={[styles.addInput, styles.addInputKashmiri]}
                 placeholder="Kashmiri"
                 placeholderTextColor={Colors.textLight}
                 value={newKashmiri}
@@ -429,6 +429,8 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
     padding: Spacing.md,
+    // Tall enough that Kashmiri diacritics typed into the field aren't clipped.
+    minHeight: 52,
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
@@ -455,7 +457,7 @@ const styles = StyleSheet.create({
   fabText: {
     color: '#fff',
     fontSize: 30,
-    lineHeight: 32,
+    lineHeight: LineHeight.body(30),
     fontFamily: FontFamily.bodySemi,
   },
   modalRoot: {
@@ -492,7 +494,7 @@ const styles = StyleSheet.create({
   },
   tutorialHintText: {
     fontSize: FontSize.sm,
-    lineHeight: 20,
+    lineHeight: LineHeight.body(FontSize.sm),
     color: Colors.text,
     fontFamily: FontFamily.bodySemi,
   },
@@ -514,12 +516,20 @@ const styles = StyleSheet.create({
   addInput: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
+    minHeight: 48,
     backgroundColor: Colors.surfaceLight,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.border,
     fontSize: FontSize.md,
     color: Colors.text,
+  },
+  addInputKashmiri: {
+    // Kashmiri is set in Amiri here too, so the field needs the same
+    // generous line box the glossary rows get.
+    fontFamily: FontFamily.kashmiriRegular,
+    fontSize: FontSize.lg,
+    minHeight: 56,
   },
   addButton: {
     minHeight: 44,
@@ -594,11 +604,13 @@ const styles = StyleSheet.create({
   },
   kashmiri: {
     fontSize: FontSize.lg,
+    lineHeight: LineHeight.kashmiri(FontSize.lg),
     fontFamily: FontFamily.kashmiri,
     color: Colors.accent,
   },
   english: {
     fontSize: FontSize.md,
+    lineHeight: LineHeight.body(FontSize.md),
     color: Colors.textSecondary,
     marginTop: 2,
   },

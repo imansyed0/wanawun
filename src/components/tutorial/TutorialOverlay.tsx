@@ -5,7 +5,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Grandmother } from '@/src/components/onboarding/Grandmother';
 import { useTutorialStore } from '@/src/stores/tutorialStore';
-import { BorderRadius, Colors, FontFamily, FontSize, Spacing } from '@/src/constants/theme';
+import {
+  BorderRadius,
+  Colors,
+  FontFamily,
+  FontSize,
+  LineHeight,
+  Spacing,
+  TabBarContentHeight,
+} from '@/src/constants/theme';
 import {
   GLOSSARY_PATH,
   FLASHCARDS_PATH,
@@ -86,7 +94,7 @@ export function TutorialOverlay() {
   return (
     <View
       pointerEvents="box-none"
-      style={[styles.root, { bottom: 62 + insets.bottom }]}
+      style={[styles.root, { bottom: TabBarContentHeight + insets.bottom }]}
     >
       <Animated.View
         entering={FadeInDown.duration(300)}
@@ -156,7 +164,7 @@ const styles = StyleSheet.create({
   },
   introBubbleText: {
     fontSize: FontSize.lg,
-    lineHeight: 28,
+    lineHeight: LineHeight.heading(FontSize.lg),
     color: Colors.text,
     textAlign: 'center',
     fontFamily: FontFamily.heading,
@@ -228,7 +236,7 @@ const styles = StyleSheet.create({
   },
   bubbleText: {
     fontSize: FontSize.sm,
-    lineHeight: 20,
+    lineHeight: LineHeight.body(FontSize.sm),
     color: Colors.text,
     fontFamily: FontFamily.bodySemi,
   },
@@ -258,6 +266,6 @@ const styles = StyleSheet.create({
   skipText: {
     fontSize: FontSize.md,
     color: Colors.textLight,
-    lineHeight: 18,
+    lineHeight: LineHeight.body(FontSize.md),
   },
 });

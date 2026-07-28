@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
 import type { WordEntry, SentenceTemplate, SentenceSlot } from '@/src/types';
 
 interface SentenceBuilderProps {
@@ -210,6 +210,7 @@ const styles = StyleSheet.create({
   },
   sentenceText: {
     fontSize: FontSize.lg,
+    lineHeight: LineHeight.kashmiri(FontSize.lg),
     color: Colors.text,
     fontWeight: '500',
   },
@@ -239,7 +240,10 @@ const styles = StyleSheet.create({
   },
   slotText: {
     fontSize: FontSize.md,
+    // Slots hold Kashmiri once filled, so they need the Kashmiri line box.
+    lineHeight: LineHeight.kashmiri(FontSize.md),
     color: Colors.textLight,
+    textAlign: 'center',
   },
   slotTextFilled: {
     color: Colors.accent,
@@ -267,13 +271,17 @@ const styles = StyleSheet.create({
   },
   wordOptionKashmiri: {
     fontSize: FontSize.md,
+    lineHeight: LineHeight.kashmiri(FontSize.md),
     fontFamily: FontFamily.kashmiri,
     color: Colors.accent,
+    textAlign: 'center',
   },
   wordOptionEnglish: {
     fontSize: FontSize.xs,
+    lineHeight: LineHeight.body(FontSize.xs),
     color: Colors.textSecondary,
     marginTop: 2,
+    textAlign: 'center',
   },
   swapLabel: {
     fontSize: FontSize.sm,

@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { Colors, FontFamily, FontSize, LineHeight, Spacing } from '@/src/constants/theme';
 
 interface WordDisplayProps {
   kashmiri: string;
@@ -37,27 +37,35 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.kashmiri,
     color: Colors.accent,
     letterSpacing: 1,
+    textAlign: 'center',
   },
   kashmiri_sm: {
     fontSize: FontSize.lg,
+    lineHeight: LineHeight.kashmiri(FontSize.lg),
   },
   kashmiri_md: {
     fontSize: FontSize.xxl,
+    lineHeight: LineHeight.kashmiri(FontSize.xxl),
   },
   kashmiri_lg: {
     fontSize: FontSize.title,
+    lineHeight: LineHeight.kashmiri(FontSize.title),
   },
   english: {
     color: Colors.textSecondary,
     marginTop: Spacing.sm,
+    textAlign: 'center',
   },
   english_sm: {
     fontSize: FontSize.sm,
+    lineHeight: LineHeight.body(FontSize.sm),
   },
   english_md: {
     fontSize: FontSize.md,
+    lineHeight: LineHeight.body(FontSize.md),
   },
   english_lg: {
     fontSize: FontSize.lg,
+    lineHeight: LineHeight.body(FontSize.lg),
   },
 });
