@@ -1,4 +1,8 @@
 import { supabase } from '@/src/lib/supabase';
+import {
+  flushPendingGlossaryWords,
+  getPendingWordEntries,
+} from '@/src/services/pendingGlossaryService';
 import type { WordEntry } from '@/src/types';
 
 // Cache words locally after first fetch
@@ -49,7 +53,15 @@ function mapGlossaryRowToWordEntry(row: any): WordEntry {
  */
 export async function getGlossaryWords(userId?: string): Promise<WordEntry[]> {
   if (!userId) {
-    return [];
+    // Signed-out users get a local glossary; it syncs after sign-in.
+    return getPendingWordEntries();
+  }
+
+  // Words saved while signed out get merged in here.
+  try {
+    await flushPendingGlossaryWords(userId);
+  } catch {
+    // non-fatal — pending words stay stashed for the next fetch
   }
 
   const { data: lessonRows, error } = await supabase

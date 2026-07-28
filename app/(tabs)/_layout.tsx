@@ -1,9 +1,20 @@
 import React from 'react';
+import { View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Colors, FontFamily } from '@/src/constants/theme';
 import { SymbolView } from 'expo-symbols';
+import { TutorialOverlay } from '@/src/components/tutorial/TutorialOverlay';
 
 export default function TabLayout() {
+  return (
+    <View style={{ flex: 1 }}>
+      <TabsNav />
+      <TutorialOverlay />
+    </View>
+  );
+}
+
+function TabsNav() {
   return (
     <Tabs
       initialRouteName="lessons"

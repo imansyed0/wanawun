@@ -8,6 +8,7 @@ import { Card } from '@/src/components/ui/Card';
 import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
 import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 import { useAuth } from '@/src/hooks/useAuth';
+import { useTutorialStore } from '@/src/stores/tutorialStore';
 import { supabase } from '@/src/lib/supabase';
 import { getGlossaryWords } from '@/src/services/wordService';
 
@@ -134,8 +135,11 @@ export default function ProfileScreen() {
         </View>
 
         <Button
-          title="How to use the app"
-          onPress={() => router.push('/onboarding?replay=1')}
+          title="Replay Naani's tour"
+          onPress={() => {
+            useTutorialStore.getState().start();
+            router.push('/learn');
+          }}
           variant="outline"
         />
         <Button

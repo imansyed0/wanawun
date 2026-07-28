@@ -20,6 +20,14 @@ import { Card } from '@/src/components/ui/Card';
 import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
 import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 import { addGlossaryWord, deleteGlossaryWord, getGlossaryWords, invalidateWordCache } from '@/src/services/wordService';
+import {
+  isPendingWordId,
+  removePendingGlossaryWord,
+  stashPendingGlossaryWord,
+} from '@/src/services/pendingGlossaryService';
+import { useTutorialStore } from '@/src/stores/tutorialStore';
+import { getBubble } from '@/src/components/tutorial/tutorialCopy';
+import { Grandmother } from '@/src/components/onboarding/Grandmother';
 import { playAudio, stopAudio, startRecording, stopAndUploadRecording, linkAudioToWord } from '@/src/services/audioService';
 import { useAuth } from '@/src/hooks/useAuth';
 import type { WordEntry } from '@/src/types';
@@ -34,6 +42,12 @@ export default function LearnScreen() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const tutorialActive = useTutorialStore((s) => s.active);
+  const tutorialStep = useTutorialStore((s) => s.step);
+  const showTutorialHint = tutorialActive && isAddModalOpen && tutorialStep === 'add-word';
+  const tutorialBubble = showTutorialHint
+    ? getBubble('add-word', true, false, null, false)
+    : null;
 
   // Audio state
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -67,11 +81,6 @@ export default function LearnScreen() {
   );
 
   const handleAddWord = useCallback(async () => {
-    if (!user?.id) {
-      setAddError('Sign in to add vocabulary.');
-      return;
-    }
-
     const trimmedKashmiri = newKashmiri.trim();
     const trimmedEnglish = newEnglish.trim();
 
@@ -84,7 +93,10 @@ export default function LearnScreen() {
     setAddError('');
 
     try {
-      const newWord = await addGlossaryWord(user.id, trimmedKashmiri, trimmedEnglish);
+      // Signed-out words live locally and sync into the account on sign-in.
+      const newWord = user?.id
+        ? await addGlossaryWord(user.id, trimmedKashmiri, trimmedEnglish)
+        : await stashPendingGlossaryWord({ kashmiri: trimmedKashmiri, english: trimmedEnglish });
       setWords((prev) => {
         const withoutDuplicate = prev.filter(
           (entry) =>
@@ -102,6 +114,7 @@ export default function LearnScreen() {
       setNewKashmiri('');
       setNewEnglish('');
       setIsAddModalOpen(false);
+      useTutorialStore.getState().notify('wordAdded');
     } catch (error: any) {
       console.error('Glossary add error:', error);
       setAddError(error?.message || 'Could not add this word right now.');
@@ -113,6 +126,7 @@ export default function LearnScreen() {
   const openAddModal = useCallback(() => {
     setAddError('');
     setIsAddModalOpen(true);
+    useTutorialStore.getState().notify('addModalOpened');
   }, []);
 
   const closeAddModal = useCallback(() => {
@@ -121,6 +135,7 @@ export default function LearnScreen() {
     setAddError('');
     setNewKashmiri('');
     setNewEnglish('');
+    useTutorialStore.getState().notify('addModalClosed');
   }, [adding]);
 
   const handlePlay = useCallback(async (word: WordEntry) => {
@@ -186,11 +201,15 @@ export default function LearnScreen() {
   }, [recordingId, user?.id]);
 
   const handleDelete = useCallback(async (word: WordEntry) => {
-    if (!user?.id) return;
+    if (!user?.id && !isPendingWordId(word.id)) return;
 
     setDeletingId(word.id);
     try {
-      await deleteGlossaryWord(user.id, word);
+      if (isPendingWordId(word.id)) {
+        await removePendingGlossaryWord(word.id);
+      } else if (user?.id) {
+        await deleteGlossaryWord(user.id, word);
+      }
       invalidateWordCache();
       setWords((prev) => prev.filter((entry) => entry.id !== word.id));
     } catch (error) {
@@ -332,6 +351,14 @@ export default function LearnScreen() {
         >
           <Pressable style={styles.modalBackdrop} onPress={closeAddModal} />
           <View style={styles.modalWrap}>
+            {tutorialBubble ? (
+              <View style={styles.tutorialHintRow} pointerEvents="none">
+                <Grandmother pose={tutorialBubble.pose} size={56} />
+                <View style={styles.tutorialHintBubble}>
+                  <Text style={styles.tutorialHintText}>{tutorialBubble.text}</Text>
+                </View>
+              </View>
+            ) : null}
             <Card style={styles.addCard}>
               <View style={styles.addHeader}>
                 <Text style={styles.addTitle}>Add To Glossary</Text>
@@ -362,11 +389,11 @@ export default function LearnScreen() {
               <Pressable
                 style={[
                   styles.addButton,
-                  (!newKashmiri.trim() || !newEnglish.trim() || adding || !user?.id) &&
+                  (!newKashmiri.trim() || !newEnglish.trim() || adding) &&
                     styles.addButtonDisabled,
                 ]}
                 onPress={handleAddWord}
-                disabled={!newKashmiri.trim() || !newEnglish.trim() || adding || !user?.id}
+                disabled={!newKashmiri.trim() || !newEnglish.trim() || adding}
               >
                 <Text style={styles.addButtonText}>{adding ? 'Adding...' : 'Add'}</Text>
               </Pressable>
@@ -441,6 +468,33 @@ const styles = StyleSheet.create({
   },
   modalWrap: {
     paddingHorizontal: Spacing.lg,
+  },
+  tutorialHintRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  tutorialHintBubble: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  tutorialHintText: {
+    fontSize: FontSize.sm,
+    lineHeight: 20,
+    color: Colors.text,
+    fontFamily: FontFamily.bodySemi,
   },
   addCard: {
     padding: Spacing.md,
@@ -540,7 +594,7 @@ const styles = StyleSheet.create({
   },
   kashmiri: {
     fontSize: FontSize.lg,
-    fontFamily: FontFamily.heading,
+    fontFamily: FontFamily.kashmiri,
     color: Colors.accent,
   },
   english: {
