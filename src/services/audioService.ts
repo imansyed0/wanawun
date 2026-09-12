@@ -20,14 +20,14 @@ let _onAudioFinish: (() => void) | null = null;
 // ---------------------------------------------------------------------------
 // Verbose playback logging
 // ---------------------------------------------------------------------------
-// Always on (harmless console output); can be toggled at runtime via
-// setAudioVerboseLogging(false). In addition to console.log output, every
-// line is appended to an in-memory ring buffer so the in-app debug panel
-// can render it on-device — useful on Release builds where Metro/Xcode
-// logs are not available to the user.
+// On in development only; release builds stay quiet unless something calls
+// setAudioVerboseLogging(true). In addition to console.log output, every
+// line is appended to an in-memory ring buffer that subscribeAudioLog /
+// getRecentAudioLog expose, so a debug panel can render it on-device when
+// Metro/Xcode logs are not available. Nothing consumes that buffer yet.
 // ---------------------------------------------------------------------------
 
-let _audioVerbose = true;
+let _audioVerbose = __DEV__;
 
 const AUDIO_LOG_CAPACITY = 200;
 const _audioLog: string[] = [];
