@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Modal, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,12 +11,41 @@ import { useAuth } from '@/src/hooks/useAuth';
 import { useTutorialStore } from '@/src/stores/tutorialStore';
 import { supabase } from '@/src/lib/supabase';
 import { getGlossaryWords } from '@/src/services/wordService';
+import { deleteAccount } from '@/src/services/accountService';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, profile, loading, signOut } = useAuth();
   const [wordCount, setWordCount] = useState(0);
   const [gameCount, setGameCount] = useState(0);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    setDeleteError(null);
+
+    try {
+      await deleteAccount();
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'Something went wrong.');
+      setDeleting(false);
+      return;
+    }
+
+    // The account is gone, so the access token is dead and signOut may well
+    // fail server-side. Clearing local state is what matters here.
+    try {
+      await signOut();
+    } catch {
+      // Ignored — the session is unusable either way.
+    }
+
+    setDeleting(false);
+    setConfirmingDelete(false);
+    router.replace('/');
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -147,7 +176,55 @@ export default function ProfileScreen() {
           onPress={signOut}
           variant="ghost"
         />
+        <Button
+          title="Delete Account"
+          onPress={() => {
+            setDeleteError(null);
+            setConfirmingDelete(true);
+          }}
+          variant="dangerGhost"
+          size="sm"
+        />
       </View>
+
+      <Modal
+        visible={confirmingDelete}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!deleting) setConfirmingDelete(false);
+        }}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Delete your account?</Text>
+            <Text style={styles.modalBody}>
+              This permanently removes your profile, saved words, lesson progress and
+              game history. It cannot be undone, and you will need to create a new
+              account to use Wanawun again.
+            </Text>
+
+            {deleteError ? <Text style={styles.modalError}>{deleteError}</Text> : null}
+
+            {deleting ? (
+              <ActivityIndicator color={Colors.wrong} style={styles.modalSpinner} />
+            ) : (
+              <View style={styles.modalActions}>
+                <Button
+                  title="Delete Forever"
+                  onPress={handleDeleteAccount}
+                  variant="danger"
+                />
+                <Button
+                  title="Cancel"
+                  onPress={() => setConfirmingDelete(false)}
+                  variant="ghost"
+                />
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -236,5 +313,38 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
     marginTop: Spacing.xs,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(47, 58, 53, 0.55)',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  modalCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    gap: Spacing.md,
+  },
+  modalTitle: {
+    fontSize: FontSize.lg,
+    fontFamily: FontFamily.headingBold,
+    color: Colors.text,
+  },
+  modalBody: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    lineHeight: 21,
+  },
+  modalError: {
+    fontSize: FontSize.sm,
+    color: Colors.wrong,
+    fontFamily: FontFamily.bodyBold,
+  },
+  modalSpinner: {
+    paddingVertical: Spacing.md,
+  },
+  modalActions: {
+    gap: Spacing.xs,
   },
 });

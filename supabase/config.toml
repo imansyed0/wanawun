@@ -235,3 +235,9 @@ s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
+
+[functions.delete-account]
+# The platform rejects requests without a valid JWT before the function runs.
+# The function still resolves the caller with auth.getUser(), since this check
+# also passes for a bare anon key.
+verify_jwt = true
