@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Email confirmed — Wanawun</title>
+  <meta name="robots" content="noindex" />
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .confirm { text-align: center; padding-top: 24px; }
+    .confirm .icon {
+      width: 72px; height: 72px; margin: 0 auto 16px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px; line-height: 1;
+      background: #EDF4F0; color: var(--primary-dark);
+    }
+    .confirm .icon.warn { background: #FBF1E6; color: var(--secondary); }
+    .confirm .lede { margin-bottom: 24px; }
+    .btn {
+      display: block;
+      max-width: 320px; margin: 0 auto 12px;
+      padding: 15px 20px;
+      font-size: 17px; font-weight: 600;
+      background: var(--primary); color: #fff;
+      border-radius: 10px; text-decoration: none;
+    }
+    .btn:hover { background: var(--primary-dark); color: #fff; }
+    .hint { color: var(--text-light); font-size: 15px; max-width: 420px; margin: 20px auto 0; }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <a class="brand" href="/">Wanawun</a>
+  </header>
+
+  <main class="container confirm">
+    <!-- Success state: shown by default so the page is never blank, even without JS. -->
+    <section id="ok">
+      <div class="icon" aria-hidden="true">✓</div>
+      <h1>Your email is confirmed</h1>
+      <p class="lede">Welcome to Wanawun! Head back to the app to start learning Koshur.</p>
+      <a id="open-app" class="btn" href="wanawun://auth/callback">Open Wanawun</a>
+      <p class="hint">App didn't open? Open Wanawun on your phone and sign in with your email and password.</p>
+    </section>
+
+    <section id="failed" hidden>
+      <div class="icon warn" aria-hidden="true">!</div>
+      <h1>This link has expired</h1>
+      <p class="lede">Confirmation links only work once and expire after a while.</p>
+      <a class="btn" href="wanawun://auth/login">Open Wanawun</a>
+      <p class="hint">If you already confirmed, just sign in. If the app says your email isn't confirmed yet, sign up again with the same email and we'll send a fresh link.</p>
+    </section>
+  </main>
+
+  <footer class="site">
+    <div>
+      <a href="/support.html">Support</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+    </div>
+  </footer>
+
+  <script>
+    // Supabase lands here after verifying the email. With PKCE it passes
+    // ?code=..., which the app must exchange (the verifier lives on the device
+    // that signed up), so hand it on to wanawun://auth/callback. Failures
+    // arrive as error params in the query or the hash.
+    (function () {
+      var query = new URLSearchParams(window.location.search);
+      var hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      var error = query.get('error') || hash.get('error');
+
+      if (error) {
+        document.getElementById('ok').hidden = true;
+        document.getElementById('failed').hidden = false;
+        return;
+      }
+
+      var code = query.get('code');
+      if (!code) return;
+
+      var deepLink = 'wanawun://auth/callback?code=' + encodeURIComponent(code);
+      document.getElementById('open-app').href = deepLink;
+
+      // Try to jump straight into the app on phones. Browsers that block
+      // scheme redirects without a tap just stay on this page, button ready.
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        window.location.href = deepLink;
+      }
+    })();
+  </script>
+</body>
+</html>

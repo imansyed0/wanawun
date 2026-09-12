@@ -8,6 +8,9 @@ import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/const
 
 type Status = 'pending' | 'success' | 'error' | 'reset-password';
 
+const LINK_FAILED_MESSAGE =
+  "We couldn't sign you in from this link. If you were confirming your email, you're all set - just sign in with your email and password.";
+
 export default function AuthCallback() {
   const router = useRouter();
   const params = useLocalSearchParams<{
@@ -45,7 +48,7 @@ export default function AuthCallback() {
       if (!code) {
         if (!cancelled) {
           setStatus('error');
-          setMessage('Confirmation link is missing a code. Try opening the link again from your email.');
+          setMessage(LINK_FAILED_MESSAGE);
         }
         return;
       }
@@ -54,8 +57,12 @@ export default function AuthCallback() {
       if (cancelled) return;
 
       if (error) {
+        // Usually the link was opened on a different device or after a
+        // reinstall, so this device has no code verifier. Supabase already
+        // confirmed the email before redirecting, so signing in still works.
+        console.warn('Auth code exchange failed', error);
         setStatus('error');
-        setMessage(error.message);
+        setMessage(LINK_FAILED_MESSAGE);
         return;
       }
 
@@ -73,9 +80,11 @@ export default function AuthCallback() {
       }
 
       setStatus('success');
-      setMessage("You're signed in. Taking you to your lessons...");
+      setMessage("Email confirmed! You're signed in.");
+      // Go through the index route so a new user who hasn't seen the welcome
+      // tour gets it, instead of being dropped straight onto Lessons.
       setTimeout(() => {
-        if (!cancelled) router.replace('/lessons');
+        if (!cancelled) router.replace('/');
       }, 600);
     }
 
@@ -156,7 +165,7 @@ export default function AuthCallback() {
 
       {status === 'error' && (
         <Button
-          title="Back to sign in"
+          title="Sign in"
           onPress={() => router.replace('/auth/login')}
           size="lg"
         />
