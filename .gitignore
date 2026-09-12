@@ -48,5 +48,8 @@ yarn-error.*
 # local agent worktrees
 /.claude/
 
+# scraped course audio — lives in the `course-audio` Supabase bucket (scripts/uploadCourseAudio.js)
+/data/audio/
+
 # generated preview HTML (regenerate via data/preview_ciil_locally.js etc.)
 /data/preview/
