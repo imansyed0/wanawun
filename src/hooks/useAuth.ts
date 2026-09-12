@@ -3,6 +3,7 @@ import { supabase } from '@/src/lib/supabase';
 import { nativeGoogleSignIn } from '@/src/lib/googleSignIn';
 import { emailConfirmationUrl } from '@/src/lib/authRedirect';
 import { clearClipProgressCache } from '@/src/services/clipProgressService';
+import { clearSrsCache } from '@/src/services/srsService';
 import type { Session, User } from '@supabase/supabase-js';
 import type { Profile } from '@/src/types';
 
@@ -135,6 +136,7 @@ export function useAuth() {
 
   async function signOut() {
     await clearClipProgressCache();
+    await clearSrsCache();
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   }

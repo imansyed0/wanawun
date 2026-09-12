@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -15,40 +15,38 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Card } from '@/src/components/ui/Card';
 import { Button } from '@/src/components/ui/Button';
 import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
-import { BorderRadius, Colors, FontFamily, FontSize, Spacing } from '@/src/constants/theme';
+import { BorderRadius, Colors, FontFamily, FontSize, LineHeight, Spacing } from '@/src/constants/theme';
 import { playAudio, stopAudio } from '@/src/services/audioService';
 import { getGlossaryWords } from '@/src/services/wordService';
+import { loadDeck, saveCardReview, type DeckItem } from '@/src/services/srsService';
+import {
+  formatDuration,
+  pickNextCard,
+  previewIntervals,
+  reviewCard,
+  summarizeQueue,
+  REVIEW_RATINGS,
+  type ReviewRating,
+} from '@/src/lib/srs';
 import { useAuth } from '@/src/hooks/useAuth';
 import { useTutorialStore } from '@/src/stores/tutorialStore';
-import type { WordEntry } from '@/src/types';
 
-type FlashcardDirection = 'kashmiri_to_english' | 'english_to_kashmiri';
+/** How often the due counters and queue re-evaluate against the clock. */
+const CLOCK_TICK_MS = 20 * 1000;
 
-function shuffleWords(words: WordEntry[]): WordEntry[] {
-  return [...words].sort(() => Math.random() - 0.5);
-}
+const RATING_LABEL: Record<ReviewRating, string> = {
+  again: 'Again',
+  hard: 'Hard',
+  good: 'Good',
+  easy: 'Easy',
+};
 
-function pickFlashcardDirection(): FlashcardDirection {
-  return Math.random() < 0.5 ? 'kashmiri_to_english' : 'english_to_kashmiri';
-}
-
-function takeNextDistinctWord(
-  queue: WordEntry[],
-  excludedWordId?: string | null
-): { nextWord: WordEntry | null; rest: WordEntry[] } {
-  if (queue.length === 0) {
-    return { nextWord: null, rest: [] };
-  }
-
-  const distinctIndex = queue.findIndex((word) => word.id !== excludedWordId);
-  const index = distinctIndex >= 0 ? distinctIndex : 0;
-  const nextWord = queue[index] ?? null;
-
-  return {
-    nextWord,
-    rest: queue.filter((_, currentIndex) => currentIndex !== index),
-  };
-}
+const STATE_LABEL = {
+  new: 'New',
+  learning: 'Learning',
+  review: 'Review',
+  relearning: 'Relearning',
+} as const;
 
 export default function FlashcardsScreen() {
   const { user } = useAuth();
@@ -74,104 +72,60 @@ export default function FlashcardsScreen() {
     )
   );
 
-  const [words, setWords] = useState<WordEntry[]>([]);
-  const [currentWord, setCurrentWord] = useState<WordEntry | null>(null);
-  const [currentFromWrongPool, setCurrentFromWrongPool] = useState(false);
-  const [currentDirection, setCurrentDirection] = useState<FlashcardDirection>('kashmiri_to_english');
-  const [remainingRandomWords, setRemainingRandomWords] = useState<WordEntry[]>([]);
-  const [wrongWords, setWrongWords] = useState<WordEntry[]>([]);
+  const [deck, setDeck] = useState<DeckItem[]>([]);
+  const [currentKey, setCurrentKey] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [playingId, setPlayingId] = useState<string | null>(null);
-  const [correctCount, setCorrectCount] = useState(0);
-  const [wrongCount, setWrongCount] = useState(0);
-  const [cycleCount, setCycleCount] = useState(1);
+  const [reviewedCount, setReviewedCount] = useState(0);
+  // Sticky for the session: lets the user drill a deck that has nothing due.
+  const [studyAhead, setStudyAhead] = useState(false);
+  const [nowTick, setNowTick] = useState(() => Date.now());
   const swipeX = useRef(new Animated.Value(0)).current;
 
-  const drawNextCard = useCallback(
-    (
-      allWords: WordEntry[],
-      nextWrongWords: WordEntry[],
-      nextRandomWords: WordEntry[],
-      excludedWordId?: string | null,
-      preferWrongPool: boolean = true
-    ) => {
-      if (allWords.length === 0) {
-        setCurrentWord(null);
-        setCurrentFromWrongPool(false);
-        setWrongWords([]);
-        setRemainingRandomWords([]);
-        setRevealed(false);
-        return;
-      }
+  const current = useMemo(
+    () => deck.find((item) => item.card.key === currentKey) ?? null,
+    [deck, currentKey]
+  );
+  const cards = useMemo(() => deck.map((item) => item.card), [deck]);
+  const summary = useMemo(() => summarizeQueue(cards, nowTick), [cards, nowTick]);
+  // Study-ahead keeps dealing cards after the queue is legitimately empty. Say
+  // so on screen — otherwise the counters read zero while cards keep arriving,
+  // and there is no way back out of the mode.
+  const isReviewingAhead = studyAhead && summary.dueTotal === 0;
 
-      const refreshedRandomWords =
-        nextRandomWords.length > 0 ? nextRandomWords : shuffleWords(allWords);
-      const wrongPick = takeNextDistinctWord(nextWrongWords, excludedWordId);
-      const randomPick = takeNextDistinctWord(refreshedRandomWords, excludedWordId);
-      const firstPick = preferWrongPool ? wrongPick : randomPick;
-      const secondPick = preferWrongPool ? randomPick : wrongPick;
-      const firstSource = preferWrongPool ? 'wrong' : 'random';
-      const secondSource = preferWrongPool ? 'random' : 'wrong';
-
-      const applyPick = (
-        source: 'wrong' | 'random',
-        pickedWord: WordEntry | null,
-        pickedRest: WordEntry[]
-      ) => {
-        if (!pickedWord) return false;
-        setCurrentWord(pickedWord);
-        setCurrentFromWrongPool(source === 'wrong');
-        setCurrentDirection(pickFlashcardDirection());
-        setWrongWords(source === 'wrong' ? pickedRest : nextWrongWords);
-        setRemainingRandomWords(source === 'random' ? pickedRest : nextRandomWords);
-        setRevealed(false);
-        swipeX.setValue(0);
-        return true;
-      };
-
-      if (applyPick(firstSource, firstPick.nextWord, firstPick.rest)) {
-        return;
-      }
-
-      if (applyPick(secondSource, secondPick.nextWord, secondPick.rest)) {
-        return;
-      }
-
-      const fallbackRandomPick = takeNextDistinctWord(refreshedRandomWords);
-      if (applyPick('random', fallbackRandomPick.nextWord, fallbackRandomPick.rest)) {
-        return;
-      }
-
-      applyPick('wrong', wrongPick.nextWord, wrongPick.rest);
-    },
-    [swipeX]
+  const stopReviewingAhead = useCallback(() => {
+    setStudyAhead(false);
+    setCurrentKey(null);
+    setRevealed(false);
+  }, []);
+  const intervalPreview = useMemo(
+    () => (current ? previewIntervals(current.card, nowTick) : null),
+    [current, nowTick]
   );
 
-  const loadWords = useCallback(async () => {
+  const loadCards = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getGlossaryWords(user?.id);
-      const shuffledWords = shuffleWords(data);
+      const words = await getGlossaryWords(user?.id);
+      const now = Date.now();
+      const items = await loadDeck(user?.id, words, now);
+      const next = pickNextCard(
+        items.map((item) => item.card),
+        now
+      );
 
-      setWords(data);
-      setWrongWords([]);
-      setCurrentWord(shuffledWords[0] ?? null);
-      setCurrentDirection(pickFlashcardDirection());
-      setCurrentFromWrongPool(false);
-      setRemainingRandomWords(shuffledWords.slice(1));
+      setDeck(items);
+      setCurrentKey(next?.key ?? null);
+      setNowTick(now);
+      setStudyAhead(false);
+      setReviewedCount(0);
       setRevealed(false);
-      setCorrectCount(0);
-      setWrongCount(0);
-      setCycleCount(1);
       setPlayingId(null);
       swipeX.setValue(0);
     } catch {
-      setWords([]);
-      setWrongWords([]);
-      setCurrentWord(null);
-      setCurrentFromWrongPool(false);
-      setRemainingRandomWords([]);
+      setDeck([]);
+      setCurrentKey(null);
       setRevealed(false);
       swipeX.setValue(0);
     } finally {
@@ -181,12 +135,15 @@ export default function FlashcardsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadWords();
+      loadCards();
+
+      const timer = setInterval(() => setNowTick(Date.now()), CLOCK_TICK_MS);
 
       return () => {
+        clearInterval(timer);
         stopAudio();
       };
-    }, [loadWords])
+    }, [loadCards])
   );
 
   useEffect(() => {
@@ -197,72 +154,89 @@ export default function FlashcardsScreen() {
 
   useEffect(() => {
     swipeX.setValue(0);
-  }, [currentWord?.id, revealed, swipeX]);
+  }, [currentKey, revealed, swipeX]);
+
+  // Learning cards come due minutes apart, so a deck that ran dry can refill
+  // on its own while the user is still on the screen.
+  useEffect(() => {
+    if (loading || currentKey !== null || deck.length === 0) return;
+
+    const next = pickNextCard(
+      deck.map((item) => item.card),
+      nowTick,
+      { studyAhead }
+    );
+    if (next) setCurrentKey(next.key);
+  }, [currentKey, deck, loading, nowTick, studyAhead]);
 
   const handlePlayAudio = useCallback(async () => {
-    if (!currentWord?.audio_url) return;
+    const audioUrl = current?.word.audio_url;
+    if (!current || !audioUrl) return;
 
-    if (playingId === currentWord.id) {
+    if (playingId === current.word.id) {
       await stopAudio();
       setPlayingId(null);
       return;
     }
 
-    setPlayingId(currentWord.id);
+    setPlayingId(current.word.id);
     try {
-      await playAudio(currentWord.audio_url, {
+      await playAudio(audioUrl, {
         onFinish: () => setPlayingId(null),
       });
     } catch (error) {
       console.error('Flashcard playback error:', error);
       setPlayingId(null);
     }
-  }, [currentWord, playingId]);
+  }, [current, playingId]);
 
-  const handleAnswer = useCallback(
-    (wasCorrect: boolean) => {
-      if (!currentWord) return;
+  const handleRate = useCallback(
+    (rating: ReviewRating) => {
+      if (!current) return;
 
-      useTutorialStore.getState().notify('flashcardAnswered', { wasCorrect });
+      const now = Date.now();
+      const graded = reviewCard(current.card, rating, now);
 
-      if (wasCorrect) {
-        setCorrectCount((value) => value + 1);
-      } else {
-        setWrongCount((value) => value + 1);
-      }
+      useTutorialStore.getState().notify('flashcardAnswered', {
+        wasCorrect: rating !== 'again',
+      });
+      setReviewedCount((value) => value + 1);
 
-      const updatedWrongWords = wasCorrect ? wrongWords : [...wrongWords, currentWord];
-
-      if (currentFromWrongPool && wasCorrect && updatedWrongWords.length === 0) {
-        const resetRandomWords = shuffleWords(words);
-        setCycleCount((value) => value + 1);
-        drawNextCard(words, [], resetRandomWords, currentWord.id, false);
-        return;
-      }
-
-      drawNextCard(
-        words,
-        updatedWrongWords,
-        remainingRandomWords,
-        currentWord.id,
-        currentFromWrongPool
+      const nextDeck = deck.map((item) =>
+        item.card.key === graded.key ? { ...item, card: graded } : item
       );
+      const next = pickNextCard(
+        nextDeck.map((item) => item.card),
+        now,
+        { excludeKey: graded.key, studyAhead }
+      );
+
+      setDeck(nextDeck);
+      setCurrentKey(next?.key ?? null);
+      setNowTick(now);
+      setRevealed(false);
+      swipeX.setValue(0);
+
+      saveCardReview(user?.id, graded, current.word).catch((error) => {
+        // The local cache already has it; the next load will retry the sync.
+        console.error('Flashcard review sync failed:', error);
+      });
     },
-    [currentFromWrongPool, currentWord, drawNextCard, remainingRandomWords, words, wrongWords]
+    [current, deck, studyAhead, swipeX, user?.id]
   );
 
   const animateSwipe = useCallback(
-    (wasCorrect: boolean) => {
+    (rating: 'again' | 'good') => {
       Animated.timing(swipeX, {
-        toValue: wasCorrect ? swipeDismissDistance : -swipeDismissDistance,
+        toValue: rating === 'good' ? swipeDismissDistance : -swipeDismissDistance,
         duration: 180,
         useNativeDriver: true,
       }).start(() => {
         swipeX.setValue(0);
-        handleAnswer(wasCorrect);
+        handleRate(rating);
       });
     },
-    [handleAnswer, swipeDismissDistance, swipeX]
+    [handleRate, swipeDismissDistance, swipeX]
   );
 
   const resetSwipe = useCallback(() => {
@@ -303,12 +277,12 @@ export default function FlashcardsScreen() {
         }
 
         if (gestureState.dx > swipeThreshold) {
-          animateSwipe(true);
+          animateSwipe('good');
           return;
         }
 
         if (gestureState.dx < -swipeThreshold) {
-          animateSwipe(false);
+          animateSwipe('again');
           return;
         }
 
@@ -318,19 +292,14 @@ export default function FlashcardsScreen() {
     })
   ).current;
 
-  const promptLabel =
-    currentDirection === 'kashmiri_to_english' ? 'Kashmiri' : 'English';
-  const promptText =
-    currentDirection === 'kashmiri_to_english'
-      ? currentWord?.kashmiri
-      : currentWord?.english;
-  const answerLabel =
-    currentDirection === 'kashmiri_to_english' ? 'English' : 'Kashmiri';
-  const answerText =
-    currentDirection === 'kashmiri_to_english'
-      ? currentWord?.english
-      : currentWord?.kashmiri;
-  const hasAudio = Boolean(currentWord?.audio_url);
+  const showsKashmiriPrompt = current?.direction === 'k2e';
+  const promptLabel = showsKashmiriPrompt ? 'Kashmiri' : 'English';
+  const promptText = showsKashmiriPrompt ? current?.word.kashmiri : current?.word.english;
+  const answerLabel = showsKashmiriPrompt ? 'English' : 'Kashmiri';
+  const answerText = showsKashmiriPrompt ? current?.word.english : current?.word.kashmiri;
+  // Playing the Kashmiri audio before an English->Kashmiri card is revealed
+  // would hand over the answer.
+  const hasAudio = Boolean(current?.word.audio_url) && (showsKashmiriPrompt || revealed);
   const promptWordCount = promptText?.trim().split(/\s+/).filter(Boolean).length ?? 0;
   const answerWordCount = answerText?.trim().split(/\s+/).filter(Boolean).length ?? 0;
   const promptCharCount = promptText?.length ?? 0;
@@ -343,6 +312,34 @@ export default function FlashcardsScreen() {
     isCompactHeight && (answerWordCount >= 4 || answerCharCount >= 26);
   const useUltraCondensedAnswer =
     isShortHeight && (answerWordCount >= 5 || answerCharCount >= 34);
+  // The ladder below steps the type down to fit short screens. Amiri needs a
+  // far taller line box than Rozha One does, so the line height has to follow
+  // both the tier that won and which script is on that side of the card — one
+  // fixed value would slice the vowel marks off the Kashmiri.
+  const promptFontSize = useUltraCondensedPrompt
+    ? 18
+    : useCondensedPrompt
+      ? 24
+      : isShortHeight
+        ? 22
+        : isCompactHeight
+          ? 28
+          : FontSize.title;
+  const answerFontSize = useUltraCondensedAnswer
+    ? FontSize.xs
+    : useCondensedAnswer
+      ? FontSize.sm
+      : isShortHeight
+        ? FontSize.md
+        : isCompactHeight
+          ? FontSize.lg
+          : FontSize.xl;
+  const promptLineHeight = showsKashmiriPrompt
+    ? LineHeight.kashmiri(promptFontSize)
+    : LineHeight.heading(promptFontSize);
+  const answerLineHeight = showsKashmiriPrompt
+    ? LineHeight.heading(answerFontSize)
+    : LineHeight.kashmiri(answerFontSize);
   const topCardRotate = swipeX.interpolate({
     inputRange: [-width / 2, 0, width / 2],
     outputRange: ['-11deg', '0deg', '11deg'],
@@ -362,6 +359,11 @@ export default function FlashcardsScreen() {
     transform: [{ translateX: swipeX }, { rotate: topCardRotate }],
   };
 
+  const nextDueLabel =
+    summary.nextDueAt !== null
+      ? `Next review in ${formatDuration(summary.nextDueAt - nowTick)}`
+      : null;
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View
@@ -374,33 +376,53 @@ export default function FlashcardsScreen() {
       >
         <View style={[styles.header, isCompactHeight && styles.headerCompact]}>
           <Text style={[styles.title, isShortHeight && styles.titleShort]}>Flashcards</Text>
+          <Text style={[styles.subtitle, isShortHeight && styles.subtitleShort]}>
+            {reviewedCount > 0
+              ? `${reviewedCount} reviewed this session`
+              : 'Spaced repetition — a little every day'}
+          </Text>
         </View>
+
+        {isReviewingAhead ? (
+          <View style={styles.aheadBanner}>
+            <Text style={styles.aheadText} numberOfLines={2}>
+              Reviewing ahead — you're done for today
+            </Text>
+            <Pressable style={styles.aheadStop} onPress={stopReviewingAhead}>
+              <Text style={styles.aheadStopText}>Stop</Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         {!isShortHeight ? <ScreenHeaderDecoration variant="saffron" /> : null}
 
         <View style={[styles.statsRow, isCompactHeight && styles.statsRowCompact]}>
           <Card style={[styles.statCard, isShortHeight && styles.statCardShort]}>
-            <Text style={styles.statLabel}>Right</Text>
+            <Text style={styles.statLabel}>New</Text>
             <Text
-              style={[
-                styles.statValue,
-                styles.correctValue,
-                isShortHeight && styles.statValueShort,
-              ]}
+              style={[styles.statValue, styles.newValue, isShortHeight && styles.statValueShort]}
             >
-              {correctCount}
+              {summary.newCount}
             </Text>
           </Card>
           <Card style={[styles.statCard, isShortHeight && styles.statCardShort]}>
-            <Text style={styles.statLabel}>Wrong</Text>
+            <Text style={styles.statLabel}>Learning</Text>
             <Text
               style={[
                 styles.statValue,
-                styles.wrongValue,
+                styles.learningValue,
                 isShortHeight && styles.statValueShort,
               ]}
             >
-              {wrongCount}
+              {summary.learningCount}
+            </Text>
+          </Card>
+          <Card style={[styles.statCard, isShortHeight && styles.statCardShort]}>
+            <Text style={styles.statLabel}>Due</Text>
+            <Text
+              style={[styles.statValue, styles.dueValue, isShortHeight && styles.statValueShort]}
+            >
+              {summary.reviewCount}
             </Text>
           </Card>
         </View>
@@ -410,12 +432,27 @@ export default function FlashcardsScreen() {
             <View style={styles.centeredState}>
               <ActivityIndicator size="large" color={Colors.primary} />
             </View>
-          ) : !currentWord ? (
+          ) : deck.length === 0 ? (
             <View style={styles.centeredState}>
               <Text style={styles.emptyText}>
                 Your flashcards will appear once you start completing lessons and adding
                 vocabulary.
               </Text>
+            </View>
+          ) : !current ? (
+            <View style={styles.centeredState}>
+              <Text style={styles.caughtUpTitle}>All caught up</Text>
+              <Text style={styles.emptyText}>
+                {nextDueLabel
+                  ? `${nextDueLabel}. Coming back on schedule is what makes it stick.`
+                  : 'Nothing is due right now.'}
+              </Text>
+              <Button
+                title="Review ahead"
+                variant="outline"
+                onPress={() => setStudyAhead(true)}
+                style={styles.reviewAheadButton}
+              />
             </View>
           ) : (
             <View style={styles.deckContent}>
@@ -447,7 +484,7 @@ export default function FlashcardsScreen() {
                           ]}
                         >
                           <Text style={[styles.swipeBadgeText, styles.swipeBadgeTextWrong]}>
-                            Wrong
+                            Again
                           </Text>
                         </Animated.View>
                         <Animated.View
@@ -458,13 +495,24 @@ export default function FlashcardsScreen() {
                           ]}
                         >
                           <Text style={[styles.swipeBadgeText, styles.swipeBadgeTextRight]}>
-                            Right
+                            Good
                           </Text>
                         </Animated.View>
                       </>
                     ) : null}
 
                     <View style={styles.cardContent}>
+                      <View style={styles.stateChipRow}>
+                        <View style={styles.stateChip}>
+                          <Text style={styles.stateChipText}>
+                            {STATE_LABEL[current.card.state]}
+                            {current.card.state === 'review' && current.card.intervalDays > 0
+                              ? ` · ${formatDuration(current.card.intervalDays * 86400000)}`
+                              : ''}
+                          </Text>
+                        </View>
+                      </View>
+
                       <View
                         style={[
                           styles.promptSection,
@@ -480,7 +528,8 @@ export default function FlashcardsScreen() {
                             isShortHeight && styles.kashmiriShort,
                             useCondensedPrompt && styles.kashmiriCondensed,
                             useUltraCondensedPrompt && styles.kashmiriUltraCondensed,
-                            currentDirection === 'kashmiri_to_english' && styles.kashmiriFont,
+                            showsKashmiriPrompt && styles.kashmiriFont,
+                            { lineHeight: promptLineHeight },
                           ]}
                           numberOfLines={isShortHeight ? 3 : 4}
                           adjustsFontSizeToFit
@@ -501,7 +550,7 @@ export default function FlashcardsScreen() {
                             style={[
                               styles.audioPill,
                               isCompactHeight && styles.audioPillCompact,
-                              playingId === currentWord.id && styles.audioPillActive,
+                              playingId === current.word.id && styles.audioPillActive,
                             ]}
                             onPress={handlePlayAudio}
                           >
@@ -509,10 +558,10 @@ export default function FlashcardsScreen() {
                               style={[
                                 styles.audioPillText,
                                 isCompactHeight && styles.audioPillTextCompact,
-                                playingId === currentWord.id && styles.audioPillTextActive,
+                                playingId === current.word.id && styles.audioPillTextActive,
                               ]}
                             >
-                              {playingId === currentWord.id ? '\u23F9' : '\uD83D\uDD0A'}
+                              {playingId === current.word.id ? '⏹' : '🔊'}
                             </Text>
                           </Pressable>
                         ) : null}
@@ -526,24 +575,23 @@ export default function FlashcardsScreen() {
                             isShortHeight && styles.answerBoxShort,
                           ]}
                         >
-                          <>
-                            <Text style={styles.answerLabel}>{answerLabel}</Text>
-                            <Text
-                              style={[
-                                styles.answerText,
-                                isCompactHeight && styles.answerTextCompact,
-                                isShortHeight && styles.answerTextShort,
-                                useCondensedAnswer && styles.answerTextCondensed,
-                                useUltraCondensedAnswer && styles.answerTextUltraCondensed,
-                                currentDirection === 'english_to_kashmiri' && styles.kashmiriFont,
-                              ]}
-                              numberOfLines={isShortHeight ? 3 : 4}
-                              adjustsFontSizeToFit
-                              minimumFontScale={0.62}
-                            >
-                              {answerText}
-                            </Text>
-                          </>
+                          <Text style={styles.answerLabel}>{answerLabel}</Text>
+                          <Text
+                            style={[
+                              styles.answerText,
+                              isCompactHeight && styles.answerTextCompact,
+                              isShortHeight && styles.answerTextShort,
+                              useCondensedAnswer && styles.answerTextCondensed,
+                              useUltraCondensedAnswer && styles.answerTextUltraCondensed,
+                              !showsKashmiriPrompt && styles.kashmiriFont,
+                              { lineHeight: answerLineHeight },
+                            ]}
+                            numberOfLines={isShortHeight ? 3 : 4}
+                            adjustsFontSizeToFit
+                            minimumFontScale={0.62}
+                          >
+                            {answerText}
+                          </Text>
                         </View>
                       ) : null}
                     </View>
@@ -551,19 +599,23 @@ export default function FlashcardsScreen() {
                 </Animated.View>
               </View>
               {revealed ? (
-                <View style={styles.swipeHintRow}>
-                  <Pressable
-                    style={[styles.swipeHintPill, styles.swipeHintPillWrong]}
-                    onPress={() => animateSwipe(false)}
-                  >
-                    <Text style={[styles.swipeHintArrow, styles.swipeHintArrowWrong]}>←</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.swipeHintPill, styles.swipeHintPillRight]}
-                    onPress={() => animateSwipe(true)}
-                  >
-                    <Text style={[styles.swipeHintArrow, styles.swipeHintArrowRight]}>→</Text>
-                  </Pressable>
+                <View style={styles.ratingRow}>
+                  {REVIEW_RATINGS.map((rating) => (
+                    <Pressable
+                      key={rating}
+                      style={[
+                        styles.ratingPill,
+                        isShortHeight && styles.ratingPillShort,
+                        styles[`ratingPill_${rating}`],
+                      ]}
+                      onPress={() => handleRate(rating)}
+                    >
+                      <Text style={[styles.ratingLabel, styles[`ratingLabel_${rating}`]]}>
+                        {RATING_LABEL[rating]}
+                      </Text>
+                      <Text style={styles.ratingInterval}>{intervalPreview?.[rating]}</Text>
+                    </Pressable>
+                  ))}
                 </View>
               ) : (
                 <View style={styles.actionFooter}>
@@ -614,6 +666,35 @@ const styles = StyleSheet.create({
   subtitleShort: {
     fontSize: FontSize.xs,
   },
+  aheadBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xs,
+    paddingLeft: Spacing.md,
+    paddingRight: Spacing.xs,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surfaceWarm,
+  },
+  aheadText: {
+    flex: 1,
+    fontSize: FontSize.xs,
+    fontFamily: FontFamily.bodySemi,
+    color: Colors.textSecondary,
+  },
+  aheadStop: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surface,
+  },
+  aheadStopText: {
+    fontSize: FontSize.xs,
+    fontFamily: FontFamily.bodyBold,
+    color: Colors.primaryDark,
+  },
   statsRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -649,11 +730,14 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: FontSize.lg,
   },
-  correctValue: {
-    color: Colors.correct,
+  newValue: {
+    color: Colors.accent,
   },
-  wrongValue: {
-    color: Colors.wrong,
+  learningValue: {
+    color: Colors.secondary,
+  },
+  dueValue: {
+    color: Colors.correct,
   },
   deckArea: {
     flex: 1,
@@ -672,6 +756,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.xl,
+    gap: Spacing.sm,
+  },
+  caughtUpTitle: {
+    fontSize: FontSize.xl,
+    fontFamily: FontFamily.headingBold,
+    color: Colors.primaryDark,
+  },
+  reviewAheadButton: {
+    marginTop: Spacing.md,
   },
   deckViewport: {
     alignSelf: 'stretch',
@@ -731,7 +824,23 @@ const styles = StyleSheet.create({
   cardContent: {
     flex: 1,
     justifyContent: 'space-between',
-    gap: Spacing.md,
+    gap: Spacing.sm,
+  },
+  stateChipRow: {
+    alignItems: 'center',
+  },
+  stateChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surfaceLight,
+  },
+  stateChipText: {
+    fontSize: FontSize.xs,
+    fontFamily: FontFamily.bodySemi,
+    color: Colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
   },
   promptSection: {
     flex: 1,
@@ -764,21 +873,19 @@ const styles = StyleSheet.create({
   kashmiriFont: {
     fontFamily: FontFamily.kashmiri,
   },
+  // Sizes only — the matching line height is applied inline, because it
+  // depends on which script the card is showing.
   kashmiriCompact: {
     fontSize: 28,
-    lineHeight: 34,
   },
   kashmiriShort: {
     fontSize: 22,
-    lineHeight: 28,
   },
   kashmiriCondensed: {
     fontSize: 24,
-    lineHeight: 30,
   },
   kashmiriUltraCondensed: {
     fontSize: 18,
-    lineHeight: 24,
   },
   cardActionsRow: {
     minHeight: 36,
@@ -850,55 +957,70 @@ const styles = StyleSheet.create({
   },
   answerTextCompact: {
     fontSize: FontSize.lg,
-    lineHeight: 24,
   },
   answerTextShort: {
     fontSize: FontSize.md,
-    lineHeight: 22,
   },
   answerTextCondensed: {
     fontSize: FontSize.sm,
-    lineHeight: 18,
   },
   answerTextUltraCondensed: {
     fontSize: FontSize.xs,
-    lineHeight: 16,
   },
   actionFooter: {
     paddingHorizontal: Spacing.md,
   },
-  swipeHintRow: {
+  ratingRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
   },
-  swipeHintPill: {
-    flexDirection: 'row',
+  ratingPill: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 44,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: BorderRadius.full,
+    gap: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderRadius: BorderRadius.md,
     borderWidth: 1,
     backgroundColor: Colors.surface,
   },
-  swipeHintPillWrong: {
+  ratingPillShort: {
+    paddingVertical: 6,
+  },
+  ratingPill_again: {
     borderColor: '#e1b7b1',
   },
-  swipeHintPillRight: {
+  ratingPill_hard: {
+    borderColor: Colors.walnutLight,
+  },
+  ratingPill_good: {
     borderColor: '#BDD0C8',
   },
-  swipeHintArrow: {
-    fontSize: FontSize.md,
+  ratingPill_easy: {
+    borderColor: Colors.accentLight,
+  },
+  ratingLabel: {
+    fontSize: FontSize.sm,
     fontFamily: FontFamily.bodyBold,
   },
-  swipeHintArrowWrong: {
+  ratingLabel_again: {
     color: Colors.wrong,
   },
-  swipeHintArrowRight: {
+  ratingLabel_hard: {
+    color: Colors.walnut,
+  },
+  ratingLabel_good: {
     color: Colors.correct,
+  },
+  ratingLabel_easy: {
+    color: Colors.accent,
+  },
+  ratingInterval: {
+    fontSize: FontSize.xs,
+    fontFamily: FontFamily.body,
+    color: Colors.textSecondary,
   },
   revealFooterButton: {
     width: '100%',
