@@ -23,6 +23,7 @@
     "@supabase/supabase-js": "^2.99.3",
     "expo": "~55.0.8",
     "expo-audio": "~55.0.9",
+    "expo-build-properties": "~55.0.10",
     "expo-constants": "~55.0.9",
     "expo-device": "~55.0.10",
     "expo-font": "~55.0.4",
