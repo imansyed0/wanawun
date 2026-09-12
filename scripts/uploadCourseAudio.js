@@ -158,16 +158,28 @@ function head(url) {
   });
 }
 
+// Storage rate-limits bursts of requests with 429, which says nothing about
+// whether the object exists, so back off and retry those instead of failing.
+async function headWithRetry(url) {
+  let status = 0;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    status = await head(url);
+    if (status !== 429 && status !== 0) return status;
+    await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** attempt));
+  }
+  return status;
+}
+
 async function verify() {
   const base = `${supabaseUrl()}/storage/v1/object/public/${BUCKET}/`;
   const manifest = require(MANIFEST_PATH);
   const failures = [];
   const queue = manifest.slice();
   await Promise.all(
-    Array.from({ length: 16 }, async () => {
+    Array.from({ length: 4 }, async () => {
       while (queue.length) {
         const key = queue.shift();
-        const status = await head(base + key);
+        const status = await headWithRetry(base + key);
         if (status !== 200) failures.push(`${status} ${key}`);
       }
     })
