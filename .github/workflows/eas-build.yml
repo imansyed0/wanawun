@@ -57,10 +57,32 @@ jobs:
         env:
           PLATFORM: ${{ github.event.inputs.platform || 'android' }}
           PROFILE: ${{ github.event.inputs.profile || 'preview' }}
+          # Apple's capability sync API rejected our bundle ID during the first
+          # iOS builds, and the app uses no capabilities it would enable.
+          EXPO_NO_CAPABILITY_SYNC: 1
         run: |
           echo "Building platform=$PLATFORM profile=$PROFILE"
-          eas build \
-            --platform "$PLATFORM" \
-            --profile "$PROFILE" \
-            --non-interactive \
-            --no-wait
+
+          if [ "$PLATFORM" = "all" ]; then
+            PLATFORMS="android ios"
+          else
+            PLATFORMS="$PLATFORM"
+          fi
+
+          for p in $PLATFORMS; do
+            SUBMIT=""
+            # iOS production builds go straight to TestFlight. EAS schedules the
+            # submission server-side once the build finishes, using the App Store
+            # Connect API key stored in EAS credentials, so --no-wait still works.
+            if [ "$p" = "ios" ] && [ "$PROFILE" = "production" ]; then
+              SUBMIT="--auto-submit"
+              echo "iOS production build will be submitted to TestFlight when it finishes"
+            fi
+
+            eas build \
+              --platform "$p" \
+              --profile "$PROFILE" \
+              --non-interactive \
+              --no-wait \
+              $SUBMIT
+          done
