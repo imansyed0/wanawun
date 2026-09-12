@@ -28,6 +28,7 @@ import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from 
 import { allCourses, type AudioClip } from '@/src/data/courses';
 import { getSpokenKashmiriChapterContent } from '@/src/data/spokenKashmiriContent';
 import { getLessonCourseContext } from '@/src/data/courseContext';
+import { resolveCourseAudioUrl } from '@/src/data/courseAudio';
 import { getKachruChapterVocabulary } from '@/src/data/kachruVocabulary';
 import {
   KOUL_SECTION_LABELS,
@@ -340,7 +341,9 @@ export default function LessonPlayerScreen() {
         return;
       }
 
-      const uri = clips[idx].audioUrl ?? lesson.audioBaseUrl + clips[idx].filename;
+      const uri = resolveCourseAudioUrl(
+        clips[idx].audioUrl ?? lesson.audioBaseUrl + clips[idx].filename
+      );
       const logTag = `lesson:${courseId}:${lessonId}:clip${idx}`;
       console.log(`[audio:${logTag}] playClip`, {
         idx,
@@ -450,7 +453,7 @@ export default function LessonPlayerScreen() {
       await stopLessonAudio();
       setVocabPlayingId(null);
       setKachruVocabPlaying(audioFilename);
-      await playAudio(lesson.audioBaseUrl + audioFilename, {
+      await playAudio(resolveCourseAudioUrl(lesson.audioBaseUrl + audioFilename), {
         onFinish: () => setKachruVocabPlaying(null),
       });
     } catch (e) {
