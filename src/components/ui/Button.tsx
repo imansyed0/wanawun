@@ -4,7 +4,7 @@ import { Colors, BorderRadius, Spacing, FontSize, FontFamily } from '@/src/const
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'dangerGhost';
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
   style?: ViewStyle;
@@ -64,6 +64,12 @@ const styles = StyleSheet.create({
   ghost: {
     backgroundColor: 'transparent',
   },
+  danger: {
+    backgroundColor: Colors.wrong,
+  },
+  dangerGhost: {
+    backgroundColor: 'transparent',
+  },
   size_sm: {
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
@@ -98,6 +104,12 @@ const styles = StyleSheet.create({
   },
   text_ghost: {
     color: Colors.primary,
+  },
+  text_danger: {
+    color: '#fff',
+  },
+  text_dangerGhost: {
+    color: Colors.wrong,
   },
   textSize_sm: {
     fontSize: FontSize.sm,
