@@ -1,5 +1,4 @@
 import 'react-native-url-polyfill/auto';
-import { Platform } from 'react-native';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -37,9 +36,13 @@ export const supabase: SupabaseClient = new Proxy({} as SupabaseClient, {
           storage: getStorage(),
           autoRefreshToken: true,
           persistSession: typeof window !== 'undefined',
-          // Native parses the auth code manually in app/auth/callback.tsx.
-          // Web lets supabase-js read the code from window.location.
-          detectSessionInUrl: Platform.OS === 'web',
+          // app/auth/callback.tsx exchanges the auth code itself on every
+          // platform. Letting supabase-js do it on web instead would break
+          // password resets: its PKCE branch discards the recovery marker
+          // (returns redirectType: null) and consumes the code verifier, so
+          // the callback can neither exchange the code nor tell a recovery
+          // link apart from a sign-in.
+          detectSessionInUrl: false,
           flowType: 'pkce',
         },
       });

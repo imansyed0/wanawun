@@ -14,6 +14,7 @@ import { Button } from '@/src/components/ui/Button';
 import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 import { useAuth } from '@/src/hooks/useAuth';
 import { supabase } from '@/src/lib/supabase';
+import { authCallbackUrl } from '@/src/lib/authRedirect';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -35,8 +36,8 @@ export default function LoginScreen() {
     }
     setResetting(true);
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'wanawun://auth/callback',
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: authCallbackUrl(),
       });
       if (resetError) throw resetError;
       setResetMessage('Check your email for a reset link');

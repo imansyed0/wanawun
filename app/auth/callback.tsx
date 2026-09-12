@@ -24,12 +24,6 @@ export default function AuthCallback() {
   useEffect(() => {
     let cancelled = false;
 
-    let isRecovery = false;
-
-    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') isRecovery = true;
-    });
-
     async function run() {
       const initialUrl = await Linking.getInitialURL();
       const code =
@@ -56,7 +50,7 @@ export default function AuthCallback() {
         return;
       }
 
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
       if (cancelled) return;
 
       if (error) {
@@ -65,7 +59,12 @@ export default function AuthCallback() {
         return;
       }
 
-      listener.subscription.unsubscribe();
+      // PKCE never fires a PASSWORD_RECOVERY auth event - exchangeCodeForSession
+      // always notifies SIGNED_IN. resetPasswordForEmail tags the stored code
+      // verifier instead, and the exchange hands that tag back as redirectType
+      // (present at runtime, absent from the public AuthTokenResponse type).
+      const isRecovery =
+        (data as { redirectType?: string | null } | null)?.redirectType === 'PASSWORD_RECOVERY';
 
       if (isRecovery) {
         setStatus('reset-password');
