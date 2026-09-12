@@ -22,7 +22,8 @@
         "NSBonjourServices": [
           "_expo-dev-server._tcp"
         ]
-      }
+      },
+      "buildNumber": "2"
     },
     "android": {
       "icon": "./assets/images/icon.png",
