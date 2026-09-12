@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/src/lib/supabase';
 import { nativeGoogleSignIn } from '@/src/lib/googleSignIn';
+import { emailConfirmationUrl } from '@/src/lib/authRedirect';
 import { clearClipProgressCache } from '@/src/services/clipProgressService';
 import type { Session, User } from '@supabase/supabase-js';
 import type { Profile } from '@/src/types';
@@ -101,13 +102,12 @@ export function useAuth() {
   }
 
   async function signUp(email: string, password: string, displayName: string) {
-    const emailRedirectTo = 'wanawun://auth/callback';
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
         data: { display_name: displayName.trim() },
-        emailRedirectTo,
+        emailRedirectTo: emailConfirmationUrl(),
       },
     });
     if (error) throw error;

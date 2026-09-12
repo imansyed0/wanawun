@@ -16,3 +16,20 @@ export function authCallbackUrl(): string {
   }
   return APP_SCHEME_CALLBACK;
 }
+
+const EMAIL_CONFIRMED_PAGE = 'https://wanawun.com/auth/confirmed';
+
+/**
+ * Where Supabase should send a new user after they tap the sign-up
+ * confirmation email.
+ *
+ * Native goes via a real web page rather than straight to `wanawun://`: mail
+ * apps' in-app browsers (and Android Chrome) silently refuse a redirect to a
+ * custom scheme, which left users staring at a blank page. site/auth/confirmed.html
+ * tells them they're confirmed and forwards the code into the app. Must be in
+ * the Supabase Redirect URLs allow-list, like authCallbackUrl.
+ */
+export function emailConfirmationUrl(): string {
+  if (Platform.OS === 'web') return authCallbackUrl();
+  return EMAIL_CONFIRMED_PAGE;
+}
