@@ -58,7 +58,7 @@ export default function RegisterScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Join Wanawun</Text>
+      <Text style={styles.title}>Join Wanwun</Text>
       <Text style={styles.subtitle}>Create an account to start learning Koshur</Text>
 
       <View style={styles.form}>

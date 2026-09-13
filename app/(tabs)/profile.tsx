@@ -111,7 +111,7 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.authPrompt}>
-          <Text style={styles.title}>Join Wanawun</Text>
+          <Text style={styles.title}>Join Wanwun</Text>
           <Text style={styles.subtitle}>
             Sign in to track your progress and play with friends
           </Text>
@@ -201,7 +201,7 @@ export default function ProfileScreen() {
             <Text style={styles.modalBody}>
               This permanently removes your profile, saved words, lesson progress and
               game history. It cannot be undone, and you will need to create a new
-              account to use Wanawun again.
+              account to use Wanwun again.
             </Text>
 
             {deleteError ? <Text style={styles.modalError}>{deleteError}</Text> : null}
