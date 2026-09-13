@@ -9,7 +9,7 @@ interface ChinarLeafProps {
 }
 
 /**
- * Wanawun app logo — a stylized upward-pointing chevron/peak shape.
+ * Wanwun app logo — a stylized upward-pointing chevron/peak shape.
  * Matches the app icon (an "A"-like mountain peak with rounded ends).
  */
 export function ChinarLeaf({

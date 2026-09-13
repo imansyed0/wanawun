@@ -14,7 +14,7 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         {/* Hero header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Wanawun</Text>
+          <Text style={styles.title}>Wanwun</Text>
           <Text style={styles.subtitle}>Learn Koshur Together</Text>
           <Text style={styles.tagline}>
             Kashmiri language games for two

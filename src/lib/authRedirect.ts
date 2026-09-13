@@ -17,7 +17,7 @@ export function authCallbackUrl(): string {
   return APP_SCHEME_CALLBACK;
 }
 
-const EMAIL_CONFIRMED_PAGE = 'https://wanawun.com/auth/confirmed';
+const EMAIL_CONFIRMED_PAGE = 'https://wanwun.org/auth/confirmed';
 
 /**
  * Where Supabase should send a new user after they tap the sign-up

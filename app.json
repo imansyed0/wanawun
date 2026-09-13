@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Wanawun",
+    "name": "Wanwun",
     "slug": "wanawun",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -17,8 +17,8 @@
       "bundleIdentifier": "org.koshur.wanawun",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSMicrophoneUsageDescription": "Wanawun uses the microphone so you can record Kashmiri words and phrases for practice.",
-        "NSLocalNetworkUsageDescription": "Wanawun uses your local network to connect to the development bundler during development.",
+        "NSMicrophoneUsageDescription": "Wanwun uses the microphone so you can record Kashmiri words and phrases for practice.",
+        "NSLocalNetworkUsageDescription": "Wanwun uses your local network to connect to the development bundler during development.",
         "NSBonjourServices": [
           "_expo-dev-server._tcp"
         ]

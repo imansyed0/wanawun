@@ -10,3 +10,19 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     X-Frame-Options = "DENY"
+
+# The site moved from wanawun.com to wanwun.org. These only take effect while
+# wanawun.com is attached to this Netlify site as a domain alias. Paths and
+# query strings carry over, so https://wanawun.com/privacy.html lands on
+# https://wanwun.org/privacy.html.
+[[redirects]]
+  from = "https://wanawun.com/*"
+  to = "https://wanwun.org/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.wanawun.com/*"
+  to = "https://wanwun.org/:splat"
+  status = 301
+  force = true
