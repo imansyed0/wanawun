@@ -5,9 +5,11 @@
   skip_processing = false
 
 # Netlify Functions. submission-created.mjs runs automatically on every
-# verified Netlify Forms submission and emails /join sign-ups their beta link.
+# verified Netlify Forms submission and emails /join sign-ups their beta link
+# over SMTP. esbuild bundles nodemailer into the function.
 [functions]
   directory = "netlify/functions"
+  node_bundler = "esbuild"
 
 [[headers]]
   for = "/*"

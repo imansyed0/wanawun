@@ -3,34 +3,38 @@
  *
  * Netlify runs a function named `submission-created` automatically for every
  * verified (non-spam) Netlify Forms submission. This one ignores every form
- * except "join" and sends the person a single email through Resend, with the
- * right beta instructions for the phone they chose (iphone / android / both).
+ * except "join" and sends the person a single email over SMTP through the
+ * wanwun.org Namecheap Private Email mailbox, with the right beta
+ * instructions for the phone they chose (iphone / android / both).
  *
  * Setup:
- *   1. Create a Resend account (https://resend.com).
- *   2. In Resend, add the domain wanwun.org and create the DNS records it
- *      lists (SPF/DKIM, and optionally DMARC) at Netlify DNS, since that's
- *      where wanwun.org's DNS lives. Wait for Resend to show it as verified.
- *   3. Create a Resend API key (sending access) and set it in Netlify:
- *      Site configuration > Environment variables > RESEND_API_KEY.
- *      Optional: EMAIL_FROM (default "Wanwun <hello@wanwun.org>").
+ *   1. In Netlify (Site configuration > Environment variables) set:
+ *        SMTP_USER  full mailbox address, e.g. hello@wanwun.org
+ *        SMTP_PASS  that mailbox's password
+ *      Optional: SMTP_HOST (default mail.privateemail.com), SMTP_PORT
+ *      (default 465, implicit TLS), EMAIL_FROM (default "Wanwun <SMTP_USER>").
+ *      EMAIL_FROM must use the SMTP_USER address (or an alias of that
+ *      mailbox), otherwise Private Email rejects or spoof-flags the message.
  *      Redeploy after changing env vars.
- *   4. Replace ANDROID_BETA_LINK below with the real Play testing link.
- *   5. Make sure the Google Group allows anyone to join without approval
+ *   2. Make sure the Google Group allows anyone to join without approval
  *      (Group settings > "Who can join group" > "Anyone on the web can
  *      join"). "Ask to join" would leave testers stuck waiting.
+ *   3. Replace ANDROID_BETA_LINK below with the real Play testing link.
  *
- * No npm dependencies: uses the global fetch in Netlify's Node runtime.
+ * nodemailer is bundled by esbuild (netlify.toml [functions] node_bundler).
  * Always returns 200 so a mail problem never affects the form submission;
- * failures are logged and visible in Netlify > Logs > Functions.
+ * failures are logged (never the password) in Netlify > Logs > Functions.
  */
+
+import nodemailer from 'nodemailer';
 
 const IOS_TESTFLIGHT_LINK = 'https://testflight.apple.com/join/dM2tsXYj';
 const ANDROID_GROUP_LINK = 'https://groups.google.com/g/wanawun-android-beta-testers';
 // TODO(WAN-49): replace with the real Google Play testing opt-in / download link.
 const ANDROID_BETA_LINK = 'TODO_ANDROID_BETA_LINK';
 
-const DEFAULT_FROM = 'Wanwun <hello@wanwun.org>';
+const DEFAULT_SMTP_HOST = 'mail.privateemail.com';
+const DEFAULT_SMTP_PORT = 465;
 const REPLY_TO = 'hello@wanwun.org';
 
 function escapeHtml(value) {
@@ -139,36 +143,40 @@ export const handler = async (event) => {
     return ok();
   }
 
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.error('submission-created: RESEND_API_KEY is not set, beta email not sent');
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  if (!user || !pass) {
+    const missing = [!user && 'SMTP_USER', !pass && 'SMTP_PASS'].filter(Boolean).join(' and ');
+    console.error(`submission-created: ${missing} not set, beta email not sent`);
     return ok();
   }
 
+  const host = process.env.SMTP_HOST || DEFAULT_SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT) || DEFAULT_SMTP_PORT;
   const { subject, text, html } = buildEmail({ name: data.name, device: data.device });
 
   try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: process.env.EMAIL_FROM || DEFAULT_FROM,
-        to: [email],
-        reply_to: REPLY_TO,
-        subject,
-        text,
-        html,
-      }),
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465, // 465 = implicit TLS; 587 would upgrade via STARTTLS
+      auth: { user, pass },
     });
-    if (!res.ok) {
-      const detail = await res.text().catch(() => '');
-      console.error(`submission-created: Resend returned ${res.status}: ${detail}`);
-    }
+    const info = await transporter.sendMail({
+      from: process.env.EMAIL_FROM || `Wanwun <${user}>`,
+      to: email,
+      replyTo: REPLY_TO,
+      subject,
+      text,
+      html,
+    });
+    console.log(`submission-created: beta email sent (${info?.messageId || 'no message id'})`);
   } catch (err) {
-    console.error('submission-created: failed to call Resend', err);
+    // Log only safe fields: nodemailer errors don't include the password,
+    // but avoid dumping the whole object (it can carry the transport config).
+    console.error(
+      `submission-created: SMTP send failed via ${host}:${port}: ${err?.code || ''} ${err?.responseCode || ''} ${err?.message || err}`
+    );
   }
 
   return ok();
