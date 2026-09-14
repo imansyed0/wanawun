@@ -358,6 +358,34 @@ export async function stopAudio(): Promise<void> {
   _onAudioFinish = null;
 }
 
+// Players that live outside this service (e.g. the lesson clip player)
+// register here so pauseAllAudio can reach them too.
+const _pauseAllListeners = new Set<() => void>();
+
+/** Register a callback that pauses a player this service doesn't own. */
+export function onPauseAllAudio(fn: () => void): () => void {
+  _pauseAllListeners.add(fn);
+  return () => {
+    _pauseAllListeners.delete(fn);
+  };
+}
+
+/**
+ * Pause everything that's playing, e.g. before the add-to-glossary sheet or a
+ * word popup opens. Shared playback is stopped and its onFinish callback runs
+ * so screens reset their "playing" state; registered players are paused.
+ */
+export async function pauseAllAudio(): Promise<void> {
+  const finish = _sound ? _onAudioFinish : null;
+  await stopAudio();
+  finish?.();
+  _pauseAllListeners.forEach((fn) => {
+    try {
+      fn();
+    } catch {}
+  });
+}
+
 function createRecorder(): AudioRecorder {
   const audioModule = AudioModuleExports as any;
   if (Platform.OS === 'web') {

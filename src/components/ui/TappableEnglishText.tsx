@@ -19,6 +19,7 @@ import {
   type KashmiriTranslation,
 } from '@/src/lib/englishDictionary';
 import { WordSheet } from '@/src/components/ui/WordSheet';
+import { pauseAllAudio } from '@/src/services/audioService';
 import { useQuickAddStore } from '@/src/stores/quickAddStore';
 import { useTutorialStore } from '@/src/stores/tutorialStore';
 import { knownWordStyle } from '@/src/components/ui/TappableKashmiriText';
@@ -52,6 +53,7 @@ export function TappableEnglishText({ text, style, numberOfLines }: TappableEngl
               onPress={(e) => {
                 // Don't also trigger a pressable card this text sits in.
                 e?.stopPropagation?.();
+                void pauseAllAudio();
                 setSelected(token);
               }}
               suppressHighlighting={false}

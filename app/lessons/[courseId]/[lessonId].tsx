@@ -54,6 +54,7 @@ import {
 import {
   playAudio,
   stopAudio,
+  onPauseAllAudio,
   startRecording as startAudioRecording,
   stopAndUploadRecording,
   linkAudioToWord,
@@ -227,6 +228,23 @@ export default function LessonPlayerScreen() {
       setDuration(0);
     }
   }, []);
+
+  // Pause (don't unload) the clip when something asks all audio to stop, e.g.
+  // the add-to-glossary sheet or a word popup opening, so Play resumes in place.
+  useEffect(
+    () =>
+      onPauseAllAudio(() => {
+        const sound = soundRef.current;
+        if (sound?.isLoaded && sound.playing) {
+          try {
+            sound.pause();
+          } catch {}
+        }
+        setIsPlaying(false);
+        setVocabPlayingId(null);
+      }),
+    []
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -1101,7 +1119,7 @@ export default function LessonPlayerScreen() {
               <Text
                 style={[styles.tabButtonText, activeTab === 'content' && styles.tabButtonTextActive]}
               >
-                Lesson Content
+                Lesson
               </Text>
             </Pressable>
             <Pressable
@@ -1111,7 +1129,7 @@ export default function LessonPlayerScreen() {
               <Text
                 style={[styles.tabButtonText, activeTab === 'vocab' && styles.tabButtonTextActive]}
               >
-                Add Words & Phrases ({vocab.length})
+                Words ({vocab.length})
               </Text>
             </Pressable>
           </View>
@@ -1970,18 +1988,18 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     backgroundColor: '#DDE5E1',
     borderRadius: BorderRadius.lg,
-    padding: 3,
-    gap: 4,
+    padding: 2,
+    gap: 2,
     borderWidth: 1,
     borderColor: '#C4D3CC',
-    marginTop: 6,
+    marginTop: 4,
     marginBottom: 2,
   },
   tabButton: {
     flex: 1,
-    minHeight: 44,
+    minHeight: 30,
     borderRadius: BorderRadius.md,
-    paddingVertical: 7,
+    paddingVertical: 3,
     paddingHorizontal: Spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',

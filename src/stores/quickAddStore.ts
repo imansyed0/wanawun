@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { pauseAllAudio } from '@/src/services/audioService';
 import type { WordEntry } from '@/src/types';
 
 /**
@@ -26,7 +27,11 @@ export const useQuickAddStore = create<QuickAddState>((set) => ({
   isOpen: false,
   lastAdded: null,
   prefill: null,
-  open: (prefill) => set({ isOpen: true, prefill: prefill ?? null }),
+  open: (prefill) => {
+    // Don't let a lesson clip or pronunciation talk over typing or recording.
+    void pauseAllAudio();
+    set({ isOpen: true, prefill: prefill ?? null });
+  },
   close: () => set({ isOpen: false, prefill: null }),
   wordAdded: (word, keepOpen = false) =>
     set(keepOpen ? { lastAdded: word } : { isOpen: false, lastAdded: word, prefill: null }),
