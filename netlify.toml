@@ -15,6 +15,19 @@
 # wanawun.com is attached to this Netlify site as a domain alias. Paths and
 # query strings carry over, so https://wanawun.com/privacy.html lands on
 # https://wanwun.org/privacy.html.
+# QR code at community gatherings points at https://wanwun.org/join
+# (WAN-49). The page lives at site/join/index.html; these send the short
+# and capitalised forms straight there in one hop.
+[[redirects]]
+  from = "/join"
+  to = "/join/"
+  status = 301
+
+[[redirects]]
+  from = "/Join"
+  to = "/join/"
+  status = 301
+
 [[redirects]]
   from = "https://wanawun.com/*"
   to = "https://wanwun.org/:splat"
