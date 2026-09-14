@@ -185,7 +185,7 @@ export function EnglishWordSheet({ token, onClose }: EnglishWordSheetProps) {
       ))}
 
       <Text style={styles.attribution}>
-        From S. Hassan, Kashmiri-English Dictionary (DSAL, University of Chicago)
+        From the Kaeshir Database (Izan Majeed) and S. Hassan, Kashmiri-English Dictionary (DSAL, University of Chicago)
       </Text>
     </WordSheet>
   );
@@ -218,9 +218,10 @@ function TranslationRow({
         <Text style={isArabic ? styles.kashmiriArabic : styles.kashmiriRoman}>
           {translation.kashmiri}
         </Text>
-        <Text style={styles.meta}>
-          {[translation.partOfSpeech, isArabic ? 'Kashmiri script' : 'romanised'].filter(Boolean).join(' · ')}
-        </Text>
+        {translation.scriptText ? (
+          <Text style={styles.kashmiriScriptSecondary}>{translation.scriptText}</Text>
+        ) : null}
+        {translation.partOfSpeech ? <Text style={styles.meta}>{translation.partOfSpeech}</Text> : null}
         {onPlay && audioState === 'error' ? (
           <Text style={styles.audioError}>Audio couldn't be loaded.</Text>
         ) : null}
@@ -280,6 +281,14 @@ const styles = StyleSheet.create({
     lineHeight: LineHeight.kashmiri(FontSize.xl),
     fontFamily: FontFamily.kashmiri,
     color: Colors.primaryDark,
+    writingDirection: 'rtl',
+    textAlign: 'left',
+  },
+  kashmiriScriptSecondary: {
+    fontSize: FontSize.md,
+    lineHeight: LineHeight.kashmiri(FontSize.md),
+    fontFamily: FontFamily.kashmiriRegular,
+    color: Colors.textSecondary,
     writingDirection: 'rtl',
     textAlign: 'left',
   },

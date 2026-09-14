@@ -3,9 +3,17 @@
 // tappable. Source: https://github.com/mzmmoazam/kashmiri_dataset
 //
 //   git clone --depth 1 https://github.com/mzmmoazam/kashmiri_dataset /tmp/kashmiri_dataset
-//   node scripts/buildEnglishDictionary.js --dataset /tmp/kashmiri_dataset [--all] [--with-zabaan]
+//   curl -sL -o /tmp/kaeshir-collected-words.json \
+//     https://raw.githubusercontent.com/izan-majeed/Kaeshir-Database/main/kashmiri/data/collected-words.json
+//   node scripts/buildEnglishDictionary.js --dataset /tmp/kashmiri_dataset \
+//     --kaeshir /tmp/kaeshir-collected-words.json [--all] [--with-zabaan]
 //
-// Inputs (csv_files/):
+// Kaeshir Database (github.com/izan-majeed/Kaeshir-Database, MIT) is the main
+// source: English headwords with romanised Kashmiri and Perso-Arabic script.
+// When a Kaeshir spelling matches a Hassan headword for the same English word,
+// the two are merged so the entry also plays the DSAL recording.
+//
+// Inputs (kashmiri_dataset csv_files/):
 //  - S_Hassan_dictionary.csv  Sheeba Hassan's Kashmiri-English dictionary
 //    (DSAL, U. Chicago). Romanised headword, comma-separated English glosses,
 //    and a DSAL audio id per row (…/hassan/audio//00002.mp3 -> "00002").
@@ -48,6 +56,27 @@ const ZABAAN_POS = {
   Prep: 'prep.', Pron: 'pron.', Det: 'det.', Conj: 'conj.', Art: 'art.',
   Part: 'part.', Interj: 'interj.', 'Rel Pron': 'pron.',
 };
+
+const KAESHIR_POS = {
+  noun: 'n.', 'plural noun': 'n.', adjective: 'adj.', adj: 'adj.', verb: 'v.',
+  'auxiliary verb': 'v.', adverb: 'adv.', 'adverb or adjective': 'adv.',
+  pronoun: 'pron.', 'plural pronoun': 'pron.', preposition: 'prep.', conjunction: 'conj.',
+};
+
+// Loose spelling key for spotting the same Kashmiri word across
+// romanisations, e.g. Hassan "asbāb" and Kaeshir "Asba:b".
+function foldRoman(word) {
+  return word
+    .normalize('NFD')
+    .toLowerCase()
+    .replace(/ʦ/g, 'ts')
+    .replace(/ʰ/g, 'h')
+    .replace(/ə/g, 'a')
+    .replace(/[ɨι]/g, 'i')
+    .replace(/\p{M}/gu, '')
+    .replace(/[^a-z]/g, '')
+    .replace(/(.)\1+/g, '$1');
+}
 
 function arg(name) {
   const i = process.argv.indexOf(name);
@@ -220,6 +249,29 @@ function loadZabaan(dataset) {
   return { rows: rows.length, keyed: out };
 }
 
+// Kaeshir Database kashmiri/data/collected-words.json: one English headword
+// per row, romanised Kashmiri ("Cha:la:k, La:iki-ka:r") and Perso-Arabic script.
+function loadKaeshir(file) {
+  const rows = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const out = [];
+  for (const row of rows) {
+    const key = cleanGloss(row.title ?? '');
+    const roman = (row.englishMeaning ?? '').replace(/\s+/g, ' ').trim();
+    const arabic = (row.kashmiriMeaning ?? '')
+      .replace(/\s*[،,]\s*/g, '، ')
+      .replace(/^[\s،]+|[\s،]+$/g, '')
+      .trim();
+    if (!roman || roman === '-' || !isUsableKey(key)) continue;
+    const posName = (row.pos ?? '').split(',').slice(1).join(',').trim().toLowerCase();
+    out.push({
+      key,
+      entry: { roman, arabic: arabic === '-' ? '' : arabic, pos: KAESHIR_POS[posName] ?? posName, audioId: '' },
+      score: 3.5,
+    });
+  }
+  return { rows: rows.length, keyed: out };
+}
+
 // --- Lesson English text ----------------------------------------------------
 
 function lessonTexts() {
@@ -253,19 +305,42 @@ function main() {
     process.exit(1);
   }
 
-  // DSAL (Hassan) entries only: each has a romanised headword and a recording.
-  // kashmirizabaan.com rows are Perso-Arabic script only with no audio, so they
-  // aren't included in the popup; pass --with-zabaan to add them back.
+  // Kaeshir rows (romanised + script) first, then DSAL (Hassan) entries, which
+  // are romanised with a recording. kashmirizabaan.com rows are script only
+  // with no audio, so they're left out unless --with-zabaan is passed.
+  const kaeshirFile = arg('--kaeshir') ?? process.env.KAESHIR_WORDS_FILE;
+  if (!kaeshirFile) console.warn('No --kaeshir file given: building from DSAL (Hassan) entries only.');
+  const kaeshir = kaeshirFile ? loadKaeshir(kaeshirFile) : { rows: 0, keyed: [] };
   const hassan = loadHassan(dataset);
   const zabaan = process.argv.includes('--with-zabaan') ? loadZabaan(dataset) : { rows: 0, keyed: [] };
   const byKey = new Map();
-  for (const item of [...hassan.keyed, ...zabaan.keyed]) {
+  for (const item of [...kaeshir.keyed, ...hassan.keyed, ...zabaan.keyed]) {
     if (!byKey.has(item.key)) byKey.set(item.key, []);
     byKey.get(item.key).push(item);
   }
+  let mergedAudio = 0;
   for (const [key, items] of byKey) {
+    // A Kaeshir row that spells the same word as a Hassan headword takes over
+    // its recording, and the separate Hassan entry is dropped.
+    const recorded = items.filter(({ entry }) => entry.audioId);
+    const absorbed = new Set();
+    const merged = items.map((item) => {
+      if (item.entry.audioId || !item.entry.arabic || !item.entry.roman) return item;
+      const variants = new Set(
+        item.entry.roman
+          .split(',')
+          .map((v) => foldRoman(v.replace(/\(.*?\)/g, '')))
+          .filter(Boolean)
+      );
+      const match = recorded.find((r) => !absorbed.has(r) && variants.has(foldRoman(r.entry.roman)));
+      if (!match) return item;
+      absorbed.add(match);
+      mergedAudio += 1;
+      return { ...item, entry: { ...item.entry, audioId: match.entry.audioId } };
+    });
     const seen = new Set();
-    const ranked = items
+    const ranked = merged
+      .filter((item) => !absorbed.has(item))
       .sort((a, b) => b.score - a.score)
       .filter(({ entry }) => {
         const id = entry.roman || entry.arabic;
@@ -321,9 +396,12 @@ function main() {
   }
 
   const output = {
-    source: zabaan.keyed.length
-      ? 'https://github.com/mzmmoazam/kashmiri_dataset (csv_files/S_Hassan_dictionary.csv, csv_files/kashmiri_zabaan.csv)'
-      : 'https://github.com/mzmmoazam/kashmiri_dataset (csv_files/S_Hassan_dictionary.csv)',
+    source: [
+      kaeshir.keyed.length && 'https://github.com/izan-majeed/Kaeshir-Database (kashmiri/data/collected-words.json)',
+      `https://github.com/mzmmoazam/kashmiri_dataset (csv_files/S_Hassan_dictionary.csv${zabaan.keyed.length ? ', csv_files/kashmiri_zabaan.csv' : ''})`,
+    ]
+      .filter(Boolean)
+      .join('; '),
     generatedBy: 'scripts/buildEnglishDictionary.js',
     maxPhraseWords: MAX_PHRASE_WORDS,
     stopwords: STOPWORDS,
@@ -333,6 +411,7 @@ function main() {
   };
   fs.writeFileSync(OUT_PATH, `${JSON.stringify(output)}\n`);
 
+  console.log(`Kaeshir rows: ${kaeshir.rows} (${kaeshir.keyed.length} usable, ${mergedAudio} merged with a DSAL recording)`);
   console.log(`Hassan rows: ${hassan.rows} (${hassan.keyed.length} English glosses)`);
   console.log(`Zabaan rows: ${zabaan.rows} (${zabaan.keyed.length} usable)`);
   console.log(`English keys available: ${byKey.size} (${[...byKey.keys()].filter((k) => k.includes(' ')).length} multi-word)`);
