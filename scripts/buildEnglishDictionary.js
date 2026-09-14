@@ -3,7 +3,7 @@
 // tappable. Source: https://github.com/mzmmoazam/kashmiri_dataset
 //
 //   git clone --depth 1 https://github.com/mzmmoazam/kashmiri_dataset /tmp/kashmiri_dataset
-//   node scripts/buildEnglishDictionary.js --dataset /tmp/kashmiri_dataset [--all]
+//   node scripts/buildEnglishDictionary.js --dataset /tmp/kashmiri_dataset [--all] [--with-zabaan]
 //
 // Inputs (csv_files/):
 //  - S_Hassan_dictionary.csv  Sheeba Hassan's Kashmiri-English dictionary
@@ -253,8 +253,11 @@ function main() {
     process.exit(1);
   }
 
+  // DSAL (Hassan) entries only: each has a romanised headword and a recording.
+  // kashmirizabaan.com rows are Perso-Arabic script only with no audio, so they
+  // aren't included in the popup; pass --with-zabaan to add them back.
   const hassan = loadHassan(dataset);
-  const zabaan = loadZabaan(dataset);
+  const zabaan = process.argv.includes('--with-zabaan') ? loadZabaan(dataset) : { rows: 0, keyed: [] };
   const byKey = new Map();
   for (const item of [...hassan.keyed, ...zabaan.keyed]) {
     if (!byKey.has(item.key)) byKey.set(item.key, []);
@@ -318,7 +321,9 @@ function main() {
   }
 
   const output = {
-    source: 'https://github.com/mzmmoazam/kashmiri_dataset (csv_files/S_Hassan_dictionary.csv, csv_files/kashmiri_zabaan.csv)',
+    source: zabaan.keyed.length
+      ? 'https://github.com/mzmmoazam/kashmiri_dataset (csv_files/S_Hassan_dictionary.csv, csv_files/kashmiri_zabaan.csv)'
+      : 'https://github.com/mzmmoazam/kashmiri_dataset (csv_files/S_Hassan_dictionary.csv)',
     generatedBy: 'scripts/buildEnglishDictionary.js',
     maxPhraseWords: MAX_PHRASE_WORDS,
     stopwords: STOPWORDS,

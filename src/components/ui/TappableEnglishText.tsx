@@ -185,7 +185,7 @@ export function EnglishWordSheet({ token, onClose }: EnglishWordSheetProps) {
       ))}
 
       <Text style={styles.attribution}>
-        From kashmiri_dataset: S. Hassan, Kashmiri-English Dictionary (DSAL) and kashmirizabaan.com
+        From S. Hassan, Kashmiri-English Dictionary (DSAL, University of Chicago)
       </Text>
     </WordSheet>
   );
