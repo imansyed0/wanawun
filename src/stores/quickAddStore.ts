@@ -34,6 +34,9 @@ interface QuickAddState {
   wordAdded: (word: WordEntry, keepOpen?: boolean) => void;
   setLessonContext: (context: QuickAddLessonContext | null) => void;
   lessonVocabAdded: (entry: LessonVocabEntry) => void;
+  /** Bumped when someone presses play, so the + button can glow as a reminder. */
+  playNudge: number;
+  nudgeAddButton: () => void;
 }
 
 export const useQuickAddStore = create<QuickAddState>((set) => ({
@@ -44,6 +47,8 @@ export const useQuickAddStore = create<QuickAddState>((set) => ({
   lastAddedLessonVocab: null,
   setLessonContext: (lessonContext) => set({ lessonContext }),
   lessonVocabAdded: (entry) => set({ lastAddedLessonVocab: entry }),
+  playNudge: 0,
+  nudgeAddButton: () => set((s) => ({ playNudge: s.playNudge + 1 })),
   open: (prefill) => {
     // Don't let a lesson clip or pronunciation talk over typing or recording.
     void pauseAllAudio();
