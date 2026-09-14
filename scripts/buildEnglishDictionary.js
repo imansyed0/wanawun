@@ -340,7 +340,8 @@ function main() {
     });
     const seen = new Set();
     const ranked = merged
-      .filter((item) => !absorbed.has(item))
+      // Only romanised entries are shown; Perso-Arabic script never is.
+      .filter((item) => !absorbed.has(item) && item.entry.roman)
       .sort((a, b) => b.score - a.score)
       .filter(({ entry }) => {
         const id = entry.roman || entry.arabic;
@@ -349,7 +350,8 @@ function main() {
         return true;
       })
       .slice(0, MAX_TRANSLATIONS);
-    byKey.set(key, ranked);
+    if (ranked.length) byKey.set(key, ranked);
+    else byKey.delete(key);
   }
 
   // Coverage over lesson translations, and the set of keys lessons use.
@@ -386,10 +388,10 @@ function main() {
   const index = {};
   for (const key of keys) {
     index[key] = byKey.get(key).map(({ entry }) => {
-      const id = `${entry.roman}|${entry.arabic}|${entry.pos}|${entry.audioId}`;
+      const id = `${entry.roman}|${entry.pos}|${entry.audioId}`;
       if (!entryIds.has(id)) {
         entryIds.set(id, entries.length);
-        entries.push([entry.roman, entry.arabic, entry.pos, entry.audioId]);
+        entries.push([entry.roman, entry.pos, entry.audioId]);
       }
       return entryIds.get(id);
     });
@@ -405,7 +407,7 @@ function main() {
     generatedBy: 'scripts/buildEnglishDictionary.js',
     maxPhraseWords: MAX_PHRASE_WORDS,
     stopwords: STOPWORDS,
-    // [romanised Kashmiri, Perso-Arabic Kashmiri, part of speech, DSAL audio id]
+    // [romanised Kashmiri, part of speech, DSAL audio id ('' when none)]
     entries,
     index,
   };

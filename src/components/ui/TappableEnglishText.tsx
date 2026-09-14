@@ -200,7 +200,6 @@ function TranslationRow({
   audioState: AudioState;
   onPlay?: () => void;
 }) {
-  const isArabic = translation.script === 'arabic';
   const label =
     audioState === 'loading'
       ? 'Loading'
@@ -215,17 +214,11 @@ function TranslationRow({
   return (
     <View style={styles.row}>
       <View style={{ flex: 1 }}>
-        <Text style={isArabic ? styles.kashmiriArabic : styles.kashmiriRoman}>
-          {translation.kashmiri}
-        </Text>
-        {translation.scriptText ? (
-          <Text style={styles.kashmiriScriptSecondary}>{translation.scriptText}</Text>
-        ) : null}
+        <Text style={styles.kashmiriRoman}>{translation.kashmiri}</Text>
         {translation.partOfSpeech ? <Text style={styles.meta}>{translation.partOfSpeech}</Text> : null}
         {onPlay && audioState === 'error' ? (
           <Text style={styles.audioError}>Audio couldn't be loaded.</Text>
         ) : null}
-        {!onPlay ? <Text style={styles.noAudio}>No recording for this entry</Text> : null}
       </View>
       {onPlay ? (
         <Pressable
@@ -275,27 +268,6 @@ const styles = StyleSheet.create({
     lineHeight: LineHeight.body(FontSize.lg),
     fontFamily: FontFamily.bodySemi,
     color: Colors.primaryDark,
-  },
-  kashmiriArabic: {
-    fontSize: FontSize.xl,
-    lineHeight: LineHeight.kashmiri(FontSize.xl),
-    fontFamily: FontFamily.kashmiri,
-    color: Colors.primaryDark,
-    writingDirection: 'rtl',
-    textAlign: 'left',
-  },
-  kashmiriScriptSecondary: {
-    fontSize: FontSize.md,
-    lineHeight: LineHeight.kashmiri(FontSize.md),
-    fontFamily: FontFamily.kashmiriRegular,
-    color: Colors.textSecondary,
-    writingDirection: 'rtl',
-    textAlign: 'left',
-  },
-  noAudio: {
-    fontSize: FontSize.xs,
-    color: Colors.textLight,
-    marginTop: 2,
   },
   audioError: {
     fontSize: FontSize.xs,
