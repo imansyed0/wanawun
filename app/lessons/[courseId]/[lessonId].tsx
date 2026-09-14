@@ -36,6 +36,7 @@ import {
   type KoulSectionKey,
 } from '@/src/data/koulContent';
 import { ExternalLink } from '@/components/ExternalLink';
+import { TappableKashmiriText } from '@/src/components/ui/TappableKashmiriText';
 import { useAuth } from '@/src/hooks/useAuth';
 import {
   getLessonVocab,
@@ -1165,24 +1166,47 @@ export default function LessonPlayerScreen() {
                               const right = parts.slice(1).join(' - ').trim();
                               return (
                                 <View key={item} style={styles.contextTableRow}>
-                                  <Text style={styles.contextTableKashmiri}>{left}</Text>
+                                  <TappableKashmiriText
+                                    text={left}
+                                    style={styles.contextTableKashmiri}
+                                  />
                                   <Text style={styles.contextTableEnglish}>{right}</Text>
                                 </View>
                               );
                             })}
                           </View>
                         ) : isDialogue ? (
-                          section.items.map((item, idx) => (
-                            <View key={`${section.title}-${idx}`} style={styles.contextDialogueLine}>
-                              <Text style={styles.contextDialogueText}>{item}</Text>
-                            </View>
-                          ))
+                          section.items.map((item, idx) => {
+                            // Some dialogues pair Kashmiri with a translation:
+                            // "A: tati kyuth mosam chu ? - How about the climate?"
+                            const [kashmiriPart, ...englishParts] = item.split(' - ');
+                            return (
+                              <View key={`${section.title}-${idx}`} style={styles.contextDialogueLine}>
+                                {englishParts.length > 0 ? (
+                                  <>
+                                    <TappableKashmiriText
+                                      text={kashmiriPart}
+                                      style={styles.contextDialogueText}
+                                    />
+                                    <Text style={styles.contextDialogueText}>
+                                      {englishParts.join(' - ')}
+                                    </Text>
+                                  </>
+                                ) : (
+                                  <Text style={styles.contextDialogueText}>{item}</Text>
+                                )}
+                              </View>
+                            );
+                          })
                         ) : isNumbered ? (
                           // Render as numbered list
                           section.items.map((item, idx) => (
                             <View key={`${section.title}-${idx}`} style={styles.contextNumberedRow}>
                               <Text style={styles.contextNumber}>{idx + 1}.</Text>
-                              <Text style={styles.contextNumberedText}>{item}</Text>
+                              <TappableKashmiriText
+                                text={item}
+                                style={styles.contextNumberedText}
+                              />
                             </View>
                           ))
                         ) : (
