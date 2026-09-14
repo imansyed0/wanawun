@@ -208,7 +208,7 @@ export function QuickAddGlossarySheet() {
           ) : null}
           <Card style={styles.card}>
             <View style={styles.header}>
-              <Text style={styles.title}>Add To Glossary</Text>
+              <Text style={styles.title}>Add a word to glossary</Text>
               <Pressable
                 style={styles.closeButton}
                 onPress={close}
@@ -219,7 +219,9 @@ export function QuickAddGlossarySheet() {
               </Pressable>
             </View>
             <TextInput
-              style={[styles.input, styles.inputKashmiri]}
+              // Amiri only once there's Kashmiri typed, so the placeholder
+              // matches the English field.
+              style={[styles.input, kashmiri ? styles.inputKashmiri : null]}
               placeholder="Kashmiri"
               placeholderTextColor={Colors.textLight}
               value={kashmiri}
@@ -241,55 +243,70 @@ export function QuickAddGlossarySheet() {
               }}
             />
             {user ? (
-              <View style={styles.recordRow}>
+              recordingState === 'recorded' ? (
+                <View style={styles.recordField}>
+                  <View style={[styles.recordDot, styles.recordDotDone]} />
+                  <Text style={styles.recordLabel}>Pronunciation recorded</Text>
+                  <View style={styles.recordActions}>
+                    <Pressable
+                      onPress={handlePlayRecording}
+                      disabled={adding}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.recordAction}>{isPlayingRecording ? 'Stop' : 'Play'}</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={handleRecordPress}
+                      disabled={adding}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel="Record again"
+                    >
+                      <Text style={styles.recordAction}>Redo</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={discardRecording}
+                      disabled={adding}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel="Remove recording"
+                    >
+                      <Text style={[styles.recordAction, styles.recordActionMuted]}>Remove</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
                 <Pressable
                   style={[
-                    styles.recordButton,
-                    recordingState === 'recording' && styles.recordButtonActive,
+                    styles.recordField,
+                    recordingState === 'recording' && styles.recordFieldActive,
                   ]}
                   onPress={handleRecordPress}
                   disabled={adding}
                   accessibilityRole="button"
                 >
+                  <View
+                    style={[
+                      styles.recordDot,
+                      recordingState === 'recording' && styles.recordDotActive,
+                    ]}
+                  />
                   <Text
                     style={[
-                      styles.recordButtonText,
-                      recordingState === 'recording' && styles.recordButtonTextActive,
+                      styles.recordLabel,
+                      recordingState === 'idle' && styles.recordLabelIdle,
                     ]}
                   >
                     {recordingState === 'recording'
-                      ? '■  Stop recording'
-                      : recordingState === 'recorded'
-                        ? '●  Re-record'
-                        : '●  Record pronunciation (optional)'}
+                      ? 'Recording… tap to stop'
+                      : 'Record pronunciation'}
                   </Text>
+                  {recordingState === 'idle' ? (
+                    <Text style={styles.recordOptional}>optional</Text>
+                  ) : null}
                 </Pressable>
-                {recordingState === 'recorded' ? (
-                  <>
-                    <Pressable
-                      style={styles.recordSecondary}
-                      onPress={handlePlayRecording}
-                      disabled={adding}
-                      accessibilityRole="button"
-                    >
-                      <Text style={styles.recordSecondaryText}>
-                        {isPlayingRecording ? '■  Stop' : '▶  Play'}
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      style={styles.recordSecondary}
-                      onPress={discardRecording}
-                      disabled={adding}
-                      accessibilityRole="button"
-                    >
-                      <Text style={styles.recordSecondaryText}>Remove</Text>
-                    </Pressable>
-                  </>
-                ) : null}
-              </View>
-            ) : null}
-            {recordingState === 'recording' ? (
-              <Text style={styles.recordingHint}>Recording… say the word, then tap Stop.</Text>
+              )
             ) : null}
             {recordingError ? <Text style={styles.error}>{recordingError}</Text> : null}
             <Pressable
@@ -377,7 +394,7 @@ const styles = StyleSheet.create({
   input: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    minHeight: 48,
+    minHeight: 56,
     backgroundColor: Colors.surfaceLight,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
@@ -390,7 +407,6 @@ const styles = StyleSheet.create({
     // or the vowel diacritics get clipped.
     fontFamily: FontFamily.kashmiriRegular,
     fontSize: FontSize.lg,
-    minHeight: 56,
   },
   addButton: {
     minHeight: 44,
@@ -422,50 +438,60 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bodyBold,
     textDecorationLine: 'underline',
   },
-  recordRow: {
+  // The recorder reads as a third field: same height, fill, border and type
+  // as the inputs above it.
+  recordField: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: Spacing.sm,
-  },
-  recordButton: {
-    flexGrow: 1,
-    minHeight: 44,
+    minHeight: 56,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.surfaceLight,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.border,
-    backgroundColor: Colors.surfaceLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.md,
   },
-  recordButtonActive: {
-    backgroundColor: Colors.wrong,
+  recordFieldActive: {
     borderColor: Colors.wrong,
   },
-  recordButtonText: {
+  recordDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.wrong,
+    opacity: 0.5,
+  },
+  recordDotActive: {
+    opacity: 1,
+  },
+  recordDotDone: {
+    backgroundColor: Colors.correct,
+    opacity: 1,
+  },
+  recordLabel: {
+    flex: 1,
+    fontSize: FontSize.md,
+    fontFamily: FontFamily.body,
+    color: Colors.text,
+  },
+  recordLabelIdle: {
+    color: Colors.textLight,
+  },
+  recordOptional: {
+    fontSize: FontSize.sm,
+    fontFamily: FontFamily.body,
+    color: Colors.textLight,
+  },
+  recordActions: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  recordAction: {
     fontSize: FontSize.sm,
     fontFamily: FontFamily.bodySemi,
     color: Colors.primaryDark,
   },
-  recordButtonTextActive: {
-    color: '#fff',
-  },
-  recordSecondary: {
-    minHeight: 44,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.md,
-  },
-  recordSecondaryText: {
-    fontSize: FontSize.sm,
-    fontFamily: FontFamily.bodySemi,
-    color: Colors.textSecondary,
-  },
-  recordingHint: {
-    fontSize: FontSize.xs,
+  recordActionMuted: {
     color: Colors.textSecondary,
   },
   closeButton: {
