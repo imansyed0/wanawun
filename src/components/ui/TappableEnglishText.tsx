@@ -19,6 +19,8 @@ import {
   type KashmiriTranslation,
 } from '@/src/lib/englishDictionary';
 import { WordSheet } from '@/src/components/ui/WordSheet';
+import { useQuickAddStore } from '@/src/stores/quickAddStore';
+import { useTutorialStore } from '@/src/stores/tutorialStore';
 import { knownWordStyle } from '@/src/components/ui/TappableKashmiriText';
 
 export interface TappableEnglishTextProps {
@@ -28,19 +30,23 @@ export interface TappableEnglishTextProps {
 }
 
 /**
- * English lesson translation where words (and multi-word phrases) found in the
- * English → Kashmiri dictionary get a dotted underline and open a sheet with
- * the Kashmiri translation and pronunciation. Unmatched words stay plain text.
+ * English lesson translation. Words and phrases found in the English → Kashmiri
+ * dictionary get a dotted underline and open a sheet with the Kashmiri
+ * translation and pronunciation. Every other word can be tapped too: it opens
+ * the add-to-glossary sheet with that English word filled in.
  */
 export function TappableEnglishText({ text, style, numberOfLines }: TappableEnglishTextProps) {
   const tokens = useMemo(() => tokenizeEnglish(text), [text]);
+  const firstWordIdx = useMemo(() => tokens.findIndex((t) => t.isWord), [tokens]);
   const [selected, setSelected] = useState<TextToken<EnglishMatch> | null>(null);
 
   return (
     <>
       <Text style={style} numberOfLines={numberOfLines}>
-        {tokens.map((token, idx) =>
-          token.entry ? (
+        {tokens.map((token, idx) => {
+          if (!token.isWord) return token.text;
+          const english = glossaryEnglish(token.text, idx === firstWordIdx);
+          return token.entry ? (
             <Text
               key={`${idx}-${token.text}`}
               onPress={(e) => {
@@ -49,8 +55,8 @@ export function TappableEnglishText({ text, style, numberOfLines }: TappableEngl
                 setSelected(token);
               }}
               suppressHighlighting={false}
-              // "link", not "button": these words sit inside pressable lesson
-              // cards, and a button can't contain another button.
+              // "link", not "button": these words can sit inside pressable
+              // lesson cards, and a button can't contain another button.
               accessibilityRole="link"
               accessibilityHint="Shows the Kashmiri translation"
               style={knownWordStyle}
@@ -58,15 +64,52 @@ export function TappableEnglishText({ text, style, numberOfLines }: TappableEngl
               {token.text}
             </Text>
           ) : (
-            token.text
-          )
-        )}
+            <Text
+              key={`${idx}-${token.text}`}
+              onPress={(e) => {
+                e?.stopPropagation?.();
+                openAddWord(english);
+              }}
+              suppressHighlighting={false}
+              accessibilityHint={`Adds "${english}" to your glossary`}
+            >
+              {token.text}
+            </Text>
+          );
+        })}
       </Text>
       {selected ? (
-        <EnglishWordSheet token={selected} onClose={() => setSelected(null)} />
+        <EnglishWordSheet
+          token={selected}
+          onClose={() => setSelected(null)}
+          onAddToGlossary={() => {
+            const english = glossaryEnglish(selected.text, tokens.indexOf(selected) === firstWordIdx);
+            setSelected(null);
+            // Let the translation sheet finish closing first; iOS won't present
+            // a second modal while the first is still being dismissed.
+            setTimeout(() => openAddWord(english), 350);
+          }}
+        />
       ) : null}
     </>
   );
+}
+
+/**
+ * The English to put in the glossary for a tapped word: trimmed of edge
+ * punctuation, and lowercased when it's only capitalised for starting the line.
+ */
+function glossaryEnglish(raw: string, isFirstWord: boolean): string {
+  const word = raw.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+  const onlyInitialCap = /^\p{Lu}[^\p{Lu}]*$/u.test(word);
+  return isFirstWord && onlyInitialCap && word !== 'I'
+    ? word.charAt(0).toLowerCase() + word.slice(1)
+    : word;
+}
+
+function openAddWord(english: string) {
+  useQuickAddStore.getState().open({ english, kashmiri: '' });
+  useTutorialStore.getState().notify('addModalOpened');
 }
 
 type AudioState = 'idle' | 'loading' | 'playing' | 'done' | 'error';
@@ -162,9 +205,11 @@ function useSheetAudio() {
 interface EnglishWordSheetProps {
   token: TextToken<EnglishMatch>;
   onClose: () => void;
+  /** Shows an "Add to glossary" button that hands the word to the add sheet. */
+  onAddToGlossary?: () => void;
 }
 
-export function EnglishWordSheet({ token, onClose }: EnglishWordSheetProps) {
+export function EnglishWordSheet({ token, onClose, onAddToGlossary }: EnglishWordSheetProps) {
   const audio = useSheetAudio();
   const match = token.entry;
 
@@ -189,6 +234,19 @@ export function EnglishWordSheet({ token, onClose }: EnglishWordSheetProps) {
           onPlay={t.audioId ? () => void audio.play(t.audioId!) : undefined}
         />
       ))}
+
+      {onAddToGlossary ? (
+        <Pressable
+          onPress={() => {
+            audio.stop();
+            onAddToGlossary();
+          }}
+          style={styles.addBtn}
+          accessibilityRole="button"
+        >
+          <Text style={styles.addBtnText}>+ Add to glossary</Text>
+        </Pressable>
+      ) : null}
 
       <Text style={styles.attribution}>
         From the Kaeshir Database (Izan Majeed) and S. Hassan, Kashmiri-English Dictionary (DSAL, University of Chicago)
@@ -295,6 +353,16 @@ const styles = StyleSheet.create({
   playIcon: { fontSize: FontSize.md, color: Colors.primary },
   playIconActive: { color: '#fff' },
   playLabel: { fontSize: FontSize.sm, fontFamily: FontFamily.bodySemi, color: Colors.primaryDark },
+  addBtn: {
+    marginTop: Spacing.md,
+    minHeight: 48,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.md,
+  },
+  addBtnText: { fontSize: FontSize.md, fontFamily: FontFamily.bodyBold, color: '#fff' },
   attribution: {
     marginTop: Spacing.md,
     fontSize: FontSize.xs,
