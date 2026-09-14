@@ -20,8 +20,9 @@ interface ComingSoonModalProps {
   visible: boolean;
   onClose: () => void;
   featureKey: FeatureKey;
-  featureName: string;
+  title: string;
   description: string;
+  placeholder?: string;
 }
 
 /**
@@ -32,8 +33,9 @@ export function ComingSoonModal({
   visible,
   onClose,
   featureKey,
-  featureName,
+  title,
   description,
+  placeholder = 'Share any ideas you have…',
 }: ComingSoonModalProps) {
   const [feedback, setFeedback] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -96,22 +98,22 @@ export function ComingSoonModal({
               </Pressable>
             </View>
 
-            <Text style={styles.title}>{featureName} is coming soon</Text>
+            <Text style={styles.title}>{title}</Text>
             <Text style={styles.body}>{description}</Text>
 
             {submitted ? (
               <>
                 <Text style={styles.thanks}>
-                  Thank you! Your ideas will help shape {featureName}.
+                  Thank you! Your ideas will help shape what we build.
                 </Text>
                 <Button title="Done" onPress={onClose} />
               </>
             ) : (
               <>
-                <Text style={styles.label}>How would you like this to work?</Text>
+                <Text style={styles.label}>Your ideas</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="e.g. who you'd play against, how long a match lasts, what you'd win…"
+                  placeholder={placeholder}
                   placeholderTextColor={Colors.textLight}
                   value={feedback}
                   onChangeText={setFeedback}

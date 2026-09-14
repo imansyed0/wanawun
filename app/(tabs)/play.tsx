@@ -9,11 +9,11 @@ import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/const
 import { logFeatureTap } from '@/src/services/featureInterestService';
 
 export default function HomeScreen() {
-  const [isClashModalOpen, setIsClashModalOpen] = useState(false);
+  const [isGamesModalOpen, setIsGamesModalOpen] = useState(false);
 
-  function openClash() {
-    logFeatureTap('koshur_clash');
-    setIsClashModalOpen(true);
+  function openGames() {
+    logFeatureTap('games');
+    setIsGamesModalOpen(true);
   }
 
   return (
@@ -56,18 +56,18 @@ export default function HomeScreen() {
               <Text style={styles.statPillText}>2 players</Text>
             </View>
           </View>
-          {/* Fake door (WAN-48): Koshur Clash isn't ready yet, so instead of
-              routing to /game/lobby we log the tap and ask how it should work. */}
-          <Button title="Play Now" onPress={openClash} size="lg" />
+          {/* Fake door (WAN-48): games aren't ready yet, so instead of routing
+              to /game/lobby we log the tap and ask what people want from games. */}
+          <Button title="Play Now" onPress={openGames} size="lg" />
         </Card>
       </ScrollView>
 
       <ComingSoonModal
-        visible={isClashModalOpen}
-        onClose={() => setIsClashModalOpen(false)}
-        featureKey="koshur_clash"
-        featureName="Koshur Clash"
-        description="We're still building head-to-head word battles. Tell us what you'd want from it and we'll use your ideas to shape the game."
+        visible={isGamesModalOpen}
+        onClose={() => setIsGamesModalOpen(false)}
+        featureKey="games"
+        title="Games are coming soon"
+        description="We're still building games. Tell us what you want from a game section or any ideas you have."
       />
     </SafeAreaView>
   );

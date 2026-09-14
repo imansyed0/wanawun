@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import { supabase } from '@/src/lib/supabase';
 
 /** Features that are behind a fake door (see the feature_interest table). */
-export type FeatureKey = 'koshur_clash';
+export type FeatureKey = 'games';
 
 async function currentUserId(): Promise<string | null> {
   try {
