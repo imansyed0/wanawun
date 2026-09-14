@@ -9,7 +9,10 @@ import {
   type AudioRecorder,
   type AudioStatus,
 } from 'expo-audio';
-import AudioModule from 'expo-audio/build/AudioModule';
+// Resolves to AudioModule.web.js on web, which has named exports only (no
+// default), so the recorder class differs per platform; see createRecorder.
+import * as AudioModuleExports from 'expo-audio/build/AudioModule';
+import { createRecordingOptions } from 'expo-audio/build/utils/options';
 import { File } from 'expo-file-system';
 import { supabase } from '@/src/lib/supabase';
 import { Platform } from 'react-native';
@@ -355,6 +358,17 @@ export async function stopAudio(): Promise<void> {
   _onAudioFinish = null;
 }
 
+function createRecorder(): AudioRecorder {
+  const audioModule = AudioModuleExports as any;
+  if (Platform.OS === 'web') {
+    // Mirrors expo-audio's own web useAudioRecorder.
+    return new audioModule.AudioRecorderWeb(
+      createRecordingOptions(RecordingPresets.HIGH_QUALITY)
+    ) as AudioRecorder;
+  }
+  return new audioModule.default.AudioRecorder(NATIVE_RECORDING_OPTIONS) as AudioRecorder;
+}
+
 /** Start recording audio. Returns the Recording object. */
 export async function startRecording(): Promise<AudioRecorder> {
   const permission = await requestRecordingPermissionsAsync();
@@ -363,7 +377,7 @@ export async function startRecording(): Promise<AudioRecorder> {
   }
 
   await setAudioModeAsync(RECORDING_AUDIO_MODE);
-  const recording = new AudioModule.AudioRecorder(NATIVE_RECORDING_OPTIONS) as AudioRecorder;
+  const recording = createRecorder();
   await recording.prepareToRecordAsync();
   recording.record();
   return recording;
