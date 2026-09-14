@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AudioRecorder } from 'expo-audio';
 import {
   KeyboardAvoidingView,
@@ -42,6 +42,14 @@ export function QuickAddGlossarySheet() {
   const [english, setEnglish] = useState('');
   const [error, setError] = useState('');
   const [adding, setAdding] = useState(false);
+  const prefill = useQuickAddStore((s) => s.prefill);
+
+  // Opened from a tapped lesson word: start with that word filled in.
+  useEffect(() => {
+    if (!isOpen || !prefill) return;
+    if (prefill.english !== undefined) setEnglish(prefill.english);
+    if (prefill.kashmiri !== undefined) setKashmiri(prefill.kashmiri);
+  }, [isOpen, prefill]);
 
   // Optional pronunciation (WAN-54): recorded locally, previewed, then
   // uploaded and linked to the word once it's been added.
