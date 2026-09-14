@@ -14,6 +14,7 @@ import {
   type TextToken,
 } from '@/src/lib/dictionary';
 import { WordSheet } from '@/src/components/ui/WordSheet';
+import { pauseAllAudio } from '@/src/services/audioService';
 
 /**
  * Distinct tints for multi-word phrases / idiomatic expressions. Each phrase
@@ -95,7 +96,14 @@ export function TappableKashmiriText({
           return (
             <Text
               key={`${idx}-${token.text}`}
-              onPress={() => (onWordPress ? onWordPress(token) : setSelected(token))}
+              onPress={() => {
+                if (onWordPress) {
+                  onWordPress(token);
+                  return;
+                }
+                void pauseAllAudio();
+                setSelected(token);
+              }}
               suppressHighlighting={false}
               accessibilityRole="button"
               accessibilityHint="Shows the definition"

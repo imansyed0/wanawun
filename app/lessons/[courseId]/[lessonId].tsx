@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  TextInput,
   ScrollView,
   Image,
   KeyboardAvoidingView,
@@ -44,16 +43,17 @@ import {
 import { ExternalLink } from '@/components/ExternalLink';
 import { TappableKashmiriText } from '@/src/components/ui/TappableKashmiriText';
 import { TappableEnglishText } from '@/src/components/ui/TappableEnglishText';
+import { useQuickAddStore } from '@/src/stores/quickAddStore';
 import { useAuth } from '@/src/hooks/useAuth';
 import {
   getLessonVocab,
-  addLessonVocab,
   deleteLessonVocab,
   type LessonVocabEntry,
 } from '@/src/services/lessonService';
 import {
   playAudio,
   stopAudio,
+  onPauseAllAudio,
   startRecording as startAudioRecording,
   stopAndUploadRecording,
   linkAudioToWord,
@@ -176,10 +176,6 @@ export default function LessonPlayerScreen() {
 
   // Vocab
   const [vocab, setVocab] = useState<LessonVocabEntry[]>([]);
-  const [newKashmiri, setNewKashmiri] = useState('');
-  const [newEnglish, setNewEnglish] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [vocabError, setVocabError] = useState('');
 
   // Vocab recording
   const [vocabPlayingId, setVocabPlayingId] = useState<string | null>(null);
@@ -198,6 +194,29 @@ export default function LessonPlayerScreen() {
     if (!user?.id || !lessonId) return;
     getLessonVocab(user.id, lessonId).then(setVocab).catch(console.error);
   }, [user?.id, lessonId]);
+
+  // While this lesson is open, words added with the + button (or by tapping a
+  // word) are saved to it, and show up in its Words tab straight away.
+  useFocusEffect(
+    useCallback(() => {
+      if (!lessonId || !courseId) return;
+      const context = { lessonId, courseId };
+      useQuickAddStore.getState().setLessonContext(context);
+      return () => {
+        if (useQuickAddStore.getState().lessonContext === context) {
+          useQuickAddStore.getState().setLessonContext(null);
+        }
+      };
+    }, [lessonId, courseId])
+  );
+
+  const lastAddedLessonVocab = useQuickAddStore((s) => s.lastAddedLessonVocab);
+  useEffect(() => {
+    if (!lastAddedLessonVocab || lastAddedLessonVocab.lesson_id !== lessonId) return;
+    setVocab((prev) =>
+      prev.some((v) => v.id === lastAddedLessonVocab.id) ? prev : [lastAddedLessonVocab, ...prev]
+    );
+  }, [lastAddedLessonVocab, lessonId]);
 
   useEffect(() => {
     currentClipIdxRef.current = currentClipIdx;
@@ -227,6 +246,23 @@ export default function LessonPlayerScreen() {
       setDuration(0);
     }
   }, []);
+
+  // Pause (don't unload) the clip when something asks all audio to stop, e.g.
+  // the add-to-glossary sheet or a word popup opening, so Play resumes in place.
+  useEffect(
+    () =>
+      onPauseAllAudio(() => {
+        const sound = soundRef.current;
+        if (sound?.isLoaded && sound.playing) {
+          try {
+            sound.pause();
+          } catch {}
+        }
+        setIsPlaying(false);
+        setVocabPlayingId(null);
+      }),
+    []
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -673,37 +709,6 @@ export default function LessonPlayerScreen() {
     }
   };
 
-  const handleAddVocab = async () => {
-    const k = newKashmiri.trim();
-    const e = newEnglish.trim();
-    if (!k || !e) {
-      setVocabError('Enter both Kashmiri and English before adding a word.');
-      return;
-    }
-    if (!user?.id) {
-      setVocabError('Sign in to save lesson vocab.');
-      return;
-    }
-    if (!lessonId || !courseId) {
-      setVocabError('This lesson could not be identified. Reload and try again.');
-      return;
-    }
-
-    setVocabError('');
-    setSaving(true);
-    try {
-      const entry = await addLessonVocab(user.id, lessonId, courseId, k, e);
-      setVocab((prev) => [entry, ...prev]);
-      setNewKashmiri('');
-      setNewEnglish('');
-    } catch (err: any) {
-      setVocabError('Failed to save vocab');
-      console.error(err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleDeleteVocab = async (entry: LessonVocabEntry) => {
     await deleteLessonVocab(entry.id);
     setVocab((prev) => prev.filter((v) => v.id !== entry.id));
@@ -1101,7 +1106,7 @@ export default function LessonPlayerScreen() {
               <Text
                 style={[styles.tabButtonText, activeTab === 'content' && styles.tabButtonTextActive]}
               >
-                Lesson Content
+                Lesson
               </Text>
             </Pressable>
             <Pressable
@@ -1111,7 +1116,7 @@ export default function LessonPlayerScreen() {
               <Text
                 style={[styles.tabButtonText, activeTab === 'vocab' && styles.tabButtonTextActive]}
               >
-                Add Words & Phrases ({vocab.length})
+                Words ({vocab.length})
               </Text>
             </Pressable>
           </View>
@@ -1559,26 +1564,11 @@ export default function LessonPlayerScreen() {
               <Text style={styles.sectionTitle}>
                 Words & Phrases ({vocab.length})
               </Text>
-              <Text style={styles.vocabHint}>
-                Add words you hear — they sync to the glossary
-              </Text>
               {!user?.id ? (
                 <Text style={styles.vocabWarning}>
                   Sign in to add words from lessons.
                 </Text>
               ) : null}
-              <View style={styles.audioGuideCard}>
-                <Text style={styles.audioGuideTitle}>Record lesson audio</Text>
-                <Text style={styles.audioGuideText}>
-                  1. Add the vocab word above.
-                </Text>
-                <Text style={styles.audioGuideText}>
-                  2. Wait for the green checkmark to appear.
-                </Text>
-                <Text style={styles.audioGuideText}>
-                  3. Tap Record, then tap Stop to upload the audio to the glossary.
-                </Text>
-              </View>
 
               {vocabRecordingId && (
                 <View style={styles.recordingBanner}>
@@ -1589,45 +1579,11 @@ export default function LessonPlayerScreen() {
                 </View>
               )}
 
-              <View style={styles.addRow}>
-                <TextInput
-                  style={[styles.vocabInput, styles.vocabInputKashmiri, { flex: 1.2 }]}
-                  placeholder="Kashmiri"
-                  placeholderTextColor={Colors.textLight}
-                  value={newKashmiri}
-                  onChangeText={setNewKashmiri}
-                />
-                <TextInput
-                  style={[styles.vocabInput, { flex: 1 }]}
-                  placeholder="English"
-                  placeholderTextColor={Colors.textLight}
-                  value={newEnglish}
-                  onChangeText={setNewEnglish}
-                />
-                <Pressable
-                  style={[
-                    styles.addBtn,
-                    (!newKashmiri.trim() || !newEnglish.trim() || !user?.id) &&
-                      styles.addBtnDisabled,
-                  ]}
-                  onPress={handleAddVocab}
-                  disabled={
-                    !newKashmiri.trim() || !newEnglish.trim() || saving || !user?.id
-                  }
-                >
-                  <Text style={styles.addBtnText}>
-                    {saving ? '...' : '+'}
-                  </Text>
-                </Pressable>
-              </View>
 
-              {vocabError ? (
-                <Text style={styles.vocabError}>{vocabError}</Text>
-              ) : null}
 
               {vocab.length === 0 ? (
                 <Text style={styles.emptyVocab}>
-                  No words added yet. Listen and add words you learn!
+                  No words yet. Tap the + button to add words you hear in this lesson.
                 </Text>
               ) : (
                 vocab.map((item) => {
@@ -1970,18 +1926,18 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     backgroundColor: '#DDE5E1',
     borderRadius: BorderRadius.lg,
-    padding: 3,
-    gap: 4,
+    padding: 2,
+    gap: 2,
     borderWidth: 1,
     borderColor: '#C4D3CC',
-    marginTop: 6,
+    marginTop: 4,
     marginBottom: 2,
   },
   tabButton: {
     flex: 1,
-    minHeight: 44,
+    minHeight: 30,
     borderRadius: BorderRadius.md,
-    paddingVertical: 7,
+    paddingVertical: 3,
     paddingHorizontal: Spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2074,74 +2030,12 @@ const styles = StyleSheet.create({
 
   // Vocab
   vocabSection: { marginTop: Spacing.md, paddingHorizontal: Spacing.lg },
-  vocabHint: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-    marginTop: 2,
-    marginBottom: Spacing.sm,
-  },
   vocabWarning: {
     fontSize: FontSize.xs,
     color: Colors.secondary,
     fontFamily: FontFamily.bodySemi,
     marginBottom: Spacing.sm,
   },
-  vocabError: {
-    fontSize: FontSize.xs,
-    color: Colors.wrong,
-    marginBottom: Spacing.sm,
-  },
-  audioGuideCard: {
-    backgroundColor: '#EDF2EF',
-    borderWidth: 1,
-    borderColor: '#CEDBD4',
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-    gap: 4,
-  },
-  audioGuideTitle: {
-    fontSize: FontSize.sm,
-    fontFamily: FontFamily.bodyBold,
-    color: Colors.primaryDark,
-    marginBottom: 2,
-  },
-  audioGuideText: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-  },
-  addRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm },
-  vocabInput: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    // Room for Kashmiri diacritics, and a 44pt-tall tap target either way.
-    minHeight: 44,
-    // Without this the fields keep their intrinsic width, overflow the row,
-    // and shove the Add button off the right edge of the screen.
-    minWidth: 0,
-    fontSize: FontSize.sm,
-    color: Colors.text,
-  },
-  vocabInputKashmiri: {
-    fontFamily: FontFamily.kashmiriRegular,
-    fontSize: FontSize.md,
-    minHeight: 48,
-  },
-  addBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addBtnDisabled: { backgroundColor: Colors.textLight },
-  addBtnText: { color: '#fff', fontSize: 22, fontFamily: FontFamily.bodyBold, lineHeight: 24 },
   vocabRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -26,6 +26,8 @@ import {
   uploadRecording,
 } from '@/src/services/audioService';
 import { addGlossaryWord, invalidateWordCache } from '@/src/services/wordService';
+import { addLessonVocab, type LessonVocabEntry } from '@/src/services/lessonService';
+import type { WordEntry } from '@/src/types';
 import { stashPendingGlossaryWord } from '@/src/services/pendingGlossaryService';
 import { useQuickAddStore } from '@/src/stores/quickAddStore';
 import { useTutorialStore } from '@/src/stores/tutorialStore';
@@ -157,10 +159,35 @@ export function QuickAddGlossarySheet() {
     setAdding(true);
     setError('');
     try {
-      // Signed-out words live locally and sync into the account on sign-in.
-      const newWord = user?.id
-        ? await addGlossaryWord(user.id, trimmedKashmiri, trimmedEnglish)
-        : await stashPendingGlossaryWord({ kashmiri: trimmedKashmiri, english: trimmedEnglish });
+      // On a lesson screen the word is saved to that lesson (it still shows in
+      // the glossary). Signed-out words live locally and sync in on sign-in.
+      const lessonContext = useQuickAddStore.getState().lessonContext;
+      let lessonEntry: LessonVocabEntry | null = null;
+      let newWord: WordEntry;
+      if (user?.id && lessonContext) {
+        lessonEntry = await addLessonVocab(
+          user.id,
+          lessonContext.lessonId,
+          lessonContext.courseId,
+          trimmedKashmiri,
+          trimmedEnglish
+        );
+        newWord = {
+          id: lessonEntry.word_id ?? `lesson-vocab:${lessonEntry.id}`,
+          kashmiri: lessonEntry.kashmiri,
+          english: lessonEntry.english,
+          part_of_speech: 'other',
+          category: 'lesson',
+          difficulty: 1,
+          is_loan_word: false,
+          is_phrase: lessonEntry.kashmiri.includes(' '),
+          audio_url: null,
+        };
+      } else {
+        newWord = user?.id
+          ? await addGlossaryWord(user.id, trimmedKashmiri, trimmedEnglish)
+          : await stashPendingGlossaryWord({ kashmiri: trimmedKashmiri, english: trimmedEnglish });
+      }
       // Upload the pronunciation now the word exists, so it can be linked.
       let savedWord = newWord;
       let recordingFailed = false;
@@ -177,6 +204,11 @@ export function QuickAddGlossarySheet() {
       invalidateWordCache();
       reset();
       useQuickAddStore.getState().wordAdded(savedWord, recordingFailed);
+      if (lessonEntry) {
+        useQuickAddStore
+          .getState()
+          .lessonVocabAdded({ ...lessonEntry, audio_url: savedWord.audio_url ?? null });
+      }
       useTutorialStore.getState().notify('wordAdded');
       if (recordingFailed) {
         setError("Word added, but the recording couldn't be saved. You can record it from your glossary.");
