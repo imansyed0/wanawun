@@ -1,13 +1,20 @@
+import { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/src/components/ui/Button';
 import { Card } from '@/src/components/ui/Card';
+import { ComingSoonModal } from '@/src/components/ui/ComingSoonModal';
 import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
 import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
+import { logFeatureTap } from '@/src/services/featureInterestService';
 
 export default function HomeScreen() {
-  const router = useRouter();
+  const [isClashModalOpen, setIsClashModalOpen] = useState(false);
+
+  function openClash() {
+    logFeatureTap('koshur_clash');
+    setIsClashModalOpen(true);
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -31,7 +38,7 @@ export default function HomeScreen() {
               <Text style={styles.gameSubtitle}>Real-time word battle</Text>
             </View>
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>LIVE</Text>
+              <Text style={styles.badgeText}>COMING SOON</Text>
             </View>
           </View>
           <Text style={styles.gameDescription}>
@@ -49,13 +56,19 @@ export default function HomeScreen() {
               <Text style={styles.statPillText}>2 players</Text>
             </View>
           </View>
-          <Button
-            title="Play Now"
-            onPress={() => router.push('/game/lobby')}
-            size="lg"
-          />
+          {/* Fake door (WAN-48): Koshur Clash isn't ready yet, so instead of
+              routing to /game/lobby we log the tap and ask how it should work. */}
+          <Button title="Play Now" onPress={openClash} size="lg" />
         </Card>
       </ScrollView>
+
+      <ComingSoonModal
+        visible={isClashModalOpen}
+        onClose={() => setIsClashModalOpen(false)}
+        featureKey="koshur_clash"
+        featureName="Koshur Clash"
+        description="We're still building head-to-head word battles. Tell us what you'd want from it and we'll use your ideas to shape the game."
+      />
     </SafeAreaView>
   );
 }
@@ -111,7 +124,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   badge: {
-    backgroundColor: Colors.correct,
+    backgroundColor: Colors.secondary,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.sm,
