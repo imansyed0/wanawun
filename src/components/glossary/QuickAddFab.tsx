@@ -7,8 +7,13 @@ import { useTutorialStore } from '@/src/stores/tutorialStore';
 
 // Route groups where a floating button would get in the way: the launch
 // redirect, sign-in/up modals, and the game screens (full-screen live
-// matches and the messenger's bottom composer).
+// matches, the lobby and the messenger's bottom composer).
 const HIDDEN_SEGMENTS = new Set(['auth', 'game', '+not-found']);
+
+// The one game screen that isn't a match or the lobby, so the button stays.
+function isGameList(segments: string[]) {
+  return segments[0] === 'game' && segments[1] === 'async' && segments[2] === 'list';
+}
 
 /**
  * Todoist-style always-present + button that opens the quick-add glossary
@@ -23,7 +28,8 @@ export function QuickAddFab() {
   const tutorialIntro = useTutorialStore((s) => s.active && s.step === 'intro');
 
   const root = segments[0];
-  if (!root || HIDDEN_SEGMENTS.has(root) || tutorialIntro || isSheetOpen) {
+  const hiddenHere = HIDDEN_SEGMENTS.has(root) && !isGameList(segments);
+  if (!root || hiddenHere || tutorialIntro || isSheetOpen) {
     return null;
   }
 
