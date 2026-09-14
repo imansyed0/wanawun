@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import type { AudioRecorder } from 'expo-audio';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -15,6 +16,15 @@ import { Grandmother } from '@/src/components/onboarding/Grandmother';
 import { getBubble } from '@/src/components/tutorial/tutorialCopy';
 import { BorderRadius, Colors, FontFamily, FontSize, LineHeight, Spacing } from '@/src/constants/theme';
 import { useAuth } from '@/src/hooks/useAuth';
+import {
+  linkAudioToWord,
+  playAudio,
+  releaseRecording,
+  startRecording,
+  stopAudio,
+  stopRecording,
+  uploadRecording,
+} from '@/src/services/audioService';
 import { addGlossaryWord, invalidateWordCache } from '@/src/services/wordService';
 import { stashPendingGlossaryWord } from '@/src/services/pendingGlossaryService';
 import { useQuickAddStore } from '@/src/stores/quickAddStore';
@@ -33,6 +43,80 @@ export function QuickAddGlossarySheet() {
   const [error, setError] = useState('');
   const [adding, setAdding] = useState(false);
 
+  // Optional pronunciation (WAN-54): recorded locally, previewed, then
+  // uploaded and linked to the word once it's been added.
+  const recorderRef = useRef<AudioRecorder | null>(null);
+  const [recordingState, setRecordingState] = useState<'idle' | 'recording' | 'recorded'>('idle');
+  const [recordingUri, setRecordingUri] = useState<string | null>(null);
+  const [isPlayingRecording, setIsPlayingRecording] = useState(false);
+  const [recordingError, setRecordingError] = useState('');
+
+  const discardRecording = useCallback(async () => {
+    const recorder = recorderRef.current;
+    recorderRef.current = null;
+    if (recorder) {
+      if (recorder.isRecording) {
+        try {
+          await stopRecording(recorder);
+        } catch {}
+      }
+      releaseRecording(recorder);
+    }
+    await stopAudio();
+    setIsPlayingRecording(false);
+    setRecordingUri(null);
+    setRecordingState('idle');
+    setRecordingError('');
+  }, []);
+
+  const handleRecordPress = async () => {
+    if (recordingState === 'recording' && recorderRef.current) {
+      try {
+        const uri = await stopRecording(recorderRef.current);
+        setRecordingUri(uri);
+        setRecordingState('recorded');
+      } catch (e) {
+        console.error('Quick add recording stop error:', e);
+        await discardRecording();
+        setRecordingError("Couldn't save that recording. Please try again.");
+      }
+      return;
+    }
+
+    // Recording again replaces the previous take.
+    await discardRecording();
+    try {
+      recorderRef.current = await startRecording();
+      setRecordingState('recording');
+    } catch (e: any) {
+      console.error('Quick add recording start error:', e);
+      setRecordingError(
+        /permission/i.test(e?.message ?? '')
+          ? 'Allow microphone access to record how the word sounds.'
+          : "Couldn't start recording. Please try again."
+      );
+    }
+  };
+
+  const handlePlayRecording = async () => {
+    if (!recordingUri) return;
+    if (isPlayingRecording) {
+      await stopAudio();
+      setIsPlayingRecording(false);
+      return;
+    }
+    setIsPlayingRecording(true);
+    try {
+      await playAudio(recordingUri, {
+        onFinish: () => setIsPlayingRecording(false),
+        tag: 'quickAddPreview',
+      });
+    } catch (e) {
+      console.error('Quick add recording playback error:', e);
+      setIsPlayingRecording(false);
+    }
+  };
+
   const tutorialActive = useTutorialStore((s) => s.active);
   const tutorialStep = useTutorialStore((s) => s.step);
   const tutorialBubble =
@@ -44,6 +128,7 @@ export function QuickAddGlossarySheet() {
     setKashmiri('');
     setEnglish('');
     setError('');
+    void discardRecording();
   };
 
   const close = useCallback(() => {
@@ -68,24 +153,41 @@ export function QuickAddGlossarySheet() {
       const newWord = user?.id
         ? await addGlossaryWord(user.id, trimmedKashmiri, trimmedEnglish)
         : await stashPendingGlossaryWord({ kashmiri: trimmedKashmiri, english: trimmedEnglish });
+      // Upload the pronunciation now the word exists, so it can be linked.
+      let savedWord = newWord;
+      let recordingFailed = false;
+      if (user?.id && recordingUri && !newWord.id.startsWith('lesson-vocab:')) {
+        try {
+          const url = await uploadRecording(recordingUri, user.id, newWord.id);
+          await linkAudioToWord(newWord.id, url);
+          savedWord = { ...newWord, audio_url: url };
+        } catch (e) {
+          console.error('Quick add recording upload error:', e);
+          recordingFailed = true;
+        }
+      }
       invalidateWordCache();
       reset();
-      useQuickAddStore.getState().wordAdded(newWord);
+      useQuickAddStore.getState().wordAdded(savedWord, recordingFailed);
       useTutorialStore.getState().notify('wordAdded');
+      if (recordingFailed) {
+        setError("Word added, but the recording couldn't be saved. You can record it from your glossary.");
+      }
     } catch (e: any) {
       console.error('Glossary add error:', e);
       setError(e?.message || 'Could not add this word right now.');
     } finally {
       setAdding(false);
     }
-  }, [english, kashmiri, user?.id]);
+  }, [english, kashmiri, recordingUri, user?.id]);
 
   const goToSignIn = () => {
     close();
     router.push('/auth/login');
   };
 
-  const canSubmit = !!kashmiri.trim() && !!english.trim() && !adding;
+  const canSubmit =
+    !!kashmiri.trim() && !!english.trim() && !adding && recordingState !== 'recording';
   const showSignedOutNote = !authLoading && !user;
 
   return (
@@ -106,7 +208,7 @@ export function QuickAddGlossarySheet() {
           ) : null}
           <Card style={styles.card}>
             <View style={styles.header}>
-              <Text style={styles.title}>Add To Glossary</Text>
+              <Text style={styles.title}>Add a word to glossary</Text>
               <Pressable
                 style={styles.closeButton}
                 onPress={close}
@@ -117,7 +219,9 @@ export function QuickAddGlossarySheet() {
               </Pressable>
             </View>
             <TextInput
-              style={[styles.input, styles.inputKashmiri]}
+              // Amiri only once there's Kashmiri typed, so the placeholder
+              // matches the English field.
+              style={[styles.input, kashmiri ? styles.inputKashmiri : null]}
               placeholder="Kashmiri"
               placeholderTextColor={Colors.textLight}
               value={kashmiri}
@@ -138,6 +242,73 @@ export function QuickAddGlossarySheet() {
                 if (canSubmit) handleAdd();
               }}
             />
+            {user ? (
+              recordingState === 'recorded' ? (
+                <View style={styles.recordField}>
+                  <View style={[styles.recordDot, styles.recordDotDone]} />
+                  <Text style={styles.recordLabel}>Pronunciation recorded</Text>
+                  <View style={styles.recordActions}>
+                    <Pressable
+                      onPress={handlePlayRecording}
+                      disabled={adding}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.recordAction}>{isPlayingRecording ? 'Stop' : 'Play'}</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={handleRecordPress}
+                      disabled={adding}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel="Record again"
+                    >
+                      <Text style={styles.recordAction}>Redo</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={discardRecording}
+                      disabled={adding}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel="Remove recording"
+                    >
+                      <Text style={[styles.recordAction, styles.recordActionMuted]}>Remove</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <Pressable
+                  style={[
+                    styles.recordField,
+                    recordingState === 'recording' && styles.recordFieldActive,
+                  ]}
+                  onPress={handleRecordPress}
+                  disabled={adding}
+                  accessibilityRole="button"
+                >
+                  <View
+                    style={[
+                      styles.recordDot,
+                      recordingState === 'recording' && styles.recordDotActive,
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.recordLabel,
+                      recordingState === 'idle' && styles.recordLabelIdle,
+                    ]}
+                  >
+                    {recordingState === 'recording'
+                      ? 'Recording… tap to stop'
+                      : 'Record pronunciation'}
+                  </Text>
+                  {recordingState === 'idle' ? (
+                    <Text style={styles.recordOptional}>optional</Text>
+                  ) : null}
+                </Pressable>
+              )
+            ) : null}
+            {recordingError ? <Text style={styles.error}>{recordingError}</Text> : null}
             <Pressable
               style={[styles.addButton, !canSubmit && styles.addButtonDisabled]}
               onPress={handleAdd}
@@ -153,7 +324,7 @@ export function QuickAddGlossarySheet() {
                 <Text style={styles.signedOutLink} onPress={goToSignIn}>
                   sign in
                 </Text>
-                .
+                . Signing in also lets you record how it sounds.
               </Text>
             ) : null}
           </Card>
@@ -223,7 +394,7 @@ const styles = StyleSheet.create({
   input: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    minHeight: 48,
+    minHeight: 56,
     backgroundColor: Colors.surfaceLight,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
@@ -236,7 +407,6 @@ const styles = StyleSheet.create({
     // or the vowel diacritics get clipped.
     fontFamily: FontFamily.kashmiriRegular,
     fontSize: FontSize.lg,
-    minHeight: 56,
   },
   addButton: {
     minHeight: 44,
@@ -267,6 +437,62 @@ const styles = StyleSheet.create({
     color: Colors.primaryDark,
     fontFamily: FontFamily.bodyBold,
     textDecorationLine: 'underline',
+  },
+  // The recorder reads as a third field: same height, fill, border and type
+  // as the inputs above it.
+  recordField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    minHeight: 56,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.surfaceLight,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  recordFieldActive: {
+    borderColor: Colors.wrong,
+  },
+  recordDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.wrong,
+    opacity: 0.5,
+  },
+  recordDotActive: {
+    opacity: 1,
+  },
+  recordDotDone: {
+    backgroundColor: Colors.correct,
+    opacity: 1,
+  },
+  recordLabel: {
+    flex: 1,
+    fontSize: FontSize.md,
+    fontFamily: FontFamily.body,
+    color: Colors.text,
+  },
+  recordLabelIdle: {
+    color: Colors.textLight,
+  },
+  recordOptional: {
+    fontSize: FontSize.sm,
+    fontFamily: FontFamily.body,
+    color: Colors.textLight,
+  },
+  recordActions: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  recordAction: {
+    fontSize: FontSize.sm,
+    fontFamily: FontFamily.bodySemi,
+    color: Colors.primaryDark,
+  },
+  recordActionMuted: {
+    color: Colors.textSecondary,
   },
   closeButton: {
     width: 32,
