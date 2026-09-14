@@ -42,10 +42,10 @@ export function QuickAddFab() {
         glow.stopAnimation();
         glow.setValue(0);
         Animated.sequence(
-          Array.from({ length: reduceMotion ? 1 : 2 }, () =>
+          Array.from({ length: reduceMotion ? 1 : 3 }, () =>
             Animated.timing(glow, {
               toValue: 1,
-              duration: 750,
+              duration: 1000,
               easing: Easing.out(Easing.quad),
               useNativeDriver: true,
             })
