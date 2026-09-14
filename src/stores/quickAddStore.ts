@@ -11,7 +11,8 @@ interface QuickAddState {
   lastAdded: WordEntry | null;
   open: () => void;
   close: () => void;
-  wordAdded: (word: WordEntry) => void;
+  /** Closes the sheet unless `keepOpen` (e.g. to show a recording upload error). */
+  wordAdded: (word: WordEntry, keepOpen?: boolean) => void;
 }
 
 export const useQuickAddStore = create<QuickAddState>((set) => ({
@@ -19,5 +20,5 @@ export const useQuickAddStore = create<QuickAddState>((set) => ({
   lastAdded: null,
   open: () => set({ isOpen: true }),
   close: () => set({ isOpen: false }),
-  wordAdded: (word) => set({ isOpen: false, lastAdded: word }),
+  wordAdded: (word, keepOpen = false) => set({ isOpen: keepOpen, lastAdded: word }),
 }));

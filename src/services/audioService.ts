@@ -369,6 +369,28 @@ export async function startRecording(): Promise<AudioRecorder> {
   return recording;
 }
 
+/** Stop recording without uploading. Returns the local URI of the recording
+ *  so it can be played back before it's saved. */
+export async function stopRecording(recording: AudioRecorder): Promise<string> {
+  try {
+    await recording.stop();
+    const uri = recording.uri;
+    if (!uri) {
+      throw new Error('No recording URI');
+    }
+    return uri;
+  } finally {
+    await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
+  }
+}
+
+/** Free a recorder once its recording has been uploaded or thrown away. */
+export function releaseRecording(recording: AudioRecorder): void {
+  try {
+    (recording as AudioRecorder & { remove?: () => void }).remove?.();
+  } catch {}
+}
+
 /** Stop recording and upload to Supabase Storage.
  *  Returns the public URL of the uploaded file. */
 export async function stopAndUploadRecording(
@@ -376,68 +398,68 @@ export async function stopAndUploadRecording(
   userId: string,
   wordId: string
 ): Promise<string> {
-  let filename = `${userId}/${wordId}.${Platform.OS === 'web' ? 'webm' : 'm4a'}`;
-
   try {
-    await recording.stop();
-
-    const uri = recording.uri;
-    if (!uri) {
-      throw new Error('No recording URI');
-    }
-
-    let uploadBody: Blob | ArrayBuffer;
-    let contentType = Platform.OS === 'web' ? 'audio/webm' : 'audio/mp4';
-
-    if (Platform.OS === 'web') {
-      const response = await fetch(uri);
-      if (!response.ok) {
-        throw new Error(`Failed to read recording blob (${response.status})`);
-      }
-      uploadBody = await response.blob();
-      if (!uploadBody.size) {
-        throw new Error('Recorded web audio blob is empty.');
-      }
-      const extension = guessAudioExtension(uri, uploadBody.type);
-      filename = `${userId}/${wordId}.${extension}`;
-      contentType = guessAudioContentType(extension, uploadBody.type);
-    } else {
-      const nativeFile = new File(uri);
-      if (!nativeFile.exists) {
-        throw new Error(`Recorded file not found at ${uri}`);
-      }
-      const bytes = await nativeFile.bytes();
-      if (!bytes.length) {
-        throw new Error(`Recorded native audio file is empty at ${uri}`);
-      }
-
-      const fallbackExtension = guessAudioExtension(uri, nativeFile.type);
-      const detectedFormat = detectAudioFormatFromBytes(bytes, fallbackExtension, nativeFile.type);
-      filename = `${userId}/${wordId}.${detectedFormat.extension}`;
-      contentType = detectedFormat.contentType;
-      uploadBody = bytes.buffer.slice(
-        bytes.byteOffset,
-        bytes.byteOffset + bytes.byteLength
-      ) as ArrayBuffer;
-    }
-
-    const { error } = await supabase.storage
-      .from('recordings')
-      .upload(filename, uploadBody, {
-        contentType,
-        upsert: true,
-      });
-    if (error) throw error;
-
-    // Get public URL with cache-busting param so re-recordings aren't cached
-    const { data } = supabase.storage.from('recordings').getPublicUrl(filename);
-    return `${data.publicUrl}?t=${Date.now()}`;
+    const uri = await stopRecording(recording);
+    return await uploadRecording(uri, userId, wordId);
   } finally {
-    await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
-    try {
-      (recording as AudioRecorder & { remove?: () => void }).remove?.();
-    } catch {}
+    releaseRecording(recording);
   }
+}
+
+/** Upload a finished recording (see stopRecording) to Supabase Storage.
+ *  Returns the public URL of the uploaded file. */
+export async function uploadRecording(
+  uri: string,
+  userId: string,
+  wordId: string
+): Promise<string> {
+  let filename = `${userId}/${wordId}.${Platform.OS === 'web' ? 'webm' : 'm4a'}`;
+  let uploadBody: Blob | ArrayBuffer;
+  let contentType = Platform.OS === 'web' ? 'audio/webm' : 'audio/mp4';
+
+  if (Platform.OS === 'web') {
+    const response = await fetch(uri);
+    if (!response.ok) {
+      throw new Error(`Failed to read recording blob (${response.status})`);
+    }
+    uploadBody = await response.blob();
+    if (!uploadBody.size) {
+      throw new Error('Recorded web audio blob is empty.');
+    }
+    const extension = guessAudioExtension(uri, uploadBody.type);
+    filename = `${userId}/${wordId}.${extension}`;
+    contentType = guessAudioContentType(extension, uploadBody.type);
+  } else {
+    const nativeFile = new File(uri);
+    if (!nativeFile.exists) {
+      throw new Error(`Recorded file not found at ${uri}`);
+    }
+    const bytes = await nativeFile.bytes();
+    if (!bytes.length) {
+      throw new Error(`Recorded native audio file is empty at ${uri}`);
+    }
+
+    const fallbackExtension = guessAudioExtension(uri, nativeFile.type);
+    const detectedFormat = detectAudioFormatFromBytes(bytes, fallbackExtension, nativeFile.type);
+    filename = `${userId}/${wordId}.${detectedFormat.extension}`;
+    contentType = detectedFormat.contentType;
+    uploadBody = bytes.buffer.slice(
+      bytes.byteOffset,
+      bytes.byteOffset + bytes.byteLength
+    ) as ArrayBuffer;
+  }
+
+  const { error } = await supabase.storage
+    .from('recordings')
+    .upload(filename, uploadBody, {
+      contentType,
+      upsert: true,
+    });
+  if (error) throw error;
+
+  // Get public URL with cache-busting param so re-recordings aren't cached
+  const { data } = supabase.storage.from('recordings').getPublicUrl(filename);
+  return `${data.publicUrl}?t=${Date.now()}`;
 }
 
 /** Save the audio URL to the word in the database */
