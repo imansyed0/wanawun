@@ -66,13 +66,14 @@
         </fieldset>
 
         <div class="field">
-          <label for="join-device">Phone type <span class="optional">(optional)</span></label>
-          <select id="join-device" name="device">
+          <label for="join-device">What phone do you use?</label>
+          <select id="join-device" name="device" required>
             <option value="">Choose…</option>
             <option value="iphone">iPhone</option>
             <option value="android">Android</option>
             <option value="both">Both</option>
           </select>
+          <p class="error" id="join-device-error" hidden>Please choose your phone type so we can send the right beta link.</p>
         </div>
 
         <div class="field">
@@ -87,7 +88,7 @@
 
     <section class="signup join-success" id="join-success" tabindex="-1" hidden aria-live="polite">
       <h2>Thank you! You're on the list.</h2>
-      <p>Thanks for signing up. We'll be in touch by email soon. If you asked to be a beta tester, look out for an invite.</p>
+      <p>Thanks for signing up. We've emailed you a link to get the Wanwun beta on your phone. It should arrive in a few minutes. If you can't find it, check your spam or promotions folder.</p>
       <p>Questions? Email <a href="mailto:hello@wanwun.org">hello@wanwun.org</a>.</p>
       <p><a href="/">Learn more about Wanwun →</a></p>
     </section>
@@ -131,13 +132,16 @@
         var name = form.elements.name;
         var email = form.elements.email;
         var phone = form.elements.phone;
+        var device = form.elements.device;
         var consent = form.elements.consent;
         name.value = name.value.trim();
         email.value = email.value.trim();
         phone.value = phone.value.trim();
 
+        // Checked bottom-up so the first invalid field (top of form) gets focus.
         var checks = [
           [consent, setError(consent, 'join-consent-error', !consent.checked)],
+          [device, setError(device, 'join-device-error', device.value === '')],
           [phone, setError(phone, 'join-phone-error', phone.value !== '' && !PHONE_RE.test(phone.value))],
           [email, setError(email, 'join-email-error', !EMAIL_RE.test(email.value))],
           [name, setError(name, 'join-name-error', name.value === '')]
