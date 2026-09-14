@@ -15,7 +15,7 @@ on:
       profile:
         description: EAS build profile
         required: true
-        default: preview
+        default: production
         type: choice
         options:
           - preview
@@ -71,12 +71,18 @@ jobs:
 
           for p in $PLATFORMS; do
             SUBMIT=""
-            # iOS production builds go straight to TestFlight. EAS schedules the
-            # submission server-side once the build finishes, using the App Store
-            # Connect API key stored in EAS credentials, so --no-wait still works.
-            if [ "$p" = "ios" ] && [ "$PROFILE" = "production" ]; then
+            # Production builds go straight to TestFlight (iOS) and the Play
+            # internal testing track (Android, see submit.production in eas.json).
+            # EAS schedules the submission server-side once the build finishes,
+            # using the App Store Connect API key / Google service account key
+            # stored in EAS credentials, so --no-wait still works.
+            if [ "$PROFILE" = "production" ]; then
               SUBMIT="--auto-submit"
-              echo "iOS production build will be submitted to TestFlight when it finishes"
+              if [ "$p" = "ios" ]; then
+                echo "iOS production build will be submitted to TestFlight when it finishes"
+              else
+                echo "Android production build will be submitted to Play internal testing when it finishes"
+              fi
             fi
 
             eas build \
