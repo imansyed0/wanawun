@@ -121,8 +121,8 @@ export default function AuthCallback() {
         return;
       }
       setStatus('success');
-      setMessage('Password updated! Taking you to your lessons...');
-      setTimeout(() => router.replace('/lessons'), 600);
+      setMessage('Password updated! Taking you to your glossary...');
+      setTimeout(() => router.replace('/learn'), 600);
     } catch (err: any) {
       setMessage(err?.message ?? 'Something went wrong updating your password.');
     } finally {

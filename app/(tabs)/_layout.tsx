@@ -22,7 +22,7 @@ function TabsNav() {
 
   return (
     <Tabs
-      initialRouteName="lessons"
+      initialRouteName="learn"
       screenOptions={{
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textLight,
@@ -52,20 +52,20 @@ function TabsNav() {
       }}
     >
       <Tabs.Screen
-        name="lessons"
-        options={{
-          title: 'Lessons',
-          tabBarIcon: ({ color }) => (
-            <SymbolView name={{ ios: 'headphones', android: 'headphones', web: 'headphones' }} tintColor={color} size={TAB_ICON_SIZE} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="learn"
         options={{
           title: 'Glossary',
           tabBarIcon: ({ color }) => (
             <SymbolView name={{ ios: 'book.fill', android: 'menu_book', web: 'menu_book' }} tintColor={color} size={TAB_ICON_SIZE} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="lessons"
+        options={{
+          title: 'Lessons',
+          tabBarIcon: ({ color }) => (
+            <SymbolView name={{ ios: 'headphones', android: 'headphones', web: 'headphones' }} tintColor={color} size={TAB_ICON_SIZE} />
           ),
         }}
       />

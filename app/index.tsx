@@ -11,16 +11,12 @@ export default function AppIndexRedirect() {
   useEffect(() => {
     hasSeenOnboarding()
       .then((seen) => {
-        if (seen) {
-          setTarget('/lessons');
-        } else {
-          // First launch: Naani's guided tour runs on the real app,
-          // starting from the Glossary tab.
-          useTutorialStore.getState().start();
-          setTarget('/learn');
-        }
+        // First launch: Naani's guided tour runs on the real app,
+        // starting from the Glossary tab.
+        if (!seen) useTutorialStore.getState().start();
+        setTarget('/learn');
       })
-      .catch(() => setTarget('/lessons'));
+      .catch(() => setTarget('/learn'));
   }, []);
 
   if (!target) {
@@ -33,7 +29,7 @@ export default function AppIndexRedirect() {
 
   return (
     <View style={styles.container}>
-      <Redirect href={target as '/lessons' | '/learn'} />
+      <Redirect href={target as '/learn'} />
     </View>
   );
 }
