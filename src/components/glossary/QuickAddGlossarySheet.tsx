@@ -310,9 +310,6 @@ export function QuickAddGlossarySheet() {
                       ? 'Recording… tap to stop'
                       : 'Record pronunciation'}
                   </Text>
-                  {recordingState === 'idle' ? (
-                    <Text style={styles.recordOptional}>optional</Text>
-                  ) : null}
                 </Pressable>
               )
             ) : null}
@@ -483,11 +480,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   recordLabelIdle: {
-    color: Colors.textLight,
-  },
-  recordOptional: {
-    fontSize: FontSize.sm,
-    fontFamily: FontFamily.body,
     color: Colors.textLight,
   },
   recordActions: {
