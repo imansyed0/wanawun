@@ -43,9 +43,15 @@ export function TappableEnglishText({ text, style, numberOfLines }: TappableEngl
           token.entry ? (
             <Text
               key={`${idx}-${token.text}`}
-              onPress={() => setSelected(token)}
+              onPress={(e) => {
+                // Don't also trigger a pressable card this text sits in.
+                e?.stopPropagation?.();
+                setSelected(token);
+              }}
               suppressHighlighting={false}
-              accessibilityRole="button"
+              // "link", not "button": these words sit inside pressable lesson
+              // cards, and a button can't contain another button.
+              accessibilityRole="link"
               accessibilityHint="Shows the Kashmiri translation"
               style={knownWordStyle}
             >

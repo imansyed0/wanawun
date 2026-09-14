@@ -502,6 +502,17 @@ export default function LessonPlayerScreen() {
     }
   };
 
+  // Tapping a content card plays its clip; tapping the card that's already
+  // loaded pauses or resumes it instead of restarting.
+  const playCardClip = (idx: number) => {
+    if (idx < 0 || idx >= clips.length) return;
+    if (idx === currentClipIdxRef.current && soundRef.current?.isLoaded) {
+      void togglePlayPause();
+      return;
+    }
+    void playClip(idx);
+  };
+
   const seekBy = async (ms: number) => {
     if (!soundRef.current) return;
     if (!soundRef.current.isLoaded) return;
@@ -1224,10 +1235,17 @@ export default function LessonPlayerScreen() {
                     const isAltRow = pairLetter
                       ? (pairLetter.toLowerCase().charCodeAt(0) - 97) % 2 === 1
                       : exchangeIdx % 2 === 1;
+                    const cardClipIdx = clips.findIndex((c) => c.filename === exchange.audio);
+                    const isCardPlaying =
+                      cardClipIdx !== -1 && cardClipIdx === safeCurrentClipIdx && isPlaying;
 
                     return (
-                      <View
+                      <Pressable
                         key={`${exchange.audio}-${exchange.image}`}
+                        onPress={() => playCardClip(cardClipIdx)}
+                        disabled={cardClipIdx === -1}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${isCardPlaying ? 'Pause' : 'Play'} ${exchange.speaker ? `${exchange.speaker}: ` : ''}${exchange.english}`}
                         style={[
                           styles.translationCard,
                           styles.exchangeCard,
@@ -1261,7 +1279,7 @@ export default function LessonPlayerScreen() {
                           ) : null}
                           <TappableEnglishText text={exchange.english} style={styles.translationEnglish} />
                         </View>
-                      </View>
+                      </Pressable>
                     );
                   })}
                 </View>
@@ -1511,8 +1529,12 @@ export default function LessonPlayerScreen() {
                     const aspect = imageAspectRatios[img.filename];
                     const rowKey = `item:koul:${idx}`;
                     return (
-                      <View
+                      <Pressable
                         key={`${img.filename}-${idx}`}
+                        onPress={() => playCardClip(idx)}
+                        disabled={idx >= clips.length}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Play ${currentClipNoun.toLowerCase()} ${idx + 1}`}
                         style={[
                           styles.koulImageFrame,
                           aspect ? { aspectRatio: aspect, height: undefined } : null,
@@ -1526,7 +1548,7 @@ export default function LessonPlayerScreen() {
                           style={styles.koulImage}
                           resizeMode="contain"
                         />
-                      </View>
+                      </Pressable>
                     );
                   })}
                 </View>
