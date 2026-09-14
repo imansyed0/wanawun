@@ -521,6 +521,10 @@ export default function LessonPlayerScreen() {
   }, [clips, lesson.audioBaseUrl, onPlaybackStatusUpdate, stopLessonAudio, courseId, lessonId]);
 
   const togglePlayPause = async () => {
+    // About to start or resume playback: remind them the + button is there.
+    if (!soundRef.current?.isLoaded || !soundRef.current.playing) {
+      useQuickAddStore.getState().nudgeAddButton();
+    }
     if (!soundRef.current) {
       await playClip(currentClipIdxRef.current);
       return;
@@ -546,6 +550,7 @@ export default function LessonPlayerScreen() {
       void togglePlayPause();
       return;
     }
+    useQuickAddStore.getState().nudgeAddButton();
     void playClip(idx);
   };
 
@@ -635,6 +640,7 @@ export default function LessonPlayerScreen() {
       await stopLessonAudio();
       setVocabPlayingId(null);
       setKachruVocabPlaying(audioFilename);
+      useQuickAddStore.getState().nudgeAddButton();
       await playAudio(resolveCourseAudioUrl(lesson.audioBaseUrl + audioFilename), {
         onFinish: () => setKachruVocabPlaying(null),
       });
@@ -956,7 +962,10 @@ export default function LessonPlayerScreen() {
                       isActive && styles.clipChipActive,
                       isListened && !isActive && styles.clipChipListened,
                     ]}
-                    onPress={() => playClip(idx)}
+                    onPress={() => {
+                      useQuickAddStore.getState().nudgeAddButton();
+                      void playClip(idx);
+                    }}
                     onLayout={(e) => {
                       clipChipXRef.current[idx] = e.nativeEvent.layout.x;
                       if (isActive) scrollClipStripTo(idx);

@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { AccessibilityInfo, Animated, Easing, Pressable, StyleSheet, Text } from 'react-native';
 import { useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontFamily, LineHeight, Spacing, TabBarContentHeight } from '@/src/constants/theme';
@@ -18,14 +19,43 @@ function isGameList(segments: string[]) {
 /**
  * Todoist-style always-present + button that opens the quick-add glossary
  * sheet. Mounted once in the root layout so it floats over tab screens and
- * lesson screens alike.
+ * lesson screens alike. It glows briefly whenever someone presses play, as a
+ * reminder to add the words they hear.
  */
 export function QuickAddFab() {
   const segments = useSegments() as string[];
   const insets = useSafeAreaInsets();
   const isSheetOpen = useQuickAddStore((s) => s.isOpen);
   const openSheet = useQuickAddStore((s) => s.open);
+  const playNudge = useQuickAddStore((s) => s.playNudge);
   const tutorialIntro = useTutorialStore((s) => s.active && s.step === 'intro');
+
+  // Glow: a ring that swells out from the button and fades, plus a small bump.
+  const glow = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (playNudge === 0) return;
+    let cancelled = false;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .catch(() => false)
+      .then((reduceMotion) => {
+        if (cancelled) return;
+        glow.stopAnimation();
+        glow.setValue(0);
+        Animated.sequence(
+          Array.from({ length: reduceMotion ? 1 : 2 }, () =>
+            Animated.timing(glow, {
+              toValue: 1,
+              duration: 750,
+              easing: Easing.out(Easing.quad),
+              useNativeDriver: true,
+            })
+          ).flatMap((pulse) => [pulse, Animated.timing(glow, { toValue: 0, duration: 0, useNativeDriver: true })])
+        ).start();
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [playNudge, glow]);
 
   const root = segments[0];
   const hiddenHere = HIDDEN_SEGMENTS.has(root) && !isGameList(segments);
@@ -44,23 +74,43 @@ export function QuickAddFab() {
     useTutorialStore.getState().notify('addModalOpened');
   };
 
+  const ringStyle = {
+    opacity: glow.interpolate({ inputRange: [0, 0.15, 1], outputRange: [0, 0.55, 0] }),
+    transform: [{ scale: glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.9] }) }],
+  };
+  const bumpStyle = {
+    transform: [{ scale: glow.interpolate({ inputRange: [0, 0.3, 1], outputRange: [1, 1.12, 1] }) }],
+  };
+
   return (
-    <Pressable
-      style={({ pressed }) => [styles.fab, { bottom }, pressed && styles.fabPressed]}
-      onPress={handlePress}
-      accessibilityRole="button"
-      accessibilityLabel="Add a word to your glossary"
-      hitSlop={6}
-    >
-      <Text style={styles.fabText}>+</Text>
-    </Pressable>
+    <Animated.View style={[styles.wrap, { bottom }, bumpStyle]} pointerEvents="box-none">
+      <Animated.View style={[styles.ring, ringStyle]} pointerEvents="none" />
+      <Pressable
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+        onPress={handlePress}
+        accessibilityRole="button"
+        accessibilityLabel="Add a word to your glossary"
+        hitSlop={6}
+      >
+        <Text style={styles.fabText}>+</Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  fab: {
+  wrap: {
     position: 'absolute',
     right: Spacing.lg,
+    width: 56,
+    height: 56,
+  },
+  ring: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 28,
+    backgroundColor: Colors.primary,
+  },
+  fab: {
     width: 56,
     height: 56,
     borderRadius: 28,
