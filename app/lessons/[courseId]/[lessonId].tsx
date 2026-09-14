@@ -37,6 +37,7 @@ import {
 } from '@/src/data/koulContent';
 import { ExternalLink } from '@/components/ExternalLink';
 import { TappableKashmiriText } from '@/src/components/ui/TappableKashmiriText';
+import { TappableEnglishText } from '@/src/components/ui/TappableEnglishText';
 import { useAuth } from '@/src/hooks/useAuth';
 import {
   getLessonVocab,
@@ -995,7 +996,7 @@ export default function LessonPlayerScreen() {
                           {exchange.speaker ? (
                             <Text style={styles.translationSpeaker}>{exchange.speaker}</Text>
                           ) : null}
-                          <Text style={styles.translationEnglish}>{exchange.english}</Text>
+                          <TappableEnglishText text={exchange.english} style={styles.translationEnglish} />
                         </View>
                       </View>
                     );
@@ -1092,7 +1093,7 @@ export default function LessonPlayerScreen() {
                                   </View>
                                 ) : null}
                                 <View style={styles.translationCopy}>
-                                  <Text style={styles.translationEnglish}>{item}</Text>
+                                  <TappableEnglishText text={item} style={styles.translationEnglish} />
                                 </View>
                               </View>
                             );
@@ -1170,7 +1171,7 @@ export default function LessonPlayerScreen() {
                                     text={left}
                                     style={styles.contextTableKashmiri}
                                   />
-                                  <Text style={styles.contextTableEnglish}>{right}</Text>
+                                  <TappableEnglishText text={right} style={styles.contextTableEnglish} />
                                 </View>
                               );
                             })}
@@ -1188,9 +1189,10 @@ export default function LessonPlayerScreen() {
                                       text={kashmiriPart}
                                       style={styles.contextDialogueText}
                                     />
-                                    <Text style={styles.contextDialogueText}>
-                                      {englishParts.join(' - ')}
-                                    </Text>
+                                    <TappableEnglishText
+                                      text={englishParts.join(' - ')}
+                                      style={styles.contextDialogueText}
+                                    />
                                   </>
                                 ) : (
                                   <Text style={styles.contextDialogueText}>{item}</Text>

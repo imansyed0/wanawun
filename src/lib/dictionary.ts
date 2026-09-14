@@ -28,13 +28,13 @@ export interface DictionaryEntry {
   isPhrase: boolean;
 }
 
-export interface TextToken {
+export interface TextToken<E = DictionaryEntry> {
   /** Raw text of the token, exactly as it appears in the source string. */
   text: string;
   /** True for words (tappable); false for whitespace/punctuation. */
   isWord: boolean;
   /** Dictionary entry, when the word (or phrase) was found. */
-  entry: DictionaryEntry | null;
+  entry: E | null;
 }
 
 interface GlossaryRow {
@@ -169,19 +169,31 @@ function isWordToken(raw: string) {
   return /\p{L}/u.test(raw);
 }
 
+export interface PhraseTokenizerOptions<E> {
+  /** Global regex whose matches alternate word runs and separator runs. */
+  pattern: RegExp;
+  isWord: (raw: string) => boolean;
+  maxPhraseWords: number;
+  lookupPhrase: (span: string) => E | null;
+  lookupWord: (word: string) => E | null;
+}
+
 /**
  * Split text into tokens, greedily matching multi-word dictionary phrases
- * (longest first, up to MAX_PHRASE_WORDS) before single words.
+ * (longest first, up to maxPhraseWords) before single words. Shared by the
+ * Kashmiri (WAN-13) and English (WAN-53) tappable text.
  */
-export function tokenizeKashmiri(text: string): TextToken[] {
-  const raw = text.match(TOKEN_PATTERN) ?? [];
-  const dict = getIndex();
-  const tokens: TextToken[] = [];
+export function tokenizeWithPhrases<E>(
+  text: string,
+  { pattern, isWord, maxPhraseWords, lookupPhrase, lookupWord }: PhraseTokenizerOptions<E>
+): TextToken<E>[] {
+  const raw = text.match(pattern) ?? [];
+  const tokens: TextToken<E>[] = [];
 
   let i = 0;
   while (i < raw.length) {
     const piece = raw[i];
-    if (!isWordToken(piece)) {
+    if (!isWord(piece)) {
       tokens.push({ text: piece, isWord: false, entry: null });
       i += 1;
       continue;
@@ -189,19 +201,19 @@ export function tokenizeKashmiri(text: string): TextToken[] {
 
     // Try phrases: word, space, word, ... (only plain-whitespace joins).
     let matched = false;
-    for (let words = MAX_PHRASE_WORDS; words >= 2; words -= 1) {
+    for (let words = maxPhraseWords; words >= 2; words -= 1) {
       const end = i + (words - 1) * 2; // index of the last word in the span
       if (end >= raw.length) continue;
       let ok = true;
       for (let j = i + 1; j < end; j += 2) {
-        if (!/^\s+$/.test(raw[j]) || !isWordToken(raw[j + 1])) {
+        if (!/^\s+$/.test(raw[j]) || !isWord(raw[j + 1])) {
           ok = false;
           break;
         }
       }
       if (!ok) continue;
       const span = raw.slice(i, end + 1).join('');
-      const entry = dict.get(foldKashmiri(span));
+      const entry = lookupPhrase(span);
       if (entry) {
         tokens.push({ text: span, isWord: true, entry });
         i = end + 1;
@@ -211,9 +223,20 @@ export function tokenizeKashmiri(text: string): TextToken[] {
     }
     if (matched) continue;
 
-    tokens.push({ text: piece, isWord: true, entry: lookupKashmiri(piece) });
+    tokens.push({ text: piece, isWord: true, entry: lookupWord(piece) });
     i += 1;
   }
 
   return tokens;
+}
+
+export function tokenizeKashmiri(text: string): TextToken[] {
+  const dict = getIndex();
+  return tokenizeWithPhrases(text, {
+    pattern: TOKEN_PATTERN,
+    isWord: isWordToken,
+    maxPhraseWords: MAX_PHRASE_WORDS,
+    lookupPhrase: (span) => dict.get(foldKashmiri(span)) ?? null,
+    lookupWord: lookupKashmiri,
+  });
 }

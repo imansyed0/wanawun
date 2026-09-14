@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import {
-  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -14,6 +13,7 @@ import {
   type DictionaryEntry,
   type TextToken,
 } from '@/src/lib/dictionary';
+import { WordSheet } from '@/src/components/ui/WordSheet';
 
 /**
  * Distinct tints for multi-word phrases / idiomatic expressions. Each phrase
@@ -35,6 +35,13 @@ export function phraseColorFor(key: string) {
   }
   return PHRASE_COLORS[Math.abs(hash) % PHRASE_COLORS.length];
 }
+
+/** Subtle "you can tap this" cue shared by tappable Kashmiri and English words. */
+export const knownWordStyle: TextStyle = {
+  textDecorationLine: 'underline',
+  textDecorationStyle: 'dotted',
+  textDecorationColor: Colors.primaryLight,
+};
 
 export interface TappableKashmiriTextProps {
   text: string;
@@ -93,7 +100,7 @@ export function TappableKashmiriText({
               accessibilityRole="button"
               accessibilityHint="Shows the definition"
               style={[
-                token.entry && styles.known,
+                token.entry && knownWordStyle,
                 phraseColor && {
                   color: phraseColor.text,
                   backgroundColor: phraseColor.background,
@@ -124,78 +131,41 @@ export function WordDefinitionSheet({ token, onClose }: WordDefinitionSheetProps
   const phraseColor = entry?.isPhrase ? phraseColorFor(entry.key) : null;
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close definition">
-        <Pressable style={styles.sheet} onPress={() => {}}>
-          <View style={styles.handle} />
-          <Text style={styles.word}>{token.text}</Text>
-          {entry && entry.headword.toLowerCase() !== token.text.toLowerCase() ? (
-            <Text style={styles.headword}>Dictionary form: {entry.headword}</Text>
-          ) : null}
-          {phraseColor ? (
-            <View style={[styles.badge, { backgroundColor: phraseColor.background }]}>
-              <Text style={[styles.badgeText, { color: phraseColor.text }]}>
-                Phrase / idiom
-              </Text>
+    <WordSheet visible onClose={onClose} closeLabel="Close definition">
+      <Text style={styles.word}>{token.text}</Text>
+      {entry && entry.headword.toLowerCase() !== token.text.toLowerCase() ? (
+        <Text style={styles.headword}>Dictionary form: {entry.headword}</Text>
+      ) : null}
+      {phraseColor ? (
+        <View style={[styles.badge, { backgroundColor: phraseColor.background }]}>
+          <Text style={[styles.badgeText, { color: phraseColor.text }]}>
+            Phrase / idiom
+          </Text>
+        </View>
+      ) : null}
+
+      {entry ? (
+        entry.senses.map((sense, idx) => (
+          <View key={`${sense.english}-${idx}`} style={styles.senseRow}>
+            <Text style={styles.senseNumber}>{entry.senses.length > 1 ? `${idx + 1}.` : ''}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.senseEnglish}>{sense.english}</Text>
+              {sense.partOfSpeech && sense.partOfSpeech !== 'other' ? (
+                <Text style={styles.senseMeta}>{sense.partOfSpeech}</Text>
+              ) : null}
             </View>
-          ) : null}
-
-          {entry ? (
-            entry.senses.map((sense, idx) => (
-              <View key={`${sense.english}-${idx}`} style={styles.senseRow}>
-                <Text style={styles.senseNumber}>{entry.senses.length > 1 ? `${idx + 1}.` : ''}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.senseEnglish}>{sense.english}</Text>
-                  {sense.partOfSpeech && sense.partOfSpeech !== 'other' ? (
-                    <Text style={styles.senseMeta}>{sense.partOfSpeech}</Text>
-                  ) : null}
-                </View>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.empty}>
-              No definition found yet. Try the glossary, or listen to the clip for context.
-            </Text>
-          )}
-
-          <Pressable style={styles.closeBtn} onPress={onClose}>
-            <Text style={styles.closeText}>Close</Text>
-          </Pressable>
-        </Pressable>
-      </Pressable>
-    </Modal>
+          </View>
+        ))
+      ) : (
+        <Text style={styles.empty}>
+          No definition found yet. Try the glossary, or listen to the clip for context.
+        </Text>
+      )}
+    </WordSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  known: {
-    textDecorationLine: 'underline',
-    textDecorationStyle: 'dotted',
-    textDecorationColor: Colors.primaryLight,
-  },
-  backdrop: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(31, 42, 45, 0.35)',
-  },
-  sheet: {
-    backgroundColor: Colors.surface,
-    borderTopLeftRadius: BorderRadius.lg,
-    borderTopRightRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xl,
-    width: '100%',
-    maxWidth: 640,
-    alignSelf: 'center',
-  },
-  handle: {
-    alignSelf: 'center',
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.border,
-    marginBottom: Spacing.md,
-  },
   word: {
     fontFamily: FontFamily.kashmiri,
     fontSize: FontSize.xl,
@@ -243,18 +213,5 @@ const styles = StyleSheet.create({
     lineHeight: LineHeight.body(FontSize.md),
     color: Colors.textSecondary,
     marginVertical: Spacing.sm,
-  },
-  closeBtn: {
-    marginTop: Spacing.lg,
-    alignSelf: 'stretch',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm + 4,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surfaceLight,
-  },
-  closeText: {
-    fontSize: FontSize.md,
-    fontFamily: FontFamily.bodySemi,
-    color: Colors.text,
   },
 });
