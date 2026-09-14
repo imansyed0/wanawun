@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,7 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
-  Modal,
-  KeyboardAvoidingView,
   Keyboard,
-  Platform,
   TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,15 +16,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Card } from '@/src/components/ui/Card';
 import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
 import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
-import { addGlossaryWord, deleteGlossaryWord, getGlossaryWords, invalidateWordCache } from '@/src/services/wordService';
-import {
-  isPendingWordId,
-  removePendingGlossaryWord,
-  stashPendingGlossaryWord,
-} from '@/src/services/pendingGlossaryService';
-import { useTutorialStore } from '@/src/stores/tutorialStore';
-import { getBubble } from '@/src/components/tutorial/tutorialCopy';
-import { Grandmother } from '@/src/components/onboarding/Grandmother';
+import { deleteGlossaryWord, getGlossaryWords, invalidateWordCache } from '@/src/services/wordService';
+import { isPendingWordId, removePendingGlossaryWord } from '@/src/services/pendingGlossaryService';
+import { useQuickAddStore } from '@/src/stores/quickAddStore';
 import { playAudio, stopAudio, startRecording, stopAndUploadRecording, linkAudioToWord } from '@/src/services/audioService';
 import { useAuth } from '@/src/hooks/useAuth';
 import type { WordEntry } from '@/src/types';
@@ -35,19 +26,10 @@ import type { WordEntry } from '@/src/types';
 export default function LearnScreen() {
   const [words, setWords] = useState<WordEntry[]>([]);
   const [search, setSearch] = useState('');
-  const [newKashmiri, setNewKashmiri] = useState('');
-  const [newEnglish, setNewEnglish] = useState('');
-  const [addError, setAddError] = useState('');
-  const [adding, setAdding] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const tutorialActive = useTutorialStore((s) => s.active);
-  const tutorialStep = useTutorialStore((s) => s.step);
-  const showTutorialHint = tutorialActive && isAddModalOpen && tutorialStep === 'add-word';
-  const tutorialBubble = showTutorialHint
-    ? getBubble('add-word', true, false, null, false)
-    : null;
+  // Words added through the app-wide quick-add sheet (the floating +).
+  const lastAdded = useQuickAddStore((s) => s.lastAdded);
 
   // Audio state
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -80,63 +62,23 @@ export default function LearnScreen() {
       w.english.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleAddWord = useCallback(async () => {
-    const trimmedKashmiri = newKashmiri.trim();
-    const trimmedEnglish = newEnglish.trim();
+  useEffect(() => {
+    if (!lastAdded) return;
+    const newWord = lastAdded;
+    setWords((prev) => {
+      const withoutDuplicate = prev.filter(
+        (entry) =>
+          !(
+            entry.kashmiri.trim().toLowerCase() === newWord.kashmiri.trim().toLowerCase() &&
+            entry.english.trim().toLowerCase() === newWord.english.trim().toLowerCase()
+          )
+      );
 
-    if (!trimmedKashmiri || !trimmedEnglish) {
-      setAddError('Enter both Kashmiri and English before adding a word.');
-      return;
-    }
-
-    setAdding(true);
-    setAddError('');
-
-    try {
-      // Signed-out words live locally and sync into the account on sign-in.
-      const newWord = user?.id
-        ? await addGlossaryWord(user.id, trimmedKashmiri, trimmedEnglish)
-        : await stashPendingGlossaryWord({ kashmiri: trimmedKashmiri, english: trimmedEnglish });
-      setWords((prev) => {
-        const withoutDuplicate = prev.filter(
-          (entry) =>
-            !(
-              entry.kashmiri.trim().toLowerCase() === newWord.kashmiri.trim().toLowerCase() &&
-              entry.english.trim().toLowerCase() === newWord.english.trim().toLowerCase()
-            )
-        );
-
-        return [...withoutDuplicate, newWord].sort((a, b) =>
-          a.kashmiri.localeCompare(b.kashmiri)
-        );
-      });
-      invalidateWordCache();
-      setNewKashmiri('');
-      setNewEnglish('');
-      setIsAddModalOpen(false);
-      useTutorialStore.getState().notify('wordAdded');
-    } catch (error: any) {
-      console.error('Glossary add error:', error);
-      setAddError(error?.message || 'Could not add this word right now.');
-    } finally {
-      setAdding(false);
-    }
-  }, [newEnglish, newKashmiri, user?.id]);
-
-  const openAddModal = useCallback(() => {
-    setAddError('');
-    setIsAddModalOpen(true);
-    useTutorialStore.getState().notify('addModalOpened');
-  }, []);
-
-  const closeAddModal = useCallback(() => {
-    if (adding) return;
-    setIsAddModalOpen(false);
-    setAddError('');
-    setNewKashmiri('');
-    setNewEnglish('');
-    useTutorialStore.getState().notify('addModalClosed');
-  }, [adding]);
+      return [...withoutDuplicate, newWord].sort((a, b) =>
+        a.kashmiri.localeCompare(b.kashmiri)
+      );
+    });
+  }, [lastAdded]);
 
   const handlePlay = useCallback(async (word: WordEntry) => {
     if (!word.audio_url) return;
@@ -333,75 +275,8 @@ export default function LearnScreen() {
             </Text>
           }
         />
-
-        <Pressable style={styles.fab} onPress={openAddModal}>
-          <Text style={styles.fabText}>+</Text>
-        </Pressable>
+        {/* The + to add a word is the app-wide QuickAddFab (root layout). */}
       </View>
-
-      <Modal
-        visible={isAddModalOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={closeAddModal}
-      >
-        <KeyboardAvoidingView
-          style={styles.modalRoot}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <Pressable style={styles.modalBackdrop} onPress={closeAddModal} />
-          <View style={styles.modalWrap}>
-            {tutorialBubble ? (
-              <View style={styles.tutorialHintRow} pointerEvents="none">
-                <Grandmother pose={tutorialBubble.pose} size={56} />
-                <View style={styles.tutorialHintBubble}>
-                  <Text style={styles.tutorialHintText}>{tutorialBubble.text}</Text>
-                </View>
-              </View>
-            ) : null}
-            <Card style={styles.addCard}>
-              <View style={styles.addHeader}>
-                <Text style={styles.addTitle}>Add To Glossary</Text>
-                <Pressable
-                  style={styles.closeButton}
-                  onPress={closeAddModal}
-                  disabled={adding}
-                >
-                  <Text style={styles.closeButtonText}>{'\u00D7'}</Text>
-                </Pressable>
-              </View>
-              <TextInput
-                style={[styles.addInput, styles.addInputKashmiri]}
-                placeholder="Kashmiri"
-                placeholderTextColor={Colors.textLight}
-                value={newKashmiri}
-                onChangeText={setNewKashmiri}
-                autoCapitalize="none"
-              />
-              <TextInput
-                style={styles.addInput}
-                placeholder="English"
-                placeholderTextColor={Colors.textLight}
-                value={newEnglish}
-                onChangeText={setNewEnglish}
-                autoCapitalize="none"
-              />
-              <Pressable
-                style={[
-                  styles.addButton,
-                  (!newKashmiri.trim() || !newEnglish.trim() || adding) &&
-                    styles.addButtonDisabled,
-                ]}
-                onPress={handleAddWord}
-                disabled={!newKashmiri.trim() || !newEnglish.trim() || adding}
-              >
-                <Text style={styles.addButtonText}>{adding ? 'Adding...' : 'Add'}</Text>
-              </Pressable>
-              {addError ? <Text style={styles.addError}>{addError}</Text> : null}
-            </Card>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -437,132 +312,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     fontSize: FontSize.md,
     color: Colors.text,
-  },
-  fab: {
-    position: 'absolute',
-    right: Spacing.lg,
-    bottom: Spacing.xl,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
-  },
-  fabText: {
-    color: '#fff',
-    fontSize: 30,
-    lineHeight: LineHeight.body(30),
-    fontFamily: FontFamily.bodySemi,
-  },
-  modalRoot: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(8, 20, 24, 0.45)',
-  },
-  modalWrap: {
-    paddingHorizontal: Spacing.lg,
-  },
-  tutorialHintRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: Spacing.xs,
-    marginBottom: Spacing.sm,
-  },
-  tutorialHintBubble: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderBottomLeftRadius: 4,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  tutorialHintText: {
-    fontSize: FontSize.sm,
-    lineHeight: LineHeight.body(FontSize.sm),
-    color: Colors.text,
-    fontFamily: FontFamily.bodySemi,
-  },
-  addCard: {
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  addHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.xs,
-  },
-  addTitle: {
-    fontSize: FontSize.lg,
-    fontFamily: FontFamily.heading,
-    color: Colors.primaryDark,
-  },
-  addInput: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    minHeight: 48,
-    backgroundColor: Colors.surfaceLight,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    fontSize: FontSize.md,
-    color: Colors.text,
-  },
-  addInputKashmiri: {
-    // Kashmiri is set in Amiri here too, so the field needs the same
-    // generous line box the glossary rows get.
-    fontFamily: FontFamily.kashmiriRegular,
-    fontSize: FontSize.lg,
-    minHeight: 56,
-  },
-  addButton: {
-    minHeight: 44,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.md,
-  },
-  addButtonDisabled: {
-    opacity: 0.45,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontSize: FontSize.md,
-    fontFamily: FontFamily.bodyBold,
-  },
-  addError: {
-    fontSize: FontSize.sm,
-    color: Colors.wrong,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.surfaceLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeButtonText: {
-    color: Colors.textSecondary,
-    fontSize: 22,
-    lineHeight: 24,
   },
   recordingBanner: {
     flexDirection: 'row',

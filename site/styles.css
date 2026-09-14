@@ -135,6 +135,87 @@ p { margin: 8px 0 12px; }
 .signup button:hover { background: var(--primary-dark); }
 .signup .hp { display: none; }
 
+/* /join — QR-code sign-up page (mobile-first) */
+.join h1 { font-size: 32px; }
+@media (min-width: 560px) { .join h1 { font-size: 36px; } }
+.join .signup { padding: 20px; margin: 24px 0; }
+@media (min-width: 560px) { .join .signup { padding: 24px; } }
+.join .signup form { display: block; }
+.join .field { margin: 0 0 16px; }
+.join fieldset.field { border: 0; padding: 0; min-width: 0; }
+.join label,
+.join legend {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text);
+  padding: 0;
+}
+.join .optional { font-weight: 400; color: var(--text-light); }
+.join input[type="text"],
+.join input[type="email"],
+.join input[type="tel"],
+.join select {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 16px; /* >=16px stops iOS zooming on focus */
+  font-family: inherit;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.join select {
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-secondary) 50%), linear-gradient(135deg, var(--text-secondary) 50%, transparent 50%);
+  background-position: calc(100% - 20px) 50%, calc(100% - 15px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 36px;
+}
+.join input:focus,
+.join select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(110,146,133,0.15);
+}
+.join input[aria-invalid="true"] { border-color: #B5523B; }
+.join label.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-weight: 400;
+  font-size: 15px;
+  padding: 8px 0;
+  margin: 0;
+  cursor: pointer;
+}
+.join label.check input {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  accent-color: var(--primary);
+}
+.join label.consent { color: var(--text-secondary); font-size: 14px; }
+.join .error {
+  color: #B5523B;
+  font-size: 14px;
+  margin: 6px 0 0;
+}
+.join .form-error { margin: 0 0 12px; }
+.join .signup button[type="submit"] {
+  display: block;
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 17px;
+}
+.join .signup button[disabled] { opacity: 0.7; cursor: default; }
+.join-success:focus { outline: none; }
+
 .feature-grid {
   display: grid;
   grid-template-columns: 1fr;
