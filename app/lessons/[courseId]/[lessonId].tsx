@@ -52,6 +52,7 @@ import {
   attachVerbosePlaybackLogging,
 } from '@/src/services/audioService';
 import { invalidateWordCache } from '@/src/services/wordService';
+import { PlayButton, RecordButton, RecordingTimer } from '@/src/components/ui/RecordControls';
 import { markClipListened, getListenedClips } from '@/src/services/clipProgressService';
 
 // Cap lesson images at a reasonable fraction of the screen so tall/portrait
@@ -531,7 +532,7 @@ export default function LessonPlayerScreen() {
     const k = newKashmiri.trim();
     const e = newEnglish.trim();
     if (!k || !e) {
-      setVocabError('Enter both Kashmiri and English before adding a word.');
+      setVocabError('Enter both Kashmiri and English before adding a word or phrase.');
       return;
     }
     if (!user?.id) {
@@ -1242,34 +1243,25 @@ export default function LessonPlayerScreen() {
                 Words & Phrases ({vocab.length})
               </Text>
               <Text style={styles.vocabHint}>
-                Add words you hear — they sync to the glossary
+                Add words/phrases you hear — they sync to the glossary
               </Text>
               {!user?.id ? (
                 <Text style={styles.vocabWarning}>
-                  Sign in to add words from lessons.
+                  Sign in to add words/phrases from lessons.
                 </Text>
               ) : null}
               <View style={styles.audioGuideCard}>
                 <Text style={styles.audioGuideTitle}>Record lesson audio</Text>
                 <Text style={styles.audioGuideText}>
-                  1. Add the vocab word above.
+                  1. Add the word/phrase above.
                 </Text>
                 <Text style={styles.audioGuideText}>
                   2. Wait for the green checkmark to appear.
                 </Text>
                 <Text style={styles.audioGuideText}>
-                  3. Tap Record, then tap Stop to upload the audio to the glossary.
+                  3. Tap the red record button, then tap stop to upload the audio to the glossary.
                 </Text>
               </View>
-
-              {vocabRecordingId && (
-                <View style={styles.recordingBanner}>
-                  <View style={styles.recordingDot} />
-                  <Text style={styles.recordingText}>
-                    Recording... tap Stop on the matching word to upload it.
-                  </Text>
-                </View>
-              )}
 
               <View style={styles.addRow}>
                 <TextInput
@@ -1309,7 +1301,7 @@ export default function LessonPlayerScreen() {
 
               {vocab.length === 0 ? (
                 <Text style={styles.emptyVocab}>
-                  No words added yet. Listen and add words you learn!
+                  No words/phrases added yet. Listen and add what you learn!
                 </Text>
               ) : (
                 vocab.map((item) => {
@@ -1320,6 +1312,19 @@ export default function LessonPlayerScreen() {
 
                   return (
                     <View key={item.id} style={styles.vocabRow}>
+                      {/* Delete sits on the left, away from the play/record controls, so it isn't hit by accident. */}
+                      <View style={styles.deleteSlot}>
+                        {isItemRecording ? null : (
+                          <Pressable
+                            onPress={() => handleDeleteVocab(item)}
+                            style={styles.deleteBtn}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Delete ${item.kashmiri}`}
+                          >
+                            <Text style={styles.deleteBtnText}>{'×'}</Text>
+                          </Pressable>
+                        )}
+                      </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.vocabKashmiri}>{item.kashmiri}</Text>
                         <Text style={styles.vocabEnglish}>{item.english}</Text>
@@ -1330,45 +1335,32 @@ export default function LessonPlayerScreen() {
                             <Text style={styles.syncBadgeText}>{'\u2713'}</Text>
                           </View>
                         )}
-                        {hasItemAudio && (
-                          <Pressable
-                            style={[styles.vocabAudioBtn, isItemPlaying && styles.vocabAudioBtnActive]}
-                            onPress={() => handleVocabPlay(item)}
-                          >
-                            <Text style={[styles.vocabAudioIcon, isItemPlaying && styles.vocabAudioIconActive]}>
-                              {isItemPlaying ? '\u23F9' : '\u25B6'}
-                            </Text>
-                          </Pressable>
+                        {isItemSaving ? (
+                          <ActivityIndicator size="small" color={Colors.primary} />
+                        ) : isItemRecording ? (
+                          <>
+                            <RecordingTimer active />
+                            <RecordButton recording onPress={() => handleVocabRecord(item)} size={30} />
+                          </>
+                        ) : (
+                          <>
+                            {hasItemAudio && (
+                              <PlayButton
+                                playing={isItemPlaying}
+                                onPress={() => handleVocabPlay(item)}
+                                size={30}
+                              />
+                            )}
+                            {item.word_id && (
+                              <RecordButton
+                                recording={false}
+                                size={hasItemAudio ? 24 : 30}
+                                onPress={() => handleVocabRecord(item)}
+                                accessibilityLabel={hasItemAudio ? 'Re-record audio' : 'Record audio'}
+                              />
+                            )}
+                          </>
                         )}
-                        {item.word_id && (
-                          isItemSaving ? (
-                            <ActivityIndicator size="small" color={Colors.primary} />
-                          ) : (
-                            <Pressable
-                              style={[
-                                styles.vocabAudioBtn,
-                                styles.vocabRecordBtn,
-                                isItemRecording && styles.vocabRecordBtnActive,
-                              ]}
-                              onPress={() => handleVocabRecord(item)}
-                            >
-                              <Text
-                                style={[
-                                  styles.vocabRecordIcon,
-                                  isItemRecording && styles.vocabRecordIconActive,
-                                ]}
-                              >
-                                {isItemRecording ? 'Stop' : 'Record'}
-                              </Text>
-                            </Pressable>
-                          )
-                        )}
-                        <Pressable
-                          onPress={() => handleDeleteVocab(item)}
-                          style={styles.deleteBtn}
-                        >
-                          <Text style={styles.deleteBtnText}>{'\u00D7'}</Text>
-                        </Pressable>
                       </View>
                     </View>
                   );
@@ -1812,6 +1804,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   syncBadgeText: { color: '#fff', fontSize: 12, fontFamily: FontFamily.bodyBold },
+  deleteSlot: {
+    width: 28,
+    marginRight: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   deleteBtn: {
     width: 28,
     height: 28,
@@ -1821,52 +1819,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deleteBtnText: { color: Colors.wrong, fontSize: 18, fontFamily: FontFamily.bodyBold, lineHeight: 20 },
-  vocabAudioBtn: {
-    minWidth: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.surfaceLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xs,
-  },
-  vocabAudioBtnActive: { backgroundColor: Colors.primary },
-  vocabAudioIcon: { fontSize: 12, color: Colors.primary },
-  vocabAudioIconActive: { color: '#fff' },
-  vocabRecordBtn: {
-    backgroundColor: '#fef2f2',
-    minWidth: 76,
-    paddingHorizontal: Spacing.md,
-  },
-  vocabRecordBtnActive: { backgroundColor: Colors.wrong },
-  vocabRecordIcon: {
-    color: Colors.wrong,
-    fontSize: FontSize.xs,
-    fontFamily: FontFamily.bodyBold,
-    letterSpacing: 0.2,
-  },
-  vocabRecordIconActive: { color: '#fff' },
-  recordingBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fef2f2',
-    marginBottom: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-    gap: Spacing.sm,
-  },
-  recordingDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.wrong,
-  },
-  recordingText: {
-    fontSize: FontSize.sm,
-    color: Colors.wrong,
-    fontFamily: FontFamily.bodySemi,
-  },
   emptyVocab: {
     textAlign: 'center',
     color: Colors.textLight,

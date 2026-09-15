@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/src/lib/supabase';
-import { nativeGoogleSignIn } from '@/src/lib/googleSignIn';
+import { nativeGoogleSignIn, nativeGoogleSignOut } from '@/src/lib/googleSignIn';
 import { emailConfirmationUrl } from '@/src/lib/authRedirect';
 import { clearClipProgressCache } from '@/src/services/clipProgressService';
 import { clearSrsCache } from '@/src/services/srsService';
@@ -104,7 +104,7 @@ export function useAuth() {
 
   async function signUp(email: string, password: string, displayName: string) {
     const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: email.trim().toLowerCase(),
       password,
       options: {
         data: { display_name: displayName.trim() },
@@ -112,7 +112,24 @@ export function useAuth() {
       },
     });
     if (error) throw error;
-    return data;
+    return {
+      ...data,
+      // With email confirmation on, Supabase hides "already registered" to stop
+      // email enumeration: it returns a user with no identities, no session and
+      // no error, and sends no email. Surface it so the screen can say so
+      // instead of "check your email" for a message that never arrives.
+      alreadyRegistered:
+        !data.session && Array.isArray(data.user?.identities) && data.user.identities.length === 0,
+    };
+  }
+
+  async function resendSignUpEmail(email: string) {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim().toLowerCase(),
+      options: { emailRedirectTo: emailConfirmationUrl() },
+    });
+    if (error) throw error;
   }
 
   async function signIn(email: string, password: string) {
@@ -130,13 +147,24 @@ export function useAuth() {
       provider: 'google',
       token: idToken,
     });
-    if (error) throw error;
+    if (error) {
+      // Typical causes: token `aud` (the web client ID on Android, the iOS client
+      // ID on iOS) not in Supabase's Google "Client IDs" list, or a nonce mismatch.
+      console.error('[GoogleSignIn] Supabase signInWithIdToken failed', {
+        status: error.status,
+        code: error.code,
+        message: error.message,
+      });
+      await nativeGoogleSignOut();
+      throw new Error(`Google sign-in was rejected by the server: ${error.message}`);
+    }
     return data;
   }
 
   async function signOut() {
     await clearClipProgressCache();
     await clearSrsCache();
+    await nativeGoogleSignOut();
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   }
@@ -147,6 +175,7 @@ export function useAuth() {
     profile,
     loading,
     signUp,
+    resendSignUpEmail,
     signIn,
     signInWithGoogle,
     signOut,

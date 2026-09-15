@@ -159,7 +159,7 @@ export default function ProfileScreen() {
           </Card>
           <Card style={styles.statCard}>
             <Text style={styles.statValue}>{wordCount}</Text>
-            <Text style={styles.statLabel}>Words</Text>
+            <Text style={styles.statLabel}>Words/Phrases</Text>
           </Card>
         </View>
 
@@ -199,7 +199,7 @@ export default function ProfileScreen() {
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Delete your account?</Text>
             <Text style={styles.modalBody}>
-              This permanently removes your profile, saved words, lesson progress and
+              This permanently removes your profile, saved words/phrases, lesson progress and
               game history. It cannot be undone, and you will need to create a new
               account to use Wanwun again.
             </Text>
