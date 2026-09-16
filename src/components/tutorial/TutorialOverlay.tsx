@@ -41,6 +41,22 @@ import { startTourMusic, stopTourMusic } from '@/src/services/tourMusic';
 /** Naani's copy writes the app's + button as {plus}; see tutorialCopy. */
 const PLUS_TOKEN = '{plus}';
 
+/**
+ * How tall Naani stands under her bubble. She sits in the strip between the
+ * bubble and the tab bar, and that strip also has to be taller than the
+ * floating + button (56px, Spacing.md above the tab bar) so the bubble never
+ * lands on top of it.
+ */
+const GRANNY_SIZE = 104;
+
+/**
+ * Height of a screen's title block (title + one line of subtitle). The only
+ * top-docked step is Flashcards, and starting her right under the title keeps
+ * "Flashcards / Spaced repetition…" readable instead of hiding the screen she
+ * is naming.
+ */
+const SCREEN_TITLE_HEIGHT = 96;
+
 /** Her line, with {plus} drawn as a small green + like the floating button. */
 function bubbleContent(text: string) {
   const pieces = text.split(PLUS_TOKEN);
@@ -171,9 +187,6 @@ export function TutorialOverlay() {
   const section = sectionForStep(step);
   // The ring points at a tab, so it only makes sense on the tab screens.
   const highlightPath: TourPath | null = step === 'wrap' || !onTabs ? null : stepPath;
-  // The + button floats bottom-right on every tab (56px wide, Spacing.lg from
-  // the edge), so the bubble always leaves room or it covers Next.
-  const padRight = 88;
   // The card fills the middle of the Flashcards screen and its buttons sit at
   // the bottom, so there's no room for her down there: dock her at the top for
   // that step, leaving the word and the rating pills clear.
@@ -190,19 +203,15 @@ export function TutorialOverlay() {
         style={[
           styles.root,
           dockTop
-            ? { top: insets.top + Spacing.md }
+            ? { top: insets.top + SCREEN_TITLE_HEIGHT }
             : { bottom: (onTabs ? TabBarContentHeight : Spacing.md) + insets.bottom },
         ]}
       >
         <Animated.View
           entering={FadeInDown.duration(300)}
-          style={[styles.row, { paddingRight: padRight }]}
+          style={styles.stack}
           pointerEvents="box-none"
         >
-          <View style={styles.granny} pointerEvents="none">
-            <Grandmother pose={bubble.pose} size={110} />
-          </View>
-
           <View style={styles.bubble}>
             <Animated.Text key={bubble.text} entering={FadeIn.duration(200)} style={styles.bubbleText}>
               {bubbleContent(bubble.text)}
@@ -261,6 +270,10 @@ export function TutorialOverlay() {
             >
               <Text style={styles.skipText}>×</Text>
             </Pressable>
+          </View>
+
+          <View style={styles.granny} pointerEvents="none">
+            <Grandmother pose={bubble.pose} size={GRANNY_SIZE} />
           </View>
         </Animated.View>
       </View>
@@ -366,32 +379,32 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    alignItems: 'flex-start',
+    alignItems: 'stretch',
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingLeft: Spacing.sm,
-    gap: 2,
+  // Bubble on top at full width, Naani under its bottom-left corner. Standing
+  // her beside it instead left the bubble about 180px wide on a phone, which
+  // wrapped every line after three words and made the bubble tall enough to
+  // cover the screen behind it.
+  stack: {
+    paddingHorizontal: Spacing.sm,
     maxWidth: 560,
     width: '100%',
     alignSelf: 'center',
   },
   granny: {
-    marginBottom: -6,
+    alignSelf: 'flex-start',
+    marginLeft: Spacing.xs,
   },
   bubble: {
-    flex: 1,
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.lg,
+    // Squared-off bottom-left corner: the tail, pointing down at Naani.
     borderBottomLeftRadius: 4,
     borderWidth: 1,
     borderColor: Colors.border,
-    // Naani gets plenty of room: her bubble can take up half the screen.
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    paddingRight: Spacing.lg,
-    marginBottom: Spacing.md,
+    paddingRight: Spacing.xl,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
