@@ -91,10 +91,10 @@ export default function LessonsScreen() {
                   </View>
                 </View>
                 <Text style={styles.description}>{item.description}</Text>
-                {/* Only once something's ticked off: "0 of 50" greets nobody well. */}
+                {/* Only once something's complete: "0 of 50" greets nobody well. */}
                 {listened[item.id] ? (
                   <Text style={styles.progress}>
-                    {'✓'} {listened[item.id]} of {item.lessons.length} ticked off
+                    {'✓'} {listened[item.id]} of {item.lessons.length} complete
                   </Text>
                 ) : null}
               </Card>
