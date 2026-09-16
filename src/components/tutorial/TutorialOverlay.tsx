@@ -162,8 +162,9 @@ export function TutorialOverlay() {
   const offTrack = !!stepPath && pathname !== stepPath && step !== 'open-add';
   const section = sectionForStep(step);
   const highlightPath: TourPath | null = step === 'wrap' ? null : stepPath;
-  // The Glossary's + FAB sits bottom-right; keep the bubble clear of it.
-  const padRight = onGlossary ? 88 : Spacing.md;
+  // The + button floats bottom-right on every tab (56px wide, Spacing.lg from
+  // the edge), so the bubble always leaves room or it covers Next.
+  const padRight = 88;
 
   return (
     <>
