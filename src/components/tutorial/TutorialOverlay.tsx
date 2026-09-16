@@ -36,6 +36,7 @@ import {
 } from '@/src/components/tutorial/tutorialCopy';
 import { dictionaryAudioUrls } from '@/src/lib/englishDictionary';
 import { playAudio, stopAudio } from '@/src/services/audioService';
+import { startTourMusic, stopTourMusic } from '@/src/services/tourMusic';
 
 /** Naani's copy writes the app's + button as {plus}; see tutorialCopy. */
 const PLUS_TOKEN = '{plus}';
@@ -64,6 +65,17 @@ export function TutorialOverlay() {
     useTutorialStore();
 
   const [introIndex, setIntroIndex] = useState(0);
+
+  // Quiet music for as long as the tour is running. Stops on Skip, on the last
+  // step, and if this overlay goes away with the tour still open.
+  useEffect(() => {
+    if (!active) {
+      stopTourMusic();
+      return;
+    }
+    void startTourMusic();
+    return stopTourMusic;
+  }, [active]);
 
   // Naani's suggested word: tapping it plays the dictionary's recording, so the
   // learner hears it before adding it themselves.
