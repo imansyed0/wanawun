@@ -313,8 +313,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   bubbleText: {
-    fontSize: FontSize.sm,
-    lineHeight: LineHeight.body(FontSize.sm),
+    fontSize: FontSize.md,
+    lineHeight: LineHeight.body(FontSize.md),
     color: Colors.text,
     fontFamily: FontFamily.bodySemi,
   },

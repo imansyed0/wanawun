@@ -130,6 +130,8 @@ export async function addGlossaryWord(
     .select('id, audio_url')
     .ilike('kashmiri', trimmedKashmiri)
     .ilike('english', trimmedEnglish)
+    // If the dictionary has duplicates, link to the one that has a recording.
+    .order('audio_url', { ascending: true, nullsFirst: false })
     .limit(1)
     .maybeSingle();
 

@@ -1354,7 +1354,7 @@ export default function LessonPlayerScreen() {
                             {item.word_id && (
                               <RecordButton
                                 recording={false}
-                                size={hasItemAudio ? 24 : 30}
+                                size={30}
                                 onPress={() => handleVocabRecord(item)}
                                 accessibilityLabel={hasItemAudio ? 'Re-record audio' : 'Record audio'}
                               />

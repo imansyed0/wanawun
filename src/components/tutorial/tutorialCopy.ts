@@ -3,7 +3,7 @@ import type { TutorialStep } from '@/src/stores/tutorialStore';
 
 // Full-screen hello before the tour moves onto the real app.
 export const INTRO_LINES = [
-  'Salaam, jaan. I’m Naani. Sit with me a minute.',
+  'Salaam, jaanu. I’m Naani. Sit with me a minute.',
   'Wanwun is for learning Koshur the way your own family speaks it, not the way a textbook does.',
   'Let me walk you round the app. It’s quick, and you can send me away any time with Skip.',
 ];
@@ -86,15 +86,15 @@ export function getBubble(
       };
     case 'open-add':
       if (!onGlossary) {
-        return { text: 'Go back to the Glossary tab first, jaan.', pose: 'point' };
+        return { text: 'Go back to the Glossary tab first, jaanu.', pose: 'point' };
       }
       return {
-        text: 'Let’s add one together. Tap the + and put in d’ad. It means grandmother, so you won’t forget it.',
+        text: 'Let’s add one together. Tap the + and put in samandar. It means ocean.',
         pose: 'point',
       };
     case 'add-word':
       return {
-        text: 'Write d’ad in the Kashmiri box and grandmother in the English one, then tap Add.',
+        text: 'Write samandar in the Kashmiri box and ocean in the English one, then tap Add.',
         pose: 'kangri',
       };
     case 'word-added':
@@ -128,7 +128,7 @@ export function getBubble(
       };
     case 'wrap':
       return {
-        text: 'That’s all of it, jaan. Add words when you hear them and do a few flashcards each day. Come see me again pagah. That means tomorrow.',
+        text: 'That’s all of it, jaanu. Add words when you hear them and do a few flashcards each day. Come see me again pagah. That means tomorrow.',
         pose: 'wave',
       };
     default:

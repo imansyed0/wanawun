@@ -1,14 +1,21 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontFamily, TabBarContentHeight } from '@/src/constants/theme';
 import { SymbolView } from 'expo-symbols';
 import { TutorialOverlay } from '@/src/components/tutorial/TutorialOverlay';
+import { useAuth } from '@/src/hooks/useAuth';
 
 const TAB_ICON_SIZE = 26;
 
 export default function TabLayout() {
+  const { user, loading } = useAuth();
+
+  // Every tab needs an account. This also catches signing out and deep links.
+  if (loading) return <View style={{ flex: 1, backgroundColor: Colors.background }} />;
+  if (!user) return <Redirect href={'/welcome' as Href} />;
+
   return (
     <View style={{ flex: 1 }}>
       <TabsNav />

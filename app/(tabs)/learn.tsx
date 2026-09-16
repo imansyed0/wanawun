@@ -29,7 +29,15 @@ import { getGlossaryWordsWithStarters } from '@/src/services/starterGlossaryServ
 import { useTutorialStore } from '@/src/stores/tutorialStore';
 import { getBubble } from '@/src/components/tutorial/tutorialCopy';
 import { Grandmother } from '@/src/components/onboarding/Grandmother';
-import { playAudio, stopAudio, startRecording, stopAndUploadRecording, linkAudioToWord } from '@/src/services/audioService';
+import {
+  playAudio,
+  stopAudio,
+  startRecording,
+  stopRecording,
+  stopAndUploadRecording,
+  uploadRecording,
+  linkAudioToWord,
+} from '@/src/services/audioService';
 import { PlayButton, RecordButton, RecordingTimer } from '@/src/components/ui/RecordControls';
 import { useAuth } from '@/src/hooks/useAuth';
 import type { WordEntry } from '@/src/types';
@@ -57,6 +65,13 @@ export default function LearnScreen() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const recordingRef = useRef<AudioRecorder | null>(null);
+
+  // Optional clip recorded in the add sheet. The word doesn't exist yet, so it's
+  // kept locally and uploaded once Add has created the word.
+  const draftRecorderRef = useRef<AudioRecorder | null>(null);
+  const [draftState, setDraftState] = useState<'idle' | 'recording' | 'recorded'>('idle');
+  const [draftUri, setDraftUri] = useState<string | null>(null);
+  const [draftPlaying, setDraftPlaying] = useState(false);
 
   const loadWords = useCallback(async () => {
     setLoading(true);
@@ -110,6 +125,21 @@ export default function LearnScreen() {
       const newWord = user?.id
         ? await addGlossaryWord(user.id, trimmedKashmiri, trimmedEnglish)
         : await stashPendingGlossaryWord({ kashmiri: trimmedKashmiri, english: trimmedEnglish });
+      if (
+        draftUri &&
+        user?.id &&
+        !newWord.id.startsWith('lesson-vocab:') &&
+        !isPendingWordId(newWord.id)
+      ) {
+        // Attach the clip recorded in the sheet. A failed upload shouldn't lose the word.
+        try {
+          const url = await uploadRecording(draftUri, user.id, newWord.id);
+          await linkAudioToWord(newWord.id, url);
+          newWord.audio_url = url;
+        } catch (audioError) {
+          console.error('Add-sheet recording upload error:', audioError);
+        }
+      }
       setWords((prev) => {
         const withoutDuplicate = prev.filter(
           (entry) =>
@@ -126,6 +156,9 @@ export default function LearnScreen() {
       invalidateWordCache();
       setNewKashmiri('');
       setNewEnglish('');
+      setDraftState('idle');
+      setDraftUri(null);
+      setDraftPlaying(false);
       setIsAddModalOpen(false);
       useTutorialStore.getState().notify('wordAdded');
     } catch (error: any) {
@@ -134,7 +167,7 @@ export default function LearnScreen() {
     } finally {
       setAdding(false);
     }
-  }, [newEnglish, newKashmiri, user?.id]);
+  }, [draftUri, newEnglish, newKashmiri, user?.id]);
 
   const openAddModal = useCallback(() => {
     setAddError('');
@@ -144,12 +177,73 @@ export default function LearnScreen() {
 
   const closeAddModal = useCallback(() => {
     if (adding) return;
+    // Closing the sheet throws away any clip that wasn't saved with a word.
+    if (draftRecorderRef.current) {
+      stopRecording(draftRecorderRef.current).catch(() => {});
+      draftRecorderRef.current = null;
+    }
+    if (draftPlaying) stopAudio();
+    setDraftState('idle');
+    setDraftUri(null);
+    setDraftPlaying(false);
     setIsAddModalOpen(false);
     setAddError('');
     setNewKashmiri('');
     setNewEnglish('');
     useTutorialStore.getState().notify('addModalClosed');
-  }, [adding]);
+  }, [adding, draftPlaying]);
+
+  const handleDraftRecord = useCallback(async () => {
+    // Tapping stop keeps the clip locally until Add.
+    if (draftRecorderRef.current) {
+      const recorder = draftRecorderRef.current;
+      draftRecorderRef.current = null;
+      try {
+        const uri = await stopRecording(recorder);
+        setDraftUri(uri);
+        setDraftState('recorded');
+      } catch (e) {
+        console.error('Add-sheet recording stop error:', e);
+        setDraftState(draftUri ? 'recorded' : 'idle');
+      }
+      return;
+    }
+    try {
+      if (draftPlaying) {
+        await stopAudio();
+        setDraftPlaying(false);
+      }
+      draftRecorderRef.current = await startRecording();
+      setAddError('');
+      setDraftState('recording');
+    } catch (e: any) {
+      console.error('Add-sheet recording start error:', e);
+      setAddError(e?.message || 'Could not start recording.');
+    }
+  }, [draftPlaying, draftUri]);
+
+  const handleDraftPlay = useCallback(async () => {
+    if (!draftUri) return;
+    if (draftPlaying) {
+      await stopAudio();
+      setDraftPlaying(false);
+      return;
+    }
+    setDraftPlaying(true);
+    try {
+      await playAudio(draftUri, { onFinish: () => setDraftPlaying(false) });
+    } catch (e) {
+      console.error('Add-sheet playback error:', e);
+      setDraftPlaying(false);
+    }
+  }, [draftPlaying, draftUri]);
+
+  const discardDraft = useCallback(async () => {
+    if (draftPlaying) await stopAudio();
+    setDraftPlaying(false);
+    setDraftUri(null);
+    setDraftState('idle');
+  }, [draftPlaying]);
 
   const handlePlay = useCallback(async (word: WordEntry) => {
     if (!word.audio_url) return;
@@ -279,7 +373,6 @@ export default function LearnScreen() {
                 {canRecord ? (
                   <RecordButton
                     recording={false}
-                    size={26}
                     onPress={() => handleRecord(item)}
                     accessibilityLabel="Re-record audio"
                   />
@@ -387,14 +480,54 @@ export default function LearnScreen() {
                   <Text style={styles.closeButtonText}>{'\u00D7'}</Text>
                 </Pressable>
               </View>
-              <TextInput
-                style={[styles.addInput, styles.addInputKashmiri]}
-                placeholder="Kashmiri"
-                placeholderTextColor={Colors.textLight}
-                value={newKashmiri}
-                onChangeText={setNewKashmiri}
-                autoCapitalize="none"
-              />
+              {/* The recording is of the Kashmiri pronunciation, so its controls sit on the
+                  Kashmiri row. Recordings upload to the user's storage, so only signed-in
+                  users can record. */}
+              <View style={styles.kashmiriRow}>
+                <TextInput
+                  style={[styles.addInput, styles.addInputKashmiri]}
+                  placeholder="Kashmiri"
+                  placeholderTextColor={Colors.textLight}
+                  value={newKashmiri}
+                  onChangeText={setNewKashmiri}
+                  autoCapitalize="none"
+                />
+                {user?.id ? (
+                  <View style={styles.pronunciationControls}>
+                    {draftState === 'recorded' ? (
+                      <>
+                        <PlayButton
+                          playing={draftPlaying}
+                          onPress={handleDraftPlay}
+                          accessibilityLabel="Play Kashmiri pronunciation"
+                        />
+                        <Pressable
+                          style={styles.draftDiscard}
+                          onPress={discardDraft}
+                          disabled={adding}
+                          hitSlop={6}
+                          accessibilityRole="button"
+                          accessibilityLabel="Remove pronunciation recording"
+                        >
+                          <Text style={styles.draftDiscardText}>{'×'}</Text>
+                        </Pressable>
+                      </>
+                    ) : (
+                      <>
+                        {draftState === 'recording' ? <RecordingTimer active /> : null}
+                        <RecordButton
+                          recording={draftState === 'recording'}
+                          onPress={handleDraftRecord}
+                          disabled={adding}
+                          accessibilityLabel={
+                            draftState === 'recording' ? 'Stop recording' : 'Record Kashmiri pronunciation'
+                          }
+                        />
+                      </>
+                    )}
+                  </View>
+                ) : null}
+              </View>
               <TextInput
                 style={styles.addInput}
                 placeholder="English"
@@ -406,11 +539,11 @@ export default function LearnScreen() {
               <Pressable
                 style={[
                   styles.addButton,
-                  (!newKashmiri.trim() || !newEnglish.trim() || adding) &&
+                  (!newKashmiri.trim() || !newEnglish.trim() || adding || draftState === 'recording') &&
                     styles.addButtonDisabled,
                 ]}
                 onPress={handleAddWord}
-                disabled={!newKashmiri.trim() || !newEnglish.trim() || adding}
+                disabled={!newKashmiri.trim() || !newEnglish.trim() || adding || draftState === 'recording'}
               >
                 <Text style={styles.addButtonText}>{adding ? 'Adding...' : 'Add'}</Text>
               </Pressable>
@@ -530,8 +663,8 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   tutorialHintText: {
-    fontSize: FontSize.sm,
-    lineHeight: LineHeight.body(FontSize.sm),
+    fontSize: FontSize.md,
+    lineHeight: LineHeight.body(FontSize.md),
     color: Colors.text,
     fontFamily: FontFamily.bodySemi,
   },
@@ -562,10 +695,9 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   addInputKashmiri: {
-    // Kashmiri is set in Amiri here too, so the field needs the same
-    // generous line box the glossary rows get.
-    fontFamily: FontFamily.kashmiriRegular,
-    fontSize: FontSize.lg,
+    // Same font and size as the English field; a little taller so typed
+    // Kashmiri diacritics aren't clipped. Fills the row beside the record controls.
+    flex: 1,
     minHeight: 56,
   },
   addButton: {
@@ -627,12 +759,41 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     lineHeight: LineHeight.body(FontSize.md),
     color: Colors.textSecondary,
-    marginTop: 2,
+    // Amiri's tall line box leaves spare room under the Kashmiri; pull the English up.
+    marginTop: -Spacing.xs,
   },
+  // Fixed width so the text column lines up on every card, whatever controls it shows.
   audioActions: {
+    width: 80,
+    marginLeft: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: Spacing.xs,
+  },
+  kashmiriRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  pronunciationControls: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
+  },
+  draftDiscard: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#fff1f2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  draftDiscardText: {
+    color: Colors.wrong,
+    fontSize: 16,
+    fontFamily: FontFamily.bodyBold,
+    lineHeight: 18,
   },
   deleteSlot: {
     width: 34,

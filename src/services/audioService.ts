@@ -9,10 +9,19 @@ import {
   type AudioRecorder,
   type AudioStatus,
 } from 'expo-audio';
-import AudioModule from 'expo-audio/build/AudioModule';
+// A namespace import, because this path resolves per platform: natively it's
+// AudioModule.js (default export = the native module), but on web it's
+// AudioModule.web.js, which has no default export and names the recorder
+// AudioRecorderWeb. Its .d.ts only describes the native shape.
+import * as AudioModuleExports from 'expo-audio/build/AudioModule';
+import { createRecordingOptions } from 'expo-audio/build/utils/options';
 import { File } from 'expo-file-system';
 import { supabase } from '@/src/lib/supabase';
 import { Platform } from 'react-native';
+
+type WebAudioModuleExports = {
+  AudioRecorderWeb: new (options: unknown) => AudioRecorder;
+};
 
 let _sound: AudioPlayer | null = null;
 let _onAudioFinish: (() => void) | null = null;
@@ -363,10 +372,36 @@ export async function startRecording(): Promise<AudioRecorder> {
   }
 
   await setAudioModeAsync(RECORDING_AUDIO_MODE);
-  const recording = new AudioModule.AudioRecorder(NATIVE_RECORDING_OPTIONS) as AudioRecorder;
+  const recording = (
+    Platform.OS === 'web'
+      ? new (AudioModuleExports as unknown as WebAudioModuleExports).AudioRecorderWeb(
+          // The web recorder reads mimeType/bitsPerSecond from the top level, so
+          // flatten the preset the same way expo-audio's own useAudioRecorder does.
+          createRecordingOptions(RecordingPresets.HIGH_QUALITY)
+        )
+      : new AudioModuleExports.default.AudioRecorder(NATIVE_RECORDING_OPTIONS)
+  ) as AudioRecorder;
   await recording.prepareToRecordAsync();
   recording.record();
   return recording;
+}
+
+/** Stop a recording and release the recorder. Returns the local file URI,
+ *  which stays readable so it can be previewed and uploaded later. */
+export async function stopRecording(recording: AudioRecorder): Promise<string> {
+  try {
+    await recording.stop();
+    const uri = recording.uri;
+    if (!uri) {
+      throw new Error('No recording URI');
+    }
+    return uri;
+  } finally {
+    await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
+    try {
+      (recording as AudioRecorder & { remove?: () => void }).remove?.();
+    } catch {}
+  }
 }
 
 /** Stop recording and upload to Supabase Storage.
@@ -376,16 +411,20 @@ export async function stopAndUploadRecording(
   userId: string,
   wordId: string
 ): Promise<string> {
+  const uri = await stopRecording(recording);
+  return uploadRecording(uri, userId, wordId);
+}
+
+/** Upload a finished recording (from stopRecording) to Supabase Storage.
+ *  Returns the public URL of the uploaded file. */
+export async function uploadRecording(
+  uri: string,
+  userId: string,
+  wordId: string
+): Promise<string> {
   let filename = `${userId}/${wordId}.${Platform.OS === 'web' ? 'webm' : 'm4a'}`;
 
-  try {
-    await recording.stop();
-
-    const uri = recording.uri;
-    if (!uri) {
-      throw new Error('No recording URI');
-    }
-
+  {
     let uploadBody: Blob | ArrayBuffer;
     let contentType = Platform.OS === 'web' ? 'audio/webm' : 'audio/mp4';
 
@@ -432,11 +471,6 @@ export async function stopAndUploadRecording(
     // Get public URL with cache-busting param so re-recordings aren't cached
     const { data } = supabase.storage.from('recordings').getPublicUrl(filename);
     return `${data.publicUrl}?t=${Date.now()}`;
-  } finally {
-    await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
-    try {
-      (recording as AudioRecorder & { remove?: () => void }).remove?.();
-    } catch {}
   }
 }
 

@@ -1,236 +1,167 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '@/src/lib/supabase';
 import { addGlossaryWord, getGlossaryWords } from '@/src/services/wordService';
-import { stashPendingGlossaryWord } from '@/src/services/pendingGlossaryService';
 import type { WordEntry } from '@/src/types';
 
 /**
- * Seeds a brand-new learner's glossary with a handful of starter words,
- * picked from their personalisation answers. Runs at most once per
- * account (or once per device for signed-out users): deleting starter
- * words never brings them back.
+ * Adds a learner's starter words to their glossary, picked from the level
+ * they chose when Naani asked. Each level's set is added once per account,
+ * whether or not the glossary already had words: words already there are
+ * skipped, and deleting starter words never brings them back.
  */
 
 // ---------------------------------------------------------------------------
-// Personalisation
+// Learner level (Naani's first question)
 // ---------------------------------------------------------------------------
 
-export type SpeakWith = 'grandparents' | 'parents' | 'in-laws' | 'friends';
-export type LearningGoal = 'conversation' | 'food' | 'visit-kashmir' | 'heritage';
+export type LearnerLevel = 'beginner' | 'intermediate' | 'understands';
 
-export interface LearnerPersonalisation {
-  speakWith?: SpeakWith[];
-  goals?: LearningGoal[];
+const LEVELS: LearnerLevel[] = ['beginner', 'intermediate', 'understands'];
+
+// The question is asked before the account exists, so the answer waits on the
+// device and moves onto the account the first time that account reads it.
+const DEVICE_LEVEL_KEY = 'learnerLevel:device';
+const userLevelKey = (userId: string) => `learnerLevel:${userId}`;
+
+function parseLevel(raw: string | null): LearnerLevel | null {
+  return raw && (LEVELS as string[]).includes(raw) ? (raw as LearnerLevel) : null;
 }
 
-const PERSONALISATION_KEY = 'learnerPersonalisation';
-
-export async function getLearnerPersonalisation(): Promise<LearnerPersonalisation | null> {
+export async function getLearnerLevel(userId?: string): Promise<LearnerLevel | null> {
   try {
-    const raw = await AsyncStorage.getItem(PERSONALISATION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : null;
+    if (userId) {
+      const own = parseLevel(await AsyncStorage.getItem(userLevelKey(userId)));
+      if (own) return own;
+    }
+    const pending = parseLevel(await AsyncStorage.getItem(DEVICE_LEVEL_KEY));
+    if (pending && userId) {
+      // Claim it, so the next person to sign up on this phone still gets asked.
+      await AsyncStorage.setItem(userLevelKey(userId), pending);
+      await AsyncStorage.removeItem(DEVICE_LEVEL_KEY);
+    }
+    return pending;
   } catch {
     return null;
   }
 }
 
-export async function saveLearnerPersonalisation(value: LearnerPersonalisation): Promise<void> {
-  await AsyncStorage.setItem(PERSONALISATION_KEY, JSON.stringify(value));
+export async function saveLearnerLevel(level: LearnerLevel, userId?: string): Promise<void> {
+  await AsyncStorage.setItem(userId ? userLevelKey(userId) : DEVICE_LEVEL_KEY, level);
 }
 
 // ---------------------------------------------------------------------------
-// Curated starter sets — Kashmiri/English copied verbatim from
-// data/glossary.json (the source of the `words` table), so inserts link
-// to the existing dictionary row and pick up its audio when it has one.
-// d’ad (grandmother) is deliberately left out: it's the word Naani's
-// tutorial asks the learner to add themselves.
+// Starter sets per level. Every entry is a `words` row that already has a
+// recording, copied exactly (spelling, case, punctuation) so adding it links
+// to that row and the glossary entry plays its recording straight away.
+// Checked against the live `words` table on 2026-09-15. Left out on purpose:
+// Posh and āb (WebM audio, which iPhones often can't play), Kakaz (its clip
+// is only 6.5 KB), and samandar (Naani's tour has learners add it themselves).
 // ---------------------------------------------------------------------------
 
 type StarterEntry = { kashmiri: string; english: string };
 
-const HELLO: StarterEntry = { kashmiri: 'namaskār', english: 'greetings, goodbye, hello' };
-
-const STARTER_SETS = {
-  everyday: [
-    HELLO,
-    { kashmiri: 'thīkh', english: 'good, right, fair, correct' },
-    { kashmiri: 'na', english: 'no' },
-    { kashmiri: 'k’ā', english: 'what' },
-    { kashmiri: 'kati', english: 'where' },
-    { kashmiri: 'chāy', english: 'tea' },
-    { kashmiri: 'tsot', english: 'bread' },
-    { kashmiri: 'garə', english: 'home' },
-    { kashmiri: 'pagah', english: 'tomorrow' },
-  ],
-  family: [
-    HELLO,
-    { kashmiri: 'māj', english: 'mother' },
-    { kashmiri: 'mōl', english: 'father' },
-    { kashmiri: 'bōr', english: 'brother' },
+const STARTER_SETS: Record<LearnerLevel, StarterEntry[]> = {
+  beginner: [
+    { kashmiri: 'Salaam', english: 'Hello' },
+    { kashmiri: 'moj', english: 'mother' },
     { kashmiri: 'beni', english: 'sister' },
-    { kashmiri: 'nechuv', english: 'son' },
-    { kashmiri: 'kūr', english: 'girl, daughter' },
-    { kashmiri: 'shurah', english: 'child' },
+    { kashmiri: 'd’ad', english: 'grandmother' },
+    { kashmiri: 'bude bab', english: 'grandfather' },
+    { kashmiri: 'waruy', english: 'good' },
+    { kashmiri: 'panch', english: 'five' },
   ],
-  inLaws: [
-    HELLO,
-    { kashmiri: 'hash', english: 'mother-in-law' },
-    { kashmiri: 'h’uhur', english: 'father-in-law' },
-    { kashmiri: 'khādar', english: 'wedding' },
-    { kashmiri: 'mahren’', english: 'bride' },
+  intermediate: [
+    { kashmiri: 'd’ad', english: 'grandmother' },
+    { kashmiri: 'bude bab', english: 'grandfather' },
+    { kashmiri: 'moj', english: 'mother' },
+    { kashmiri: 'beni', english: 'sister' },
+    { kashmiri: 'tohi chu warai', english: 'are you well' },
+    { kashmiri: 'Yi kus chu', english: 'Who is this' },
+    { kashmiri: 'yi chu mez', english: 'this is a table' },
+    { kashmiri: 'wanwun', english: 'singing' },
   ],
-  friends: [
-    HELLO,
-    { kashmiri: 'dōst', english: 'friend(s)' },
-    { kashmiri: 'yār', english: 'friend' },
+  understands: [
+    { kashmiri: 'tohi chu warai', english: 'are you well' },
+    { kashmiri: 'Yi kus chu', english: 'Who is this' },
+    { kashmiri: 'yi chu mez', english: 'this is a table' },
+    { kashmiri: 'samana choohaz?', english: 'do you have any luggage, sir?' },
+    { kashmiri: 'waruy', english: 'good' },
+    { kashmiri: 'Salaam', english: 'Hello' },
   ],
-  food: [
-    { kashmiri: 'chāy', english: 'tea' },
-    { kashmiri: 'kahvə', english: 'Kashmiri tea' },
-    { kashmiri: 'tsot', english: 'bread' },
-    { kashmiri: 'tomul', english: 'rice (uncooked)' },
-    { kashmiri: 'rōganjōsh', english: 'a Kashmiri meat dish' },
-    { kashmiri: 'yakhən’', english: 'A Kashmiri meat dish cooked with yogurt' },
-    { kashmiri: 'kh’on', english: 'eat' },
-  ],
-  travel: [
-    HELLO,
-    { kashmiri: 'sirīnagar', english: 'Srinagar (place name)' },
-    { kashmiri: 'dal', english: 'Dal Lake' },
-    { kashmiri: 'nāv', english: 'boat' },
-    { kashmiri: 'koh', english: 'mountain(s)' },
-    { kashmiri: 'kati', english: 'where' },
-    { kashmiri: 'khūbsūr', english: 'beautiful' },
-  ],
-} satisfies Record<string, StarterEntry[]>;
+};
 
-const MAX_STARTER_WORDS = 10;
-
-/** Pure: personalisation answers → ordered, de-duplicated starter list. */
-export function pickStarterEntries(p: LearnerPersonalisation | null): StarterEntry[] {
-  const sets: StarterEntry[][] = [];
-  const speakWith = p?.speakWith ?? [];
-  const goals = p?.goals ?? [];
-
-  if (speakWith.includes('grandparents') || speakWith.includes('parents') || goals.includes('heritage')) {
-    sets.push(STARTER_SETS.family);
-  }
-  if (speakWith.includes('in-laws')) sets.push(STARTER_SETS.inLaws);
-  if (speakWith.includes('friends')) sets.push(STARTER_SETS.friends);
-  if (goals.includes('food')) sets.push(STARTER_SETS.food);
-  if (goals.includes('visit-kashmir')) sets.push(STARTER_SETS.travel);
-  // Everyday words always top up the list (and are the whole list when
-  // there are no answers).
-  sets.push(STARTER_SETS.everyday);
-
-  // Round-robin across the chosen sets so several answers each get a say.
-  const picked = new Map<string, StarterEntry>();
-  const longest = Math.max(...sets.map((s) => s.length));
-  for (let i = 0; i < longest && picked.size < MAX_STARTER_WORDS; i++) {
-    for (const set of sets) {
-      const entry = set[i];
-      if (!entry) continue;
-      const key = `${entry.kashmiri}::${entry.english}`.toLowerCase();
-      if (!picked.has(key)) picked.set(key, entry);
-      if (picked.size >= MAX_STARTER_WORDS) break;
-    }
-  }
-  return Array.from(picked.values());
+/** Pure: learner level → starter list. */
+export function pickStarterEntries(level: LearnerLevel): StarterEntry[] {
+  return STARTER_SETS[level];
 }
 
 // ---------------------------------------------------------------------------
 // Seeding
 // ---------------------------------------------------------------------------
 
-const GUEST_FLAG_KEY = 'starterGlossarySeeded:guest';
-const userFlagKey = (userId: string) => `starterGlossarySeeded:${userId}`;
+// Records which level's set this account has already had, so the set is added
+// once. (The older `starterGlossarySeeded:*` flag only allowed seeding into an
+// empty glossary, which skipped anyone who already had words; it's ignored.)
+const addedLevelKey = (userId: string) => `starterWordsAdded:${userId}`;
 
-async function isFlagSet(key: string): Promise<boolean> {
-  try {
-    return (await AsyncStorage.getItem(key)) === 'true';
-  } catch {
-    // Can't tell — err on the side of not seeding.
-    return true;
-  }
-}
+const entryKey = (kashmiri: string, english: string) =>
+  `${kashmiri.trim()}::${english.trim()}`.toLowerCase();
 
-async function setFlag(key: string): Promise<void> {
-  try {
-    await AsyncStorage.setItem(key, 'true');
-  } catch {
-    // non-fatal
-  }
-}
-
-// One in-flight run per scope, so strict-mode double effects and
+// One in-flight run per account, so strict-mode double effects and
 // overlapping focus loads share a single seeding pass.
 const inFlight = new Map<string, Promise<WordEntry[]>>();
 
 /**
- * Drop-in replacement for getGlossaryWords(): returns the glossary,
- * seeding starter words first if this learner has never had any.
+ * Drop-in replacement for getGlossaryWords(): returns the glossary, adding the
+ * learner's starter words first if their level's set hasn't been added yet.
  */
 export function getGlossaryWordsWithStarters(userId?: string): Promise<WordEntry[]> {
-  const scope = userId ?? 'guest';
-  const existing = inFlight.get(scope);
+  // Starter words go onto the account, and signing in is required.
+  if (!userId) return getGlossaryWords(userId);
+
+  const existing = inFlight.get(userId);
   if (existing) return existing;
 
-  const run = loadAndSeed(userId).finally(() => inFlight.delete(scope));
-  inFlight.set(scope, run);
+  const run = loadAndSeed(userId).finally(() => inFlight.delete(userId));
+  inFlight.set(userId, run);
   return run;
 }
 
-async function loadAndSeed(userId?: string): Promise<WordEntry[]> {
+async function loadAndSeed(userId: string): Promise<WordEntry[]> {
   const words = await getGlossaryWords(userId);
-  const flagKey = userId ? userFlagKey(userId) : GUEST_FLAG_KEY;
 
-  if (await isFlagSet(flagKey)) return words;
+  // Naani hasn't asked yet: nothing to pick from.
+  const level = await getLearnerLevel(userId);
+  if (!level) return words;
 
-  if (words.length > 0) {
-    // Existing learner — never seed them later, even if they empty it.
-    await setFlag(flagKey);
+  try {
+    if ((await AsyncStorage.getItem(addedLevelKey(userId))) === level) return words;
+  } catch {
+    // Can't tell whether they were added — don't risk adding them twice.
     return words;
   }
 
-  if (userId) {
-    // Starter words seeded as a guest on this device were already
-    // offered; if they were deleted, don't bring them back on sign-in.
-    if (await isFlagSet(GUEST_FLAG_KEY)) {
-      await setFlag(flagKey);
-      return words;
-    }
-  } else {
-    // useAuth starts with user = null while the session restores. Don't
-    // stash guest words for someone who is actually signed in — they'd be
-    // flushed into their account on the next load.
-    try {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user) return words;
-    } catch {
-      return words;
-    }
-  }
+  const have = new Set(words.map((w) => entryKey(w.kashmiri, w.english)));
+  const missing = pickStarterEntries(level).filter(
+    (entry) => !have.has(entryKey(entry.kashmiri, entry.english))
+  );
 
-  const entries = pickStarterEntries(await getLearnerPersonalisation());
-  let added = 0;
-  for (const entry of entries) {
+  let failed = 0;
+  for (const entry of missing) {
     try {
-      if (userId) {
-        await addGlossaryWord(userId, entry.kashmiri, entry.english);
-      } else {
-        await stashPendingGlossaryWord(entry);
-      }
-      added++;
+      await addGlossaryWord(userId, entry.kashmiri, entry.english);
     } catch (error) {
+      failed++;
       console.warn('Starter glossary word failed:', entry.kashmiri, error);
     }
   }
 
-  // Total failure (e.g. offline): leave the flag unset and retry next load.
-  if (added === 0) return words;
+  // Everything failed (e.g. offline): don't record it, so the next load retries.
+  if (missing.length > 0 && failed === missing.length) return words;
 
-  await setFlag(flagKey);
-  return getGlossaryWords(userId);
+  try {
+    await AsyncStorage.setItem(addedLevelKey(userId), level);
+  } catch {
+    // non-fatal: addGlossaryWord skips words already in the glossary anyway
+  }
+  return missing.length > 0 ? getGlossaryWords(userId) : words;
 }

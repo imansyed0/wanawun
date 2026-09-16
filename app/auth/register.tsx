@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -43,6 +43,8 @@ function friendlySignUpError(err: any): string {
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
   const { signUp, resendSignUpEmail, signInWithGoogle } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -74,9 +76,9 @@ export default function RegisterScreen() {
     try {
       const result = await signUp(trimmedEmail, password, displayName);
       if (result.session) {
-        // Signed in straight away (email confirmation off): leave the modal,
-        // same as login does.
-        router.back();
+        // Signed in straight away (email confirmation off): same as login, hand
+        // over to the index route, which starts the tour or opens the Glossary.
+        router.replace('/');
         return;
       }
       if (result.alreadyRegistered) {
@@ -111,7 +113,7 @@ export default function RegisterScreen() {
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
-      router.back();
+      router.replace('/');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -120,19 +122,24 @@ export default function RegisterScreen() {
   }
 
   function goToSignIn() {
-    router.back();
-    router.push('/auth/login');
+    // Back to sign-in if it's underneath (sign-in → level question → here),
+    // otherwise swap this screen for it (welcome → level question → here).
+    router.dismissTo('/auth/login');
   }
 
   return (
+    // iOS: let the ScrollView inset itself natively, which is more reliable than
+    // KeyboardAvoidingView's offset maths. Android is edge-to-edge, where
+    // behavior="height" doesn't resize, so pad instead.
     <KeyboardAvoidingView
       style={styles.keyboardAvoidingView}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? Spacing.lg : 0}
+      behavior="padding"
+      enabled={Platform.OS === 'android'}
     >
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
+        automaticallyAdjustKeyboardInsets
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         showsVerticalScrollIndicator={false}
@@ -174,6 +181,9 @@ export default function RegisterScreen() {
                   onChangeText={setDisplayName}
                   autoCapitalize="words"
                   textContentType="nickname"
+                  returnKeyType="next"
+                  submitBehavior="submit"
+                  onSubmitEditing={() => emailRef.current?.focus()}
                 />
                 <TextInput
                   style={styles.input}
@@ -186,6 +196,10 @@ export default function RegisterScreen() {
                   autoCorrect={false}
                   autoComplete="email"
                   textContentType="emailAddress"
+                  ref={emailRef}
+                  returnKeyType="next"
+                  submitBehavior="submit"
+                  onSubmitEditing={() => passwordRef.current?.focus()}
                 />
                 <TextInput
                   style={styles.input}
@@ -198,6 +212,8 @@ export default function RegisterScreen() {
                   autoCorrect={false}
                   autoComplete="new-password"
                   textContentType="newPassword"
+                  ref={passwordRef}
+                  returnKeyType="go"
                   onSubmitEditing={handleRegister}
                 />
                 <Button

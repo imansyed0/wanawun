@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { Button } from '@/src/components/ui/Button';
 import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
 import { useAuth } from '@/src/hooks/useAuth';
@@ -18,6 +18,7 @@ import { authCallbackUrl } from '@/src/lib/authRedirect';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const passwordRef = useRef<TextInput>(null);
   const { signIn, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -58,7 +59,9 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await signIn(email, password);
-      router.back();
+      // Sign-in is the app's front door now, so there's nothing to go back to:
+      // hand over to the index route, which starts the tour or opens the Glossary.
+      router.replace('/');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -72,7 +75,7 @@ export default function LoginScreen() {
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
-      router.back();
+      router.replace('/');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -81,14 +84,18 @@ export default function LoginScreen() {
   }
 
   return (
+    // iOS: let the ScrollView inset itself natively, which is more reliable than
+    // KeyboardAvoidingView's offset maths. Android is edge-to-edge, where
+    // behavior="height" doesn't resize, so pad instead.
     <KeyboardAvoidingView
       style={styles.keyboardAvoidingView}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? Spacing.lg : 0}
+      behavior="padding"
+      enabled={Platform.OS === 'android'}
     >
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
+        automaticallyAdjustKeyboardInsets
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         showsVerticalScrollIndicator={false}
@@ -110,6 +117,11 @@ export default function LoginScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              autoComplete="email"
+              textContentType="emailAddress"
+              returnKeyType="next"
+              submitBehavior="submit"
+              onSubmitEditing={() => passwordRef.current?.focus()}
             />
             <TextInput
               style={styles.input}
@@ -118,6 +130,11 @@ export default function LoginScreen() {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
+              ref={passwordRef}
+              autoComplete="current-password"
+              textContentType="password"
+              returnKeyType="go"
+              onSubmitEditing={handleLogin}
             />
             <Button
               title={resetting ? 'Sending...' : 'Forgot Password?'}
@@ -156,8 +173,8 @@ export default function LoginScreen() {
           <Button
             title="Don't have an account? Sign Up"
             onPress={() => {
-              router.back();
-              router.push('/auth/register');
+              // New learners answer Naani's level question before making an account.
+              router.push('/welcome/level' as Href);
             }}
             variant="ghost"
           />
