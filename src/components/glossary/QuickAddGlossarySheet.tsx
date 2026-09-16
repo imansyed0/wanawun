@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Card } from '@/src/components/ui/Card';
+import { PlayButton, RecordButton, RecordingTimer } from '@/src/components/ui/RecordControls';
 import { Grandmother } from '@/src/components/onboarding/Grandmother';
 import { getBubble } from '@/src/components/tutorial/tutorialCopy';
 import { BorderRadius, Colors, FontFamily, FontSize, LineHeight, Spacing } from '@/src/constants/theme';
@@ -26,6 +27,8 @@ import {
   uploadRecording,
 } from '@/src/services/audioService';
 import { addGlossaryWord, invalidateWordCache } from '@/src/services/wordService';
+import { attachDictionaryClip } from '@/src/services/dictionaryAudioLink';
+import { foldKashmiri } from '@/src/lib/dictionary';
 import { addLessonVocab, type LessonVocabEntry } from '@/src/services/lessonService';
 import type { WordEntry } from '@/src/types';
 import { stashPendingGlossaryWord } from '@/src/services/pendingGlossaryService';
@@ -46,11 +49,22 @@ export function QuickAddGlossarySheet() {
   const [adding, setAdding] = useState(false);
   const prefill = useQuickAddStore((s) => s.prefill);
 
+  // The dictionary recording for a word tapped in a lesson, kept so it can be
+  // linked once the word exists. Null for words added with the + button.
+  const [prefillAudio, setPrefillAudio] = useState<{ kashmiri: string; audioId: string } | null>(
+    null
+  );
+
   // Opened from a tapped lesson word: start with that word filled in.
   useEffect(() => {
     if (!isOpen || !prefill) return;
     if (prefill.english !== undefined) setEnglish(prefill.english);
     if (prefill.kashmiri !== undefined) setKashmiri(prefill.kashmiri);
+    setPrefillAudio(
+      prefill.audioId && prefill.kashmiri
+        ? { kashmiri: prefill.kashmiri, audioId: prefill.audioId }
+        : null
+    );
   }, [isOpen, prefill]);
 
   // Optional pronunciation (WAN-54): recorded locally, previewed, then
@@ -138,6 +152,7 @@ export function QuickAddGlossarySheet() {
     setKashmiri('');
     setEnglish('');
     setError('');
+    setPrefillAudio(null);
     void discardRecording();
   };
 
@@ -201,6 +216,16 @@ export function QuickAddGlossarySheet() {
           recordingFailed = true;
         }
       }
+      // Tapped in a lesson and not re-spelt: keep the dictionary's pronunciation.
+      if (
+        user?.id &&
+        !savedWord.audio_url &&
+        prefillAudio &&
+        foldKashmiri(prefillAudio.kashmiri) === foldKashmiri(trimmedKashmiri)
+      ) {
+        const dictionaryUrl = await attachDictionaryClip(savedWord, prefillAudio.audioId);
+        if (dictionaryUrl) savedWord = { ...savedWord, audio_url: dictionaryUrl };
+      }
       invalidateWordCache();
       reset();
       useQuickAddStore.getState().wordAdded(savedWord, recordingFailed);
@@ -219,7 +244,7 @@ export function QuickAddGlossarySheet() {
     } finally {
       setAdding(false);
     }
-  }, [english, kashmiri, recordingUri, user?.id]);
+  }, [english, kashmiri, prefillAudio, recordingUri, user?.id]);
 
   const goToSignIn = () => {
     close();
@@ -258,18 +283,60 @@ export function QuickAddGlossarySheet() {
                 <Text style={styles.closeButtonText}>{'×'}</Text>
               </Pressable>
             </View>
-            <TextInput
-              // Amiri only once there's Kashmiri typed, so the placeholder
-              // matches the English field.
-              style={[styles.input, kashmiri ? styles.inputKashmiri : null]}
-              placeholder="Kashmiri"
-              placeholderTextColor={Colors.textLight}
-              value={kashmiri}
-              onChangeText={setKashmiri}
-              autoCapitalize="none"
-              autoFocus
-              returnKeyType="next"
-            />
+            {/* The recording is of the Kashmiri pronunciation, so its controls sit on
+                the Kashmiri row. Recordings upload to the user's storage, so only
+                signed-in users can record. */}
+            <View style={styles.kashmiriRow}>
+              <TextInput
+                // Amiri only once there's Kashmiri typed, so the placeholder
+                // matches the English field.
+                style={[styles.input, styles.inputFlex, kashmiri ? styles.inputKashmiri : null]}
+                placeholder="Kashmiri"
+                placeholderTextColor={Colors.textLight}
+                value={kashmiri}
+                onChangeText={setKashmiri}
+                autoCapitalize="none"
+                autoFocus
+                returnKeyType="next"
+              />
+              {user ? (
+                <View style={styles.pronunciationControls}>
+                  {recordingState === 'recorded' ? (
+                    <>
+                      <PlayButton
+                        playing={isPlayingRecording}
+                        onPress={handlePlayRecording}
+                        accessibilityLabel="Play Kashmiri pronunciation"
+                      />
+                      <Pressable
+                        style={styles.discardButton}
+                        onPress={discardRecording}
+                        disabled={adding}
+                        hitSlop={6}
+                        accessibilityRole="button"
+                        accessibilityLabel="Remove pronunciation recording"
+                      >
+                        <Text style={styles.discardButtonText}>{'×'}</Text>
+                      </Pressable>
+                    </>
+                  ) : (
+                    <>
+                      {recordingState === 'recording' ? <RecordingTimer active /> : null}
+                      <RecordButton
+                        recording={recordingState === 'recording'}
+                        onPress={handleRecordPress}
+                        disabled={adding}
+                        accessibilityLabel={
+                          recordingState === 'recording'
+                            ? 'Stop recording'
+                            : 'Record Kashmiri pronunciation'
+                        }
+                      />
+                    </>
+                  )}
+                </View>
+              ) : null}
+            </View>
             <TextInput
               style={styles.input}
               placeholder="English"
@@ -282,69 +349,6 @@ export function QuickAddGlossarySheet() {
                 if (canSubmit) handleAdd();
               }}
             />
-            {user ? (
-              recordingState === 'recorded' ? (
-                <View style={styles.recordField}>
-                  <View style={[styles.recordDot, styles.recordDotDone]} />
-                  <Text style={styles.recordLabel}>Pronunciation recorded</Text>
-                  <View style={styles.recordActions}>
-                    <Pressable
-                      onPress={handlePlayRecording}
-                      disabled={adding}
-                      hitSlop={8}
-                      accessibilityRole="button"
-                    >
-                      <Text style={styles.recordAction}>{isPlayingRecording ? 'Stop' : 'Play'}</Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={handleRecordPress}
-                      disabled={adding}
-                      hitSlop={8}
-                      accessibilityRole="button"
-                      accessibilityLabel="Record again"
-                    >
-                      <Text style={styles.recordAction}>Redo</Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={discardRecording}
-                      disabled={adding}
-                      hitSlop={8}
-                      accessibilityRole="button"
-                      accessibilityLabel="Remove recording"
-                    >
-                      <Text style={[styles.recordAction, styles.recordActionMuted]}>Remove</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              ) : (
-                <Pressable
-                  style={[
-                    styles.recordField,
-                    recordingState === 'recording' && styles.recordFieldActive,
-                  ]}
-                  onPress={handleRecordPress}
-                  disabled={adding}
-                  accessibilityRole="button"
-                >
-                  <View
-                    style={[
-                      styles.recordDot,
-                      recordingState === 'recording' && styles.recordDotActive,
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.recordLabel,
-                      recordingState === 'idle' && styles.recordLabelIdle,
-                    ]}
-                  >
-                    {recordingState === 'recording'
-                      ? 'Recording… tap to stop'
-                      : 'Record pronunciation'}
-                  </Text>
-                </Pressable>
-              )
-            ) : null}
             {recordingError ? <Text style={styles.error}>{recordingError}</Text> : null}
             <Pressable
               style={[styles.addButton, !canSubmit && styles.addButtonDisabled]}
@@ -475,56 +479,33 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bodyBold,
     textDecorationLine: 'underline',
   },
-  // The recorder reads as a third field: same height, fill, border and type
-  // as the inputs above it.
-  recordField: {
+  // The Kashmiri field and its pronunciation controls share a row.
+  kashmiriRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    minHeight: 56,
-    paddingHorizontal: Spacing.md,
-    backgroundColor: Colors.surfaceLight,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
   },
-  recordFieldActive: {
-    borderColor: Colors.wrong,
-  },
-  recordDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.wrong,
-    opacity: 0.5,
-  },
-  recordDotActive: {
-    opacity: 1,
-  },
-  recordDotDone: {
-    backgroundColor: Colors.correct,
-    opacity: 1,
-  },
-  recordLabel: {
+  inputFlex: {
     flex: 1,
-    fontSize: FontSize.md,
-    fontFamily: FontFamily.body,
-    color: Colors.text,
   },
-  recordLabelIdle: {
-    color: Colors.textLight,
-  },
-  recordActions: {
+  pronunciationControls: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    alignItems: 'center',
+    gap: Spacing.xs,
   },
-  recordAction: {
-    fontSize: FontSize.sm,
-    fontFamily: FontFamily.bodySemi,
-    color: Colors.primaryDark,
+  discardButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#fff1f2',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  recordActionMuted: {
-    color: Colors.textSecondary,
+  discardButtonText: {
+    color: Colors.wrong,
+    fontSize: 16,
+    fontFamily: FontFamily.bodyBold,
+    lineHeight: 18,
   },
   closeButton: {
     width: 32,

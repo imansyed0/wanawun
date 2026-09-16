@@ -1,25 +1,50 @@
 import { useEffect, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { Redirect } from 'expo-router';
+import { Redirect, type Href } from 'expo-router';
 import { Colors } from '@/src/constants/theme';
+import { useAuth } from '@/src/hooks/useAuth';
 import { hasSeenOnboarding } from '@/src/services/onboardingService';
+import { getLearnerLevel } from '@/src/services/starterGlossaryService';
 import { useTutorialStore } from '@/src/stores/tutorialStore';
 
 export default function AppIndexRedirect() {
-  const [target, setTarget] = useState<string | null>(null);
+  const { user, loading } = useAuth();
+  const userId = user?.id;
+  const [next, setNext] = useState<Href | null>(null);
 
   useEffect(() => {
-    hasSeenOnboarding()
-      .then((seen) => {
+    if (loading || !userId) return;
+    let cancelled = false;
+    (async () => {
+      // Naani's level question picks the starter words, so it has to come
+      // before the tour and the first Glossary load. Accounts that signed in
+      // without answering it (e.g. on a new phone) get asked now.
+      const level = await getLearnerLevel(userId);
+      if (cancelled) return;
+      if (!level) {
+        setNext('/welcome/level' as Href);
+        return;
+      }
+      try {
         // First launch: Naani's guided tour runs on the real app,
         // starting from the Glossary tab.
-        if (!seen) useTutorialStore.getState().start();
-        setTarget('/learn');
-      })
-      .catch(() => setTarget('/learn'));
-  }, []);
+        if (!(await hasSeenOnboarding()) && !cancelled) useTutorialStore.getState().start();
+      } catch {
+        // Skip the tour rather than block the app.
+      }
+      if (!cancelled) setNext('/learn');
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, userId]);
 
-  if (!target) {
+  // Signed out: Naani's welcome, which leads to her question and then an account.
+  if (!loading && !userId) {
+    return <Redirect href={'/welcome' as Href} />;
+  }
+
+  if (!next) {
     return (
       <View style={styles.container}>
         <ActivityIndicator color={Colors.primary} />
@@ -29,7 +54,7 @@ export default function AppIndexRedirect() {
 
   return (
     <View style={styles.container}>
-      <Redirect href={target as '/learn'} />
+      <Redirect href={next} />
     </View>
   );
 }

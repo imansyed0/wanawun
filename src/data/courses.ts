@@ -373,9 +373,10 @@ export const learnKashmiri: Course = {
 // ---------------------------------------------------------------------------
 
 export const allCourses: Course[] = [
+  // CIIL leads: it starts from pronunciation, so it's the better first course.
+  ciilCourse,
   spokenKashmiri,
   kashmiriKoul,
-  ciilCourse,
   // Temporarily hidden — the Let's Learn Kashmiri course is disabled in the app.
   // learnKashmiri,
 ];

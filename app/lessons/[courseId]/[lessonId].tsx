@@ -44,6 +44,7 @@ import { ExternalLink } from '@/components/ExternalLink';
 import { TappableKashmiriText } from '@/src/components/ui/TappableKashmiriText';
 import { TappableEnglishText } from '@/src/components/ui/TappableEnglishText';
 import { useQuickAddStore } from '@/src/stores/quickAddStore';
+import { useTutorialStore } from '@/src/stores/tutorialStore';
 import { useAuth } from '@/src/hooks/useAuth';
 import {
   getLessonVocab,
@@ -60,6 +61,7 @@ import {
   attachVerbosePlaybackLogging,
 } from '@/src/services/audioService';
 import { invalidateWordCache } from '@/src/services/wordService';
+import { PlayButton, RecordButton, RecordingTimer } from '@/src/components/ui/RecordControls';
 import { markClipListened, getListenedClips } from '@/src/services/clipProgressService';
 
 // Cap lesson images at a reasonable fraction of the screen so tall/portrait
@@ -714,6 +716,11 @@ export default function LessonPlayerScreen() {
       setVocabRecordingId(null);
     }
   };
+
+  // Naani's Lessons step waits for a lesson to be opened before moving on.
+  useEffect(() => {
+    useTutorialStore.getState().notify('lessonOpened');
+  }, []);
 
   const handleDeleteVocab = async (entry: LessonVocabEntry) => {
     await deleteLessonVocab(entry.id);
@@ -1575,7 +1582,7 @@ export default function LessonPlayerScreen() {
               </Text>
               {!user?.id ? (
                 <Text style={styles.vocabWarning}>
-                  Sign in to add words from lessons.
+                  Sign in to add words/phrases from lessons.
                 </Text>
               ) : null}
 
@@ -1592,7 +1599,7 @@ export default function LessonPlayerScreen() {
 
               {vocab.length === 0 ? (
                 <Text style={styles.emptyVocab}>
-                  No words yet. Tap the + button to add words you hear in this lesson.
+                  No words/phrases yet. Tap the + button to add what you hear in this lesson.
                 </Text>
               ) : (
                 vocab.map((item) => {
@@ -1603,6 +1610,19 @@ export default function LessonPlayerScreen() {
 
                   return (
                     <View key={item.id} style={styles.vocabRow}>
+                      {/* Delete sits on the left, away from the play/record controls, so it isn't hit by accident. */}
+                      <View style={styles.deleteSlot}>
+                        {isItemRecording ? null : (
+                          <Pressable
+                            onPress={() => handleDeleteVocab(item)}
+                            style={styles.deleteBtn}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Delete ${item.kashmiri}`}
+                          >
+                            <Text style={styles.deleteBtnText}>{'×'}</Text>
+                          </Pressable>
+                        )}
+                      </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.vocabKashmiri}>{item.kashmiri}</Text>
                         <Text style={styles.vocabEnglish}>{item.english}</Text>
@@ -1613,45 +1633,32 @@ export default function LessonPlayerScreen() {
                             <Text style={styles.syncBadgeText}>{'\u2713'}</Text>
                           </View>
                         )}
-                        {hasItemAudio && (
-                          <Pressable
-                            style={[styles.vocabAudioBtn, isItemPlaying && styles.vocabAudioBtnActive]}
-                            onPress={() => handleVocabPlay(item)}
-                          >
-                            <Text style={[styles.vocabAudioIcon, isItemPlaying && styles.vocabAudioIconActive]}>
-                              {isItemPlaying ? '\u23F9' : '\u25B6'}
-                            </Text>
-                          </Pressable>
+                        {isItemSaving ? (
+                          <ActivityIndicator size="small" color={Colors.primary} />
+                        ) : isItemRecording ? (
+                          <>
+                            <RecordingTimer active />
+                            <RecordButton recording onPress={() => handleVocabRecord(item)} size={30} />
+                          </>
+                        ) : (
+                          <>
+                            {hasItemAudio && (
+                              <PlayButton
+                                playing={isItemPlaying}
+                                onPress={() => handleVocabPlay(item)}
+                                size={30}
+                              />
+                            )}
+                            {item.word_id && (
+                              <RecordButton
+                                recording={false}
+                                size={30}
+                                onPress={() => handleVocabRecord(item)}
+                                accessibilityLabel={hasItemAudio ? 'Re-record audio' : 'Record audio'}
+                              />
+                            )}
+                          </>
                         )}
-                        {item.word_id && (
-                          isItemSaving ? (
-                            <ActivityIndicator size="small" color={Colors.primary} />
-                          ) : (
-                            <Pressable
-                              style={[
-                                styles.vocabAudioBtn,
-                                styles.vocabRecordBtn,
-                                isItemRecording && styles.vocabRecordBtnActive,
-                              ]}
-                              onPress={() => handleVocabRecord(item)}
-                            >
-                              <Text
-                                style={[
-                                  styles.vocabRecordIcon,
-                                  isItemRecording && styles.vocabRecordIconActive,
-                                ]}
-                              >
-                                {isItemRecording ? 'Stop' : 'Record'}
-                              </Text>
-                            </Pressable>
-                          )
-                        )}
-                        <Pressable
-                          onPress={() => handleDeleteVocab(item)}
-                          style={styles.deleteBtn}
-                        >
-                          <Text style={styles.deleteBtnText}>{'\u00D7'}</Text>
-                        </Pressable>
                       </View>
                     </View>
                   );
@@ -2075,6 +2082,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   syncBadgeText: { color: '#fff', fontSize: 12, fontFamily: FontFamily.bodyBold },
+  deleteSlot: {
+    width: 28,
+    marginRight: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   deleteBtn: {
     width: 44,
     height: 44,

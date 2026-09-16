@@ -1,10 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { usePathname } from 'expo-router';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { usePathname, useRouter, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { Grandmother } from '@/src/components/onboarding/Grandmother';
 import { useTutorialStore } from '@/src/stores/tutorialStore';
+import { useAuth } from '@/src/hooks/useAuth';
 import {
   BorderRadius,
   Colors,
@@ -16,44 +24,110 @@ import {
 } from '@/src/constants/theme';
 import {
   GLOSSARY_PATH,
-  FLASHCARDS_PATH,
   INTRO_LINES,
+  TAB_ORDER,
+  TOUR_SECTIONS,
+  TOUR_WORD,
   getBubble,
+  pathForStep,
+  sectionForStep,
   type Bubble,
+  type TourPath,
 } from '@/src/components/tutorial/tutorialCopy';
+import { dictionaryAudioUrls } from '@/src/lib/englishDictionary';
+import { playAudio, stopAudio } from '@/src/services/audioService';
+import { startTourMusic, stopTourMusic } from '@/src/services/tourMusic';
+
+/** Naani's copy writes the app's + button as {plus}; see tutorialCopy. */
+const PLUS_TOKEN = '{plus}';
+
+/** Her line, with {plus} drawn as a small green + like the floating button. */
+function bubbleContent(text: string) {
+  const pieces = text.split(PLUS_TOKEN);
+  return pieces.flatMap((piece, i) =>
+    i === 0
+      ? [piece]
+      : [
+          <Text key={`plus-${i}`} style={styles.inlinePlus}>
+            {' + '}
+          </Text>,
+          piece,
+        ]
+  );
+}
 
 export function TutorialOverlay() {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
-  const { active, step, lastAnswer, hadWrong, modalOpen, advanceIntro, notify, skip, complete } =
+  const router = useRouter();
+  const { user } = useAuth();
+  const { active, step, modalOpen, insideLesson, advanceIntro, next, skipAddWord, skip, complete } =
     useTutorialStore();
 
   const [introIndex, setIntroIndex] = useState(0);
 
-  const onGlossary = pathname === GLOSSARY_PATH;
-  const onFlashcards = pathname === FLASHCARDS_PATH;
-
-  // Opening the Flashcards tab is itself a tour event.
+  // Quiet music for as long as the tour is running. Stops on Skip, on the last
+  // step, and if this overlay goes away with the tour still open.
   useEffect(() => {
-    if (active && onFlashcards) notify('flashcardsOpened');
-  }, [active, onFlashcards, notify]);
+    if (!active) {
+      stopTourMusic();
+      return;
+    }
+    void startTourMusic();
+    return stopTourMusic;
+  }, [active]);
+
+  // Naani's suggested word: tapping it plays the dictionary's recording, so the
+  // learner hears it before adding it themselves.
+  const [wordPlaying, setWordPlaying] = useState(false);
+
+  async function playTourWord() {
+    if (wordPlaying) {
+      await stopAudio();
+      setWordPlaying(false);
+      return;
+    }
+    const [url] = dictionaryAudioUrls(TOUR_WORD.audioId);
+    if (!url) return;
+    setWordPlaying(true);
+    try {
+      await playAudio(url, { onFinish: () => setWordPlaying(false), tag: 'tourWord' });
+    } catch (error) {
+      console.warn('Tour word playback failed:', error);
+      setWordPlaying(false);
+    }
+  }
+
+  const segments = useSegments() as string[];
+  const onGlossary = pathname === GLOSSARY_PATH;
+  const stepPath = pathForStep(step);
+  // A course list or lesson player counts as being on the Lessons step.
+  const insideLessons = step === 'lessons' && pathname.startsWith('/lessons');
+  // Only tab screens have a tab bar to sit above; lesson screens don't.
+  const onTabs = segments[0] === '(tabs)';
+
+  // Each step takes the user to its tab. Only fires when the step
+  // changes, so the user can still wander without being yanked back.
+  useEffect(() => {
+    if (!active || !stepPath) return;
+    // The Lessons step asks them to open a lesson, so don't drag them back out.
+    if (step === 'lessons' && pathname.startsWith('/lessons')) return;
+    if (pathname !== stepPath) router.navigate(stepPath);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, step]);
 
   useEffect(() => {
     if (step === 'intro') setIntroIndex(0);
-  }, [step]);
+  }, [step, active]);
 
-  // A native Modal (e.g. the Add-word sheet) portals above this overlay
-  // and would dim it along with the rest of the screen — the screen
-  // that owns the modal renders Naani's bubble inline instead.
+  // A native Modal (e.g. the Add sheet) portals above this overlay and
+  // would dim it with the rest of the screen, so the screen that owns
+  // the modal renders Naani's bubble inline instead.
   if (!active || modalOpen) return null;
 
   const isIntro = step === 'intro';
-  const bubble = isIntro
-    ? ({ text: INTRO_LINES[introIndex], pose: 'wave' } as Bubble)
-    : getBubble(step, onGlossary, onFlashcards, lastAnswer, hadWrong);
 
-  const handleBubbleTap = () => {
-    if (!isIntro) return;
+  const handleIntroTap = () => {
     if (introIndex < INTRO_LINES.length - 1) {
       setIntroIndex((i) => i + 1);
     } else {
@@ -61,19 +135,16 @@ export function TutorialOverlay() {
     }
   };
 
-  // The intro plays as a full-screen scene — Naani centre stage —
-  // then melts away into the docked guide on the real app.
+  // The intro plays as a full-screen scene with Naani centre stage,
+  // then gives way to the docked guide on the real app.
   if (isIntro) {
+    const text = INTRO_LINES[introIndex];
     return (
       <View style={styles.introRoot}>
-        <Pressable style={styles.introStage} onPress={handleBubbleTap}>
+        <Pressable style={styles.introStage} onPress={handleIntroTap}>
           <View style={styles.introBubble}>
-            <Animated.Text
-              key={bubble.text}
-              entering={FadeIn.duration(220)}
-              style={styles.introBubbleText}
-            >
-              {bubble.text}
+            <Animated.Text key={text} entering={FadeIn.duration(220)} style={styles.introBubbleText}>
+              {text}
             </Animated.Text>
             <Text style={styles.introTapHint}>Tap to continue ▸</Text>
           </View>
@@ -84,6 +155,8 @@ export function TutorialOverlay() {
           style={[styles.introSkip, { top: insets.top + Spacing.md }]}
           onPress={skip}
           hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="Skip Naani's tour"
         >
           <Text style={styles.introSkipText}>Skip</Text>
         </Pressable>
@@ -91,45 +164,138 @@ export function TutorialOverlay() {
     );
   }
 
+  const bubble: Bubble = getBubble(step, onGlossary, false, null, false, !!user, insideLesson);
+  // Wandered off the step's tab (e.g. tapped another tab mid-step).
+  const offTrack =
+    !!stepPath && pathname !== stepPath && step !== 'open-add' && !insideLessons;
+  const section = sectionForStep(step);
+  // The ring points at a tab, so it only makes sense on the tab screens.
+  const highlightPath: TourPath | null = step === 'wrap' || !onTabs ? null : stepPath;
+  // The + button floats bottom-right on every tab (56px wide, Spacing.lg from
+  // the edge), so the bubble always leaves room or it covers Next.
+  const padRight = 88;
+  // The card fills the middle of the Flashcards screen and its buttons sit at
+  // the bottom, so there's no room for her down there: dock her at the top for
+  // that step, leaving the word and the rating pills clear.
+  const dockTop = step === 'flashcards';
+
   return (
-    <View
-      pointerEvents="box-none"
-      style={[styles.root, { bottom: TabBarContentHeight + insets.bottom }]}
-    >
-      <Animated.View
-        entering={FadeInDown.duration(300)}
-        style={styles.row}
+    <>
+      {highlightPath ? (
+        <TabHighlight index={TAB_ORDER.indexOf(highlightPath)} bottom={insets.bottom} />
+      ) : null}
+
+      <View
         pointerEvents="box-none"
+        style={[
+          styles.root,
+          dockTop
+            ? { top: insets.top + Spacing.md }
+            : { bottom: (onTabs ? TabBarContentHeight : Spacing.md) + insets.bottom },
+        ]}
       >
-        <View style={styles.granny} pointerEvents="none">
-          <Grandmother pose={bubble.pose} size={92} />
-        </View>
-
-        <Pressable
-          style={styles.bubble}
-          onPress={handleBubbleTap}
-          disabled={!isIntro}
+        <Animated.View
+          entering={FadeInDown.duration(300)}
+          style={[styles.row, { paddingRight: padRight }]}
+          pointerEvents="box-none"
         >
-          <Animated.Text key={bubble.text} entering={FadeIn.duration(200)} style={styles.bubbleText}>
-            {bubble.text}
-          </Animated.Text>
+          <View style={styles.granny} pointerEvents="none">
+            <Grandmother pose={bubble.pose} size={110} />
+          </View>
 
-          {isIntro ? (
-            <Text style={styles.tapHint}>Tap to continue ▸</Text>
-          ) : null}
+          <View style={styles.bubble}>
+            <Animated.Text key={bubble.text} entering={FadeIn.duration(200)} style={styles.bubbleText}>
+              {bubbleContent(bubble.text)}
+            </Animated.Text>
 
-          {step === 'wrap' ? (
-            <Pressable style={styles.doneButton} onPress={complete}>
-              <Text style={styles.doneButtonText}>Shukriya, Naani!</Text>
+            {bubble.word ? (
+              <Pressable
+                style={styles.wordChip}
+                onPress={playTourWord}
+                accessibilityRole="button"
+                accessibilityLabel={`Hear ${bubble.word.kashmiri}, which means ${bubble.word.gloss}`}
+              >
+                <Text style={styles.wordChipIcon}>{wordPlaying ? '■' : '▶'}</Text>
+                <Text style={styles.wordChipWord}>{bubble.word.kashmiri}</Text>
+                <Text style={styles.wordChipGloss}>{bubble.word.gloss}</Text>
+              </Pressable>
+            ) : null}
+
+            <View style={styles.actions}>
+              <Text style={styles.counter} numberOfLines={1}>
+                {section} of {TOUR_SECTIONS}
+              </Text>
+              <View style={styles.actionButtons}>
+                {step === 'open-add' ? (
+                  <Pressable onPress={skipAddWord} hitSlop={8} accessibilityRole="button">
+                    <Text style={styles.secondaryText}>Maybe later</Text>
+                  </Pressable>
+                ) : null}
+
+                {step === 'wrap' ? (
+                  <Pressable style={styles.primaryButton} onPress={complete} accessibilityRole="button">
+                    <Text style={styles.primaryButtonText}>Shukriya, Naani</Text>
+                  </Pressable>
+                ) : step === 'open-add' ? null : offTrack ? (
+                  <Pressable
+                    style={styles.primaryButton}
+                    onPress={() => stepPath && router.navigate(stepPath)}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.primaryButtonText}>Take me back</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable style={styles.primaryButton} onPress={next} accessibilityRole="button">
+                    <Text style={styles.primaryButtonText}>Next ▸</Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+
+            <Pressable
+              style={styles.skip}
+              onPress={skip}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="End Naani's tour"
+            >
+              <Text style={styles.skipText}>×</Text>
             </Pressable>
-          ) : null}
+          </View>
+        </Animated.View>
+      </View>
+    </>
+  );
+}
 
-          <Pressable style={styles.skip} onPress={skip} hitSlop={8}>
-            <Text style={styles.skipText}>×</Text>
-          </Pressable>
-        </Pressable>
-      </Animated.View>
-    </View>
+/** Pulsing ring drawn over one tab in the tab bar. */
+function TabHighlight({ index, bottom }: { index: number; bottom: number }) {
+  const { width } = useWindowDimensions();
+  const pulse = useSharedValue(0.35);
+
+  useEffect(() => {
+    pulse.value = withRepeat(withTiming(1, { duration: 900 }), -1, true);
+  }, [pulse]);
+
+  const animated = useAnimatedStyle(() => ({ opacity: pulse.value }));
+
+  if (index < 0) return null;
+  const tabWidth = width / TAB_ORDER.length;
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.tabRing,
+        {
+          bottom: bottom + 2,
+          left: index * tabWidth + 4,
+          width: tabWidth - 8,
+          height: TabBarContentHeight - 4,
+        },
+        animated,
+      ]}
+    />
   );
 }
 
@@ -206,8 +372,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingLeft: Spacing.sm,
-    // Keep clear of the glossary's + FAB (56px wide, right: 24).
-    paddingRight: 88,
     gap: 2,
     maxWidth: 560,
     width: '100%',
@@ -223,8 +387,9 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
     borderWidth: 1,
     borderColor: Colors.border,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    // Naani gets plenty of room: her bubble can take up half the screen.
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     paddingRight: Spacing.lg,
     marginBottom: Spacing.md,
     shadowColor: '#000',
@@ -232,30 +397,81 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 6,
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
   bubbleText: {
-    fontSize: FontSize.sm,
-    lineHeight: LineHeight.body(FontSize.sm),
+    fontSize: FontSize.lg,
+    lineHeight: LineHeight.body(FontSize.lg),
     color: Colors.text,
     fontFamily: FontFamily.bodySemi,
   },
-  tapHint: {
-    fontSize: FontSize.xs,
+  // Matches the floating + button: white on the app's green, rounded.
+  inlinePlus: {
+    color: '#fff',
+    backgroundColor: Colors.primary,
+    fontFamily: FontFamily.bodyBold,
+    fontSize: FontSize.md,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+  },
+  wordChip: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    alignSelf: 'flex-start',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.surfaceLight,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  wordChipWord: {
+    fontSize: FontSize.lg,
+    lineHeight: LineHeight.body(FontSize.lg),
+    fontFamily: FontFamily.bodySemi,
+    color: Colors.primaryDark,
+  },
+  wordChipIcon: {
+    fontSize: FontSize.sm,
+    color: Colors.primaryDark,
+  },
+  wordChipGloss: {
+    fontSize: FontSize.md,
+    color: Colors.textSecondary,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  counter: {
+    fontSize: FontSize.sm,
+    // Never wrap: a wide button next to it was breaking "6 of 6" over three lines.
+    flexShrink: 0,
     color: Colors.textLight,
     fontFamily: FontFamily.bodySemi,
   },
-  doneButton: {
-    alignSelf: 'flex-start',
+  secondaryText: {
+    fontSize: FontSize.md,
+    color: Colors.textSecondary,
+    fontFamily: FontFamily.bodySemi,
+  },
+  primaryButton: {
     backgroundColor: Colors.primary,
     borderRadius: BorderRadius.full,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    marginTop: Spacing.xs,
+    paddingVertical: Spacing.xs + 2,
   },
-  doneButtonText: {
+  primaryButtonText: {
     color: '#fff',
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     fontFamily: FontFamily.bodyBold,
   },
   skip: {
@@ -267,5 +483,11 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     color: Colors.textLight,
     lineHeight: LineHeight.body(FontSize.md),
+  },
+  tabRing: {
+    position: 'absolute',
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    borderRadius: BorderRadius.md,
   },
 });

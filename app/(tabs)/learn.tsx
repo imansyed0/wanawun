@@ -16,10 +16,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Card } from '@/src/components/ui/Card';
 import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
 import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
-import { deleteGlossaryWord, getGlossaryWords, invalidateWordCache } from '@/src/services/wordService';
+import { deleteGlossaryWord, invalidateWordCache } from '@/src/services/wordService';
 import { isPendingWordId, removePendingGlossaryWord } from '@/src/services/pendingGlossaryService';
+// Starter words for the level the learner picked when Naani asked.
+import { getGlossaryWordsWithStarters } from '@/src/services/starterGlossaryService';
 import { useQuickAddStore } from '@/src/stores/quickAddStore';
 import { playAudio, stopAudio, startRecording, stopAndUploadRecording, linkAudioToWord } from '@/src/services/audioService';
+import { PlayButton, RecordButton, RecordingTimer } from '@/src/components/ui/RecordControls';
 import { useAuth } from '@/src/hooks/useAuth';
 import type { WordEntry } from '@/src/types';
 
@@ -41,7 +44,8 @@ export default function LearnScreen() {
   const loadWords = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getGlossaryWords(user?.id);
+      // Brand-new learners get a few personalised starter words, once.
+      const data = await getGlossaryWordsWithStarters(user?.id);
       setWords(data);
     } catch {
       // Keep the existing list if the refresh fails.
@@ -54,6 +58,16 @@ export default function LearnScreen() {
     useCallback(() => {
       loadWords();
     }, [loadWords])
+  );
+
+  // Clear the search (and dismiss the keyboard) whenever the user leaves the tab.
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setSearch('');
+        Keyboard.dismiss();
+      };
+    }, [])
   );
 
   const filtered = words.filter(
@@ -167,64 +181,60 @@ export default function LearnScreen() {
     const isSaving = savingId === item.id;
     const isDeleting = deletingId === item.id;
     const hasAudio = !!item.audio_url;
+    // Recordings upload to the user's storage, so only signed-in users can record.
+    const canRecord = !!user?.id;
 
     return (
       <Card style={styles.wordCard}>
         <View style={styles.wordRow}>
-          <View style={styles.wordMain}>
-            <Text style={styles.kashmiri}>{item.kashmiri}</Text>
-            <Text style={styles.english}>{item.english}</Text>
-          </View>
-          <View style={styles.audioActions}>
-            {/* Play button — shown if word has audio */}
-            {hasAudio && (
-              <Pressable
-                style={[styles.audioBtn, isPlaying && styles.audioBtnActive]}
-                onPress={() => handlePlay(item)}
-              >
-                <Text style={[styles.audioBtnIcon, isPlaying && styles.audioBtnIconActive]}>
-                  {isPlaying ? '\u23F9' : '\u25B6'}
-                </Text>
-              </Pressable>
-            )}
-            {/* Record button */}
-            {isSaving ? (
-              <ActivityIndicator size="small" color={Colors.primary} />
-            ) : (
-              <Pressable
-                style={[
-                  styles.audioBtn,
-                  styles.recordBtn,
-                  isRecording && styles.recordBtnActive,
-                ]}
-                onPress={() => handleRecord(item)}
-              >
-                <Text
-                  style={[
-                    styles.audioBtnIcon,
-                    styles.recordBtnIcon,
-                    isRecording && styles.recordBtnIconActive,
-                  ]}
-                >
-                  {isRecording ? '\u23F9' : '\u23FA'}
-                </Text>
-              </Pressable>
-            )}
-            {isDeleting ? (
+          {/* Delete sits on the left, away from the play/record controls, so it isn't hit by accident. */}
+          <View style={styles.deleteSlot}>
+            {isRecording ? null : isDeleting ? (
               <ActivityIndicator size="small" color={Colors.wrong} />
             ) : (
               <Pressable
                 style={styles.deleteBtn}
                 onPress={() => handleDelete(item)}
+                accessibilityRole="button"
+                accessibilityLabel={`Delete ${item.kashmiri}`}
               >
-                <Text style={styles.deleteBtnText}>{'\u00D7'}</Text>
+                <Text style={styles.deleteBtnText}>{'×'}</Text>
               </Pressable>
             )}
+          </View>
+          <View style={styles.wordMain}>
+            <Text style={styles.kashmiri}>{item.kashmiri}</Text>
+            <Text style={styles.english}>{item.english}</Text>
+          </View>
+          <View style={styles.audioActions}>
+            {isSaving ? (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            ) : isRecording ? (
+              // While recording: elapsed time + stop square, nothing else.
+              <>
+                <RecordingTimer active />
+                <RecordButton recording onPress={() => handleRecord(item)} />
+              </>
+            ) : hasAudio ? (
+              // Recording exists: play + small re-record.
+              <>
+                <PlayButton playing={isPlaying} onPress={() => handlePlay(item)} />
+                {canRecord ? (
+                  <RecordButton
+                    recording={false}
+                    onPress={() => handleRecord(item)}
+                    accessibilityLabel="Re-record audio"
+                  />
+                ) : null}
+              </>
+            ) : canRecord ? (
+              <RecordButton recording={false} onPress={() => handleRecord(item)} />
+            ) : null}
           </View>
         </View>
       </Card>
     );
-  }, [playingId, recordingId, savingId, deletingId, handlePlay, handleRecord, handleDelete]);
+  }, [playingId, recordingId, savingId, deletingId, handlePlay, handleRecord, handleDelete, user?.id]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -238,25 +248,32 @@ export default function LearnScreen() {
           <View>
             <View style={styles.header}>
               <Text style={styles.title}>Glossary</Text>
-              <Text style={styles.subtitle}>{words.length} Kashmiri words</Text>
+              <Text style={styles.subtitle}>{words.length} Kashmiri words/phrases</Text>
             </View>
 
             <ScreenHeaderDecoration variant="teal" />
 
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search Kashmiri or English..."
-              placeholderTextColor={Colors.textLight}
-              value={search}
-              onChangeText={setSearch}
-            />
-
-            {recordingId && (
-              <View style={styles.recordingBanner}>
-                <View style={styles.recordingDot} />
-                <Text style={styles.recordingText}>Recording... Tap stop to save</Text>
-              </View>
-            )}
+            <View style={styles.searchWrap}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search Kashmiri or English..."
+                placeholderTextColor={Colors.textLight}
+                value={search}
+                onChangeText={setSearch}
+                returnKeyType="search"
+              />
+              {search.length > 0 ? (
+                <Pressable
+                  style={styles.searchClear}
+                  onPress={() => setSearch('')}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear search"
+                >
+                  <Text style={styles.searchClearText}>{'✕'}</Text>
+                </Pressable>
+              ) : null}
+            </View>
           </View>
         </TouchableWithoutFeedback>
 
@@ -300,10 +317,30 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: Spacing.xs,
   },
-  searchInput: {
+  searchWrap: {
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
+    justifyContent: 'center',
+  },
+  searchClear: {
+    position: 'absolute',
+    right: Spacing.sm,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.surfaceLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchClearText: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+    fontFamily: FontFamily.bodyBold,
+  },
+  searchInput: {
     padding: Spacing.md,
+    // Leave room for the clear button on the right.
+    paddingRight: 44,
     // Tall enough that Kashmiri diacritics typed into the field aren't clipped.
     minHeight: 52,
     backgroundColor: Colors.surface,
@@ -361,42 +398,47 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     lineHeight: LineHeight.body(FontSize.md),
     color: Colors.textSecondary,
-    marginTop: 2,
+    // Amiri's tall line box leaves spare room under the Kashmiri; pull the English up.
+    marginTop: -Spacing.xs,
   },
+  // Fixed width so the text column lines up on every card, whatever controls it shows.
   audioActions: {
+    width: 80,
+    marginLeft: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: Spacing.xs,
+  },
+  kashmiriRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  pronunciationControls: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  audioBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: Colors.surfaceLight,
+  draftDiscard: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#fff1f2',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  audioBtnActive: {
-    backgroundColor: Colors.primary,
-  },
-  audioBtnIcon: {
-    fontSize: 14,
-    color: Colors.primary,
-  },
-  audioBtnIconActive: {
-    color: '#fff',
-  },
-  recordBtn: {
-    backgroundColor: '#fef2f2',
-  },
-  recordBtnActive: {
-    backgroundColor: Colors.wrong,
-  },
-  recordBtnIcon: {
+  draftDiscardText: {
     color: Colors.wrong,
+    fontSize: 16,
+    fontFamily: FontFamily.bodyBold,
+    lineHeight: 18,
   },
-  recordBtnIconActive: {
-    color: '#fff',
+  deleteSlot: {
+    width: 34,
+    marginRight: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   deleteBtn: {
     width: 34,

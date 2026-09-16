@@ -1,78 +1,155 @@
 import type { GrandmotherPose } from '@/src/components/onboarding/Grandmother';
 import type { TutorialStep } from '@/src/stores/tutorialStore';
 
+// Full-screen hello before the tour moves onto the real app.
 export const INTRO_LINES = [
-  'Salaam, jaana! Come, sit. I’m your d’ad — your Kashmiri grandmother.',
-  'This app has one secret: collect words in your glossary, then practise them until they stick. Everything else is decoration.',
-  'Let’s do it once together, with a real word.',
+  'Salaam, jaanu. I’m Naani. Sit with me a minute.',
+  'Wanwun is for learning Koshur the way your own family speaks it, not the way a textbook does.',
+  'Let me walk you round the app. It’s quick, and you can send me away any time with Skip.',
 ];
 
 export const GLOSSARY_PATH = '/learn';
 export const FLASHCARDS_PATH = '/flashcards';
 
+export type TourPath = '/learn' | '/flashcards' | '/lessons' | '/play' | '/profile';
+
+/**
+ * Tab order as laid out in app/(tabs)/_layout.tsx. Used to place the
+ * highlight ring over the right tab. Keep in sync with the layout.
+ */
+export const TAB_ORDER: TourPath[] = ['/learn', '/lessons', '/play', '/flashcards', '/profile'];
+
+/** Which tab each step lives on (null = no tab, e.g. the intro). */
+export function pathForStep(step: TutorialStep): TourPath | null {
+  switch (step) {
+    case 'glossary':
+    case 'open-add':
+    case 'add-word':
+    case 'word-added':
+      return '/learn';
+    case 'flashcards':
+      return '/flashcards';
+    case 'lessons':
+      return '/lessons';
+    case 'play':
+      return '/play';
+    case 'profile':
+    case 'wrap':
+      return '/profile';
+    default:
+      return null;
+  }
+}
+
+/** "n of TOUR_SECTIONS" shown in the bubble. */
+export const TOUR_SECTIONS = 6;
+export function sectionForStep(step: TutorialStep): number {
+  switch (step) {
+    case 'glossary':
+    case 'open-add':
+    case 'add-word':
+    case 'word-added':
+      return 1;
+    case 'flashcards':
+      return 2;
+    case 'lessons':
+      return 3;
+    case 'play':
+      return 4;
+    case 'profile':
+      return 5;
+    case 'wrap':
+      return 6;
+    default:
+      return 0;
+  }
+}
+
+/**
+ * The word Naani has the learner add. It's in S. Hassan's dictionary with a
+ * recording (DSAL 00325), so they can hear it before they save it.
+ */
+export const TOUR_WORD = {
+  kashmiri: 'asun',
+  /** What the learner types into the English box. */
+  english: 'smile',
+  /** Shown on the chip, so they know what they're hearing. */
+  gloss: 'smile/laugh',
+  audioId: '00325',
+};
+
 export type Bubble = {
   text: string;
   pose: GrandmotherPose;
+  /** Rendered as a tappable word that plays its dictionary recording. */
+  word?: { kashmiri: string; english: string; gloss: string; audioId: string };
 };
 
 export function getBubble(
   step: TutorialStep,
   onGlossary: boolean,
-  onFlashcards: boolean,
-  lastAnswer: 'right' | 'wrong' | null,
-  hadWrong: boolean
+  _onFlashcards?: boolean,
+  _lastAnswer?: 'right' | 'wrong' | null,
+  _hadWrong?: boolean,
+  signedIn: boolean = false,
+  insideLesson: boolean = false
 ): Bubble {
   switch (step) {
+    case 'glossary':
+      return {
+        text: 'This is your Glossary — your own little dictionary. Whatever you hear at dinner and don’t know goes in here.',
+        pose: 'kangri',
+      };
     case 'open-add':
       if (!onGlossary) {
-        return {
-          text: 'First, tap the Glossary tab below — that’s where your words live.',
-          pose: 'point',
-        };
+        return { text: 'Go back to the Glossary tab first, jaanu.', pose: 'point' };
       }
       return {
-        text: 'Tap the + button and save my word: d’ad — it means grandmother.',
+        // {plus} renders as a pill that looks like the app's + button.
+        text: 'Let’s add one together. Tap asun below to hear it, then tap the {plus} and add it yourself.',
         pose: 'point',
+        word: TOUR_WORD,
       };
     case 'add-word':
       return {
-        text: 'Type the Kashmiri and the English, then tap Add. Use mine: d’ad — grandmother.',
+        text: 'Write asun and smile in the boxes. Tap the red dot to record yourself, then Add.',
         pose: 'kangri',
       };
     case 'word-added':
       return {
-        text: 'Shabash! Your first word is safe. Now tap Flashcards below — that’s where words become yours.',
+        text: 'Shabash, it’s saved. Next time you’re with family, tap the red dot and let them say it — their voice stays with you.',
         pose: 'cheer',
       };
-    case 'practice':
-      if (!onFlashcards) {
-        return {
-          text: 'Come back to the Flashcards tab, jaana — we’re not done!',
-          pose: 'point',
-        };
-      }
-      if (lastAnswer === 'wrong') {
-        return {
-          text: 'No shame in that! Watch — I’ll bring it back until you know it. That’s my little trick.',
-          pose: 'kangri',
-        };
-      }
-      if (lastAnswer === 'right') {
-        return {
-          text: 'Shabash! Keep going.',
-          pose: 'cheer',
-        };
-      }
+    case 'flashcards':
       return {
-        text: 'Reveal the answer, then be honest — did you know it? The ones you miss, I bring back.',
+        text: 'Flashcards quiz you on your own words. Try this one — reveal it, then tell me honestly if you knew it.',
         pose: 'kangri',
+      };
+    case 'lessons':
+      return {
+        text: insideLesson
+          ? 'Here you are. Play a clip and listen — the ✓ comes once you’ve heard it. Tap Next when you’re ready.'
+          : 'Proper audio courses. Open one and pick a lesson — listen along and tick them off as you go.',
+        pose: 'point',
+      };
+    case 'play':
+      return {
+        text: signedIn
+          ? 'Koshur Clash is a quick word race against a cousin or friend. Fastest one wins.'
+          : 'Koshur Clash is a quick word race against a cousin or friend. Sign in for this one.',
+        pose: 'cheer',
+      };
+    case 'profile':
+      return {
+        text: signedIn
+          ? 'Your Profile keeps count. Want me round again? Tap Replay Naani’s tour.'
+          : 'Sign in here so your words are safe on every phone — and so you can play.',
+        pose: 'point',
       };
     case 'wrap':
       return {
-        text: hadWrong
-          ? 'You saw it yourself — missed words come back until they’re yours. So: save words from lessons, and visit me here pagah — tomorrow!'
-          : 'You knew them — shabash! When you do miss one, I’ll bring it back until it sticks. Save words from lessons, and visit me pagah — tomorrow!',
-        pose: 'cheer',
+        text: 'That’s all of it, jaanu. Add words as you hear them, and come see me again pagah — tomorrow.',
+        pose: 'wave',
       };
     default:
       return { text: '', pose: 'wave' };

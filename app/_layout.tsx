@@ -16,6 +16,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { QuickAddFab } from '@/src/components/glossary/QuickAddFab';
+import { TutorialOverlay } from '@/src/components/tutorial/TutorialOverlay';
 import { QuickAddGlossarySheet } from '@/src/components/glossary/QuickAddGlossarySheet';
 
 export { ErrorBoundary } from 'expo-router';
@@ -88,8 +89,12 @@ function RootLayoutNav() {
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/login" options={{ title: 'Sign In', presentation: 'modal' }} />
-        <Stack.Screen name="auth/register" options={{ title: 'Sign Up', presentation: 'modal' }} />
+        {/* First launch: Naani's welcome, then her level question, then an account
+            (required). The welcome screen is the front door, so it can't be swiped away. */}
+        <Stack.Screen name="welcome/index" options={{ headerShown: false, gestureEnabled: false }} />
+        <Stack.Screen name="welcome/level" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/login" options={{ title: 'Sign In' }} />
+        <Stack.Screen name="auth/register" options={{ title: 'Create Account' }} />
         <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
         <Stack.Screen name="game/lobby" options={{ title: 'Find a Game' }} />
         <Stack.Screen name="game/sync/[id]" options={{ headerShown: false }} />
@@ -101,6 +106,9 @@ function RootLayoutNav() {
       </Stack>
       {/* WAN-40: always-present quick add to glossary. */}
       <QuickAddFab />
+      {/* Mounted here, not in the tabs, so Naani can follow people into a
+          lesson instead of vanishing when they open one. */}
+      <TutorialOverlay />
       <QuickAddGlossarySheet />
       </View>
     </ThemeProvider>

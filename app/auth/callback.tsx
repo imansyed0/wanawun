@@ -1,5 +1,14 @@
-import { useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  ActivityIndicator,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { supabase } from '@/src/lib/supabase';
@@ -23,6 +32,7 @@ export default function AuthCallback() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
+  const confirmPasswordRef = useRef<TextInput>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,7 +141,18 @@ export default function AuthCallback() {
   }
 
   return (
-    <View style={styles.container}>
+    // Same keyboard handling as the sign-in/sign-up screens: native insets on iOS,
+    // padding on edge-to-edge Android.
+    <KeyboardAvoidingView
+      style={styles.keyboardAvoidingView}
+      behavior="padding"
+      enabled={Platform.OS === 'android'}
+    >
+    <ScrollView
+      contentContainerStyle={styles.container}
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled"
+    >
       {status === 'pending' && <ActivityIndicator color={Colors.primary} size="large" />}
       <Text style={[styles.message, status === 'error' && styles.messageError]}>{message}</Text>
 
@@ -145,14 +166,24 @@ export default function AuthCallback() {
             onChangeText={setNewPassword}
             secureTextEntry
             autoFocus
+            autoComplete="new-password"
+            textContentType="newPassword"
+            returnKeyType="next"
+            submitBehavior="submit"
+            onSubmitEditing={() => confirmPasswordRef.current?.focus()}
           />
           <TextInput
+            ref={confirmPasswordRef}
             style={styles.input}
             placeholder="Confirm password"
             placeholderTextColor={Colors.textLight}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
+            autoComplete="new-password"
+            textContentType="newPassword"
+            returnKeyType="go"
+            onSubmitEditing={handleSetPassword}
           />
           <Button
             title={saving ? 'Saving...' : 'Set New Password'}
@@ -170,7 +201,8 @@ export default function AuthCallback() {
           size="lg"
         />
       )}
-    </View>
+    </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -187,8 +219,12 @@ function extractCodeFromUrl(url: string | null): string | null {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  keyboardAvoidingView: {
     flex: 1,
+    backgroundColor: Colors.background,
+  },
+  container: {
+    flexGrow: 1,
     backgroundColor: Colors.background,
     alignItems: 'center',
     justifyContent: 'center',

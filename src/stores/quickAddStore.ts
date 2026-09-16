@@ -11,6 +11,12 @@ import type { WordEntry } from '@/src/types';
 export interface QuickAddPrefill {
   english?: string;
   kashmiri?: string;
+  /**
+   * DSAL id of the dictionary's recording for `kashmiri`, set when the word was
+   * tapped in a lesson. Words added with the + button don't carry one: those
+   * are for recording in the learner's own voice.
+   */
+  audioId?: string;
 }
 
 /** The lesson on screen, so words added while it's open are saved to it. */
