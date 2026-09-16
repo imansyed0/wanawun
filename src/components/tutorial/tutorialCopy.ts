@@ -96,7 +96,7 @@ export function getBubble(
   switch (step) {
     case 'glossary':
       return {
-        text: 'This is your Glossary, your own little dictionary. When an aunty says something at dinner and you don’t know it, it goes in here.',
+        text: 'This is your Glossary — your own little dictionary. Whatever you hear at dinner and don’t know goes in here.',
         pose: 'kangri',
       };
     case 'open-add':
@@ -111,41 +111,41 @@ export function getBubble(
       };
     case 'add-word':
       return {
-        text: 'Write asun in the Kashmiri box and smile in the English one. Tap the red dot and record yourself, so you don’t forget how it sounds. Then tap Add.',
+        text: 'Write asun and smile in the boxes. Tap the red dot to record yourself, then Add.',
         pose: 'kangri',
       };
     case 'word-added':
       return {
-        text: 'Shabash, it’s saved. Next time you’re with family, tap the red dot next to a word and ask them to say it. Their voice will stay with you better than any spelling.',
+        text: 'Shabash, it’s saved. Next time you’re with family, tap the red dot and let them say it — their voice stays with you.',
         pose: 'cheer',
       };
     case 'flashcards':
       return {
-        text: 'Flashcards quiz you on the words and phrases in your Glossary. Be honest about whether you knew one. The ones you miss come back soon, the ones you know can wait a few days.',
+        text: 'Flashcards quiz you on your own words. Be honest — the ones you miss come back sooner.',
         pose: 'kangri',
       };
     case 'lessons':
       return {
-        text: 'Lessons are proper audio courses. Listen along and tick them off as you go — each course keeps count for you. When a word catches your ear, save it to your Glossary.',
+        text: 'Proper audio courses. Listen along and tick them off — each one keeps count for you.',
         pose: 'point',
       };
     case 'play':
       return {
         text: signedIn
-          ? 'Play is for when you want company. Koshur Clash is a quick word race against a cousin or friend. Whoever translates faster wins.'
-          : 'Play is for when you want company. Koshur Clash is a quick word race against a cousin or friend. You’ll need to sign in for this one.',
+          ? 'Koshur Clash is a quick word race against a cousin or friend. Fastest one wins.'
+          : 'Koshur Clash is a quick word race against a cousin or friend. Sign in for this one.',
         pose: 'cheer',
       };
     case 'profile':
       return {
         text: signedIn
-          ? 'Your Profile keeps count of your words and games. If you ever want me to show you round again, tap Replay Naani’s tour down here.'
-          : 'Sign in here so your words are kept safe on every phone, and so you can play. Once you’re in, you can call me back from here too.',
+          ? 'Your Profile keeps count. Want me round again? Tap Replay Naani’s tour.'
+          : 'Sign in here so your words are safe on every phone — and so you can play.',
         pose: 'point',
       };
     case 'wrap':
       return {
-        text: 'That’s all of it, jaanu. Add words when you hear them and do a few flashcards each day. Come see me again pagah. That means tomorrow.',
+        text: 'That’s all of it, jaanu. Add words as you hear them, and come see me again pagah — tomorrow.',
         pose: 'wave',
       };
     default:
