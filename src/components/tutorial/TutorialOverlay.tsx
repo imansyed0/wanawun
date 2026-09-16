@@ -174,9 +174,10 @@ export function TutorialOverlay() {
   // The + button floats bottom-right on every tab (56px wide, Spacing.lg from
   // the edge), so the bubble always leaves room or it covers Next.
   const padRight = 88;
-  // The Flashcards step asks them to reveal and rate a card, and those controls
-  // sit just above the tab bar — so lift the bubble clear of them.
-  const liftAbove = step === 'flashcards' ? 132 : 0;
+  // The card fills the middle of the Flashcards screen and its buttons sit at
+  // the bottom, so there's no room for her down there: dock her at the top for
+  // that step, leaving the word and the rating pills clear.
+  const dockTop = step === 'flashcards';
 
   return (
     <>
@@ -188,7 +189,9 @@ export function TutorialOverlay() {
         pointerEvents="box-none"
         style={[
           styles.root,
-          { bottom: (onTabs ? TabBarContentHeight : Spacing.md) + insets.bottom + liftAbove },
+          dockTop
+            ? { top: insets.top + Spacing.md }
+            : { bottom: (onTabs ? TabBarContentHeight : Spacing.md) + insets.bottom },
         ]}
       >
         <Animated.View
