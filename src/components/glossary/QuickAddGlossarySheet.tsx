@@ -27,6 +27,8 @@ import {
   uploadRecording,
 } from '@/src/services/audioService';
 import { addGlossaryWord, invalidateWordCache } from '@/src/services/wordService';
+import { attachDictionaryClip } from '@/src/services/dictionaryAudioLink';
+import { foldKashmiri } from '@/src/lib/dictionary';
 import { addLessonVocab, type LessonVocabEntry } from '@/src/services/lessonService';
 import type { WordEntry } from '@/src/types';
 import { stashPendingGlossaryWord } from '@/src/services/pendingGlossaryService';
@@ -47,11 +49,22 @@ export function QuickAddGlossarySheet() {
   const [adding, setAdding] = useState(false);
   const prefill = useQuickAddStore((s) => s.prefill);
 
+  // The dictionary recording for a word tapped in a lesson, kept so it can be
+  // linked once the word exists. Null for words added with the + button.
+  const [prefillAudio, setPrefillAudio] = useState<{ kashmiri: string; audioId: string } | null>(
+    null
+  );
+
   // Opened from a tapped lesson word: start with that word filled in.
   useEffect(() => {
     if (!isOpen || !prefill) return;
     if (prefill.english !== undefined) setEnglish(prefill.english);
     if (prefill.kashmiri !== undefined) setKashmiri(prefill.kashmiri);
+    setPrefillAudio(
+      prefill.audioId && prefill.kashmiri
+        ? { kashmiri: prefill.kashmiri, audioId: prefill.audioId }
+        : null
+    );
   }, [isOpen, prefill]);
 
   // Optional pronunciation (WAN-54): recorded locally, previewed, then
@@ -139,6 +152,7 @@ export function QuickAddGlossarySheet() {
     setKashmiri('');
     setEnglish('');
     setError('');
+    setPrefillAudio(null);
     void discardRecording();
   };
 
@@ -202,6 +216,16 @@ export function QuickAddGlossarySheet() {
           recordingFailed = true;
         }
       }
+      // Tapped in a lesson and not re-spelt: keep the dictionary's pronunciation.
+      if (
+        user?.id &&
+        !savedWord.audio_url &&
+        prefillAudio &&
+        foldKashmiri(prefillAudio.kashmiri) === foldKashmiri(trimmedKashmiri)
+      ) {
+        const dictionaryUrl = await attachDictionaryClip(savedWord, prefillAudio.audioId);
+        if (dictionaryUrl) savedWord = { ...savedWord, audio_url: dictionaryUrl };
+      }
       invalidateWordCache();
       reset();
       useQuickAddStore.getState().wordAdded(savedWord, recordingFailed);
@@ -220,7 +244,7 @@ export function QuickAddGlossarySheet() {
     } finally {
       setAdding(false);
     }
-  }, [english, kashmiri, recordingUri, user?.id]);
+  }, [english, kashmiri, prefillAudio, recordingUri, user?.id]);
 
   const goToSignIn = () => {
     close();

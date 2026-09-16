@@ -86,10 +86,14 @@ export function TappableEnglishText({ text, style, numberOfLines }: TappableEngl
           onClose={() => setSelected(null)}
           onAddToGlossary={() => {
             const english = glossaryEnglish(selected.text, tokens.indexOf(selected) === firstWordIdx);
+            // Carry the translation that was on screen, so the word arrives
+            // filled in and keeps the dictionary's pronunciation.
+            const translations = selected.entry?.translations ?? [];
+            const translation = translations.find((t) => t.audioId) ?? translations[0];
             setSelected(null);
             // Let the translation sheet finish closing first; iOS won't present
             // a second modal while the first is still being dismissed.
-            setTimeout(() => openAddWord(english), 350);
+            setTimeout(() => openAddWord(english, translation), 350);
           }}
         />
       ) : null}
@@ -109,8 +113,12 @@ function glossaryEnglish(raw: string, isFirstWord: boolean): string {
     : word;
 }
 
-function openAddWord(english: string) {
-  useQuickAddStore.getState().open({ english, kashmiri: '' });
+function openAddWord(english: string, translation?: KashmiriTranslation) {
+  useQuickAddStore.getState().open({
+    english,
+    kashmiri: translation?.kashmiri ?? '',
+    audioId: translation?.audioId,
+  });
   useTutorialStore.getState().notify('addModalOpened');
 }
 

@@ -27,12 +27,33 @@ import {
   INTRO_LINES,
   TAB_ORDER,
   TOUR_SECTIONS,
+  TOUR_WORD,
   getBubble,
   pathForStep,
   sectionForStep,
   type Bubble,
   type TourPath,
 } from '@/src/components/tutorial/tutorialCopy';
+import { dictionaryAudioUrls } from '@/src/lib/englishDictionary';
+import { playAudio, stopAudio } from '@/src/services/audioService';
+
+/** Naani's copy writes the app's + button as {plus}; see tutorialCopy. */
+const PLUS_TOKEN = '{plus}';
+
+/** Her line, with {plus} drawn as a small green + like the floating button. */
+function bubbleContent(text: string) {
+  const pieces = text.split(PLUS_TOKEN);
+  return pieces.flatMap((piece, i) =>
+    i === 0
+      ? [piece]
+      : [
+          <Text key={`plus-${i}`} style={styles.inlinePlus}>
+            {' + '}
+          </Text>,
+          piece,
+        ]
+  );
+}
 
 export function TutorialOverlay() {
   const insets = useSafeAreaInsets();
@@ -43,6 +64,27 @@ export function TutorialOverlay() {
     useTutorialStore();
 
   const [introIndex, setIntroIndex] = useState(0);
+
+  // Naani's suggested word: tapping it plays the dictionary's recording, so the
+  // learner hears it before adding it themselves.
+  const [wordPlaying, setWordPlaying] = useState(false);
+
+  async function playTourWord() {
+    if (wordPlaying) {
+      await stopAudio();
+      setWordPlaying(false);
+      return;
+    }
+    const [url] = dictionaryAudioUrls(TOUR_WORD.audioId);
+    if (!url) return;
+    setWordPlaying(true);
+    try {
+      await playAudio(url, { onFinish: () => setWordPlaying(false), tag: 'tourWord' });
+    } catch (error) {
+      console.warn('Tour word playback failed:', error);
+      setWordPlaying(false);
+    }
+  }
 
   const onGlossary = pathname === GLOSSARY_PATH;
   const stepPath = pathForStep(step);
@@ -127,13 +169,27 @@ export function TutorialOverlay() {
           pointerEvents="box-none"
         >
           <View style={styles.granny} pointerEvents="none">
-            <Grandmother pose={bubble.pose} size={84} />
+            <Grandmother pose={bubble.pose} size={110} />
           </View>
 
           <View style={styles.bubble}>
             <Animated.Text key={bubble.text} entering={FadeIn.duration(200)} style={styles.bubbleText}>
-              {bubble.text}
+              {bubbleContent(bubble.text)}
             </Animated.Text>
+
+            {bubble.word ? (
+              <Pressable
+                style={styles.wordChip}
+                onPress={playTourWord}
+                accessibilityRole="button"
+                accessibilityLabel={`Hear ${bubble.word.kashmiri}, which means ${bubble.word.english}`}
+              >
+                <Text style={styles.wordChipWord}>{bubble.word.kashmiri}</Text>
+                <Text style={styles.wordChipHint}>
+                  {wordPlaying ? 'playing…' : 'tap to listen'}
+                </Text>
+              </Pressable>
+            ) : null}
 
             <View style={styles.actions}>
               <Text style={styles.counter}>
@@ -301,8 +357,9 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
     borderWidth: 1,
     borderColor: Colors.border,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    // Naani gets plenty of room: her bubble can take up half the screen.
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     paddingRight: Spacing.lg,
     marginBottom: Spacing.md,
     shadowColor: '#000',
@@ -313,10 +370,41 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   bubbleText: {
-    fontSize: FontSize.md,
-    lineHeight: LineHeight.body(FontSize.md),
+    fontSize: FontSize.lg,
+    lineHeight: LineHeight.body(FontSize.lg),
     color: Colors.text,
     fontFamily: FontFamily.bodySemi,
+  },
+  // Matches the floating + button: white on the app's green, rounded.
+  inlinePlus: {
+    color: '#fff',
+    backgroundColor: Colors.primary,
+    fontFamily: FontFamily.bodyBold,
+    fontSize: FontSize.md,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+  },
+  wordChip: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    alignSelf: 'flex-start',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.surfaceLight,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  wordChipWord: {
+    fontSize: FontSize.lg,
+    lineHeight: LineHeight.body(FontSize.lg),
+    fontFamily: FontFamily.bodySemi,
+    color: Colors.primaryDark,
+  },
+  wordChipHint: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
   },
   actions: {
     flexDirection: 'row',
@@ -330,12 +418,12 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   counter: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     color: Colors.textLight,
     fontFamily: FontFamily.bodySemi,
   },
   secondaryText: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     color: Colors.textSecondary,
     fontFamily: FontFamily.bodySemi,
   },
@@ -347,7 +435,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#fff',
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     fontFamily: FontFamily.bodyBold,
   },
   skip: {

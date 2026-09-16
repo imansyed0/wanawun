@@ -65,9 +65,17 @@ export function sectionForStep(step: TutorialStep): number {
   }
 }
 
+/**
+ * The word Naani has the learner add. It's in S. Hassan's dictionary with a
+ * recording (DSAL 00325), so they can hear it before they save it.
+ */
+export const TOUR_WORD = { kashmiri: 'asun', english: 'smile', audioId: '00325' };
+
 export type Bubble = {
   text: string;
   pose: GrandmotherPose;
+  /** Rendered as a tappable word that opens its dictionary entry and audio. */
+  word?: { kashmiri: string; english: string; audioId: string };
 };
 
 export function getBubble(
@@ -89,12 +97,14 @@ export function getBubble(
         return { text: 'Go back to the Glossary tab first, jaanu.', pose: 'point' };
       }
       return {
-        text: 'Let’s add one together. Tap the + and put in samandar. It means ocean.',
+        // {plus} renders as a pill that looks like the app's + button.
+        text: 'Let’s add one together. Tap asun below to hear it, then tap the {plus} and add it yourself.',
         pose: 'point',
+        word: TOUR_WORD,
       };
     case 'add-word':
       return {
-        text: 'Write samandar in the Kashmiri box and ocean in the English one, then tap Add.',
+        text: 'Write asun in the Kashmiri box and smile in the English one, then tap Add.',
         pose: 'kangri',
       };
     case 'word-added':
