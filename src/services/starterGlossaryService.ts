@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { addGlossaryWord, getGlossaryWords } from '@/src/services/wordService';
+import { linkAudioToWord } from '@/src/services/audioService';
+import { dictionaryAudioUrls } from '@/src/lib/englishDictionary';
 import type { WordEntry } from '@/src/types';
 
 /**
@@ -49,43 +51,67 @@ export async function saveLearnerLevel(level: LearnerLevel, userId?: string): Pr
 }
 
 // ---------------------------------------------------------------------------
-// Starter sets per level. Every entry is a `words` row that already has a
-// recording, copied exactly (spelling, case, punctuation) so adding it links
-// to that row and the glossary entry plays its recording straight away.
-// Checked against the live `words` table on 2026-09-15. Left out on purpose:
-// Posh and āb (WebM audio, which iPhones often can't play), Kakaz (its clip
-// is only 6.5 KB), and samandar (Naani's tour has learners add it themselves).
+// Starter sets per level.
+//
+// Transliteration and meaning come from the Kaeshir word list; `audioId` is the
+// DSAL id of S. Hassan's Kashmiri dictionary recording for that word, hosted in
+// course-audio/hassan-dictionary/ (see data/dictionary_audio_manifest.json).
+// Every clip below was checked against the bucket on 2026-09-16.
 // ---------------------------------------------------------------------------
 
-type StarterEntry = { kashmiri: string; english: string };
+type StarterEntry = { kashmiri: string; english: string; audioId: string };
 
 const STARTER_SETS: Record<LearnerLevel, StarterEntry[]> = {
   beginner: [
-    { kashmiri: 'Salaam', english: 'Hello' },
-    { kashmiri: 'moj', english: 'mother' },
-    { kashmiri: 'beni', english: 'sister' },
-    { kashmiri: 'd’ad', english: 'grandmother' },
-    { kashmiri: 'bude bab', english: 'grandfather' },
-    { kashmiri: 'waruy', english: 'good' },
-    { kashmiri: 'panch', english: 'five' },
+    { kashmiri: 'bandιgī', english: 'greetings', audioId: '00520' },
+    { kashmiri: 'hamud', english: 'thank', audioId: '01447' },
+    { kashmiri: 'dɔd', english: 'milk', audioId: '01030' },
+    { kashmiri: 'cāy', english: 'tea', audioId: '00784' },
+    { kashmiri: 'batι', english: 'rice', audioId: '00550' },
+    { kashmiri: 'gιzah', english: 'food', audioId: '01392' },
+    { kashmiri: 'beni', english: 'sister', audioId: '00611' },
+    { kashmiri: 'dɔdι baci', english: 'child', audioId: '01035' },
+    { kashmiri: 'garι', english: 'house', audioId: '01251' },
+    { kashmiri: 'bar', english: 'door', audioId: '00526' },
+    { kashmiri: 'gām', english: 'village', audioId: '01219' },
+    { kashmiri: 'Az', english: 'today', audioId: '00384' },
+    { kashmiri: 'Doh', english: 'day', audioId: '00991' },
+    { kashmiri: 'anigaṭι', english: 'dusk', audioId: '00220' },
+    { kashmiri: 'boḍ', english: 'big', audioId: '00695' },
   ],
   intermediate: [
-    { kashmiri: 'd’ad', english: 'grandmother' },
-    { kashmiri: 'bude bab', english: 'grandfather' },
-    { kashmiri: 'moj', english: 'mother' },
-    { kashmiri: 'beni', english: 'sister' },
-    { kashmiri: 'tohi chu warai', english: 'are you well' },
-    { kashmiri: 'Yi kus chu', english: 'Who is this' },
-    { kashmiri: 'yi chu mez', english: 'this is a table' },
-    { kashmiri: 'wanwun', english: 'singing' },
+    { kashmiri: 'garιwājenʸ', english: 'wife', audioId: '01253' },
+    { kashmiri: 'brιtʰā', english: 'husband', audioId: '00537' },
+    { kashmiri: 'haš', english: 'mother in law', audioId: '01475' },
+    { kashmiri: 'hehrιbāb', english: 'father in law', audioId: '01512' },
+    { kashmiri: 'astʰ', english: 'moon', audioId: '00322' },
+    { kashmiri: 'bə̄riš', english: 'rain', audioId: '00678' },
+    { kashmiri: 'dǝryāv', english: 'river', audioId: '00977' },
+    { kashmiri: 'bāg', english: 'garden', audioId: '00562' },
+    { kashmiri: 'bādām', english: 'almond', audioId: '00561' },
+    { kashmiri: 'akun', english: 'tired', audioId: '00120' },
+    { kashmiri: 'dōdlad', english: 'ill', audioId: '01019' },
+    { kashmiri: 'dilkʰoš', english: 'easy', audioId: '00952' },
+    { kashmiri: 'bǝḍʸ', english: 'old', audioId: '00696' },
+    { kashmiri: 'digar', english: 'dusk', audioId: '00945' },
+    { kashmiri: 'haftι', english: 'week', audioId: '01407' },
   ],
   understands: [
-    { kashmiri: 'tohi chu warai', english: 'are you well' },
-    { kashmiri: 'Yi kus chu', english: 'Who is this' },
-    { kashmiri: 'yi chu mez', english: 'this is a table' },
-    { kashmiri: 'samana choohaz?', english: 'do you have any luggage, sir?' },
-    { kashmiri: 'waruy', english: 'good' },
-    { kashmiri: 'Salaam', english: 'Hello' },
+    { kashmiri: 'astι astι', english: 'slowly', audioId: '00323' },
+    { kashmiri: 'beyi pʰiri', english: 'again', audioId: '00619' },
+    { kashmiri: 'hamēšι', english: 'always', audioId: '01433' },
+    { kashmiri: 'gutul', english: 'enough', audioId: '01383' },
+    { kashmiri: 'bōzun', english: 'feel', audioId: '00716' },
+    { kashmiri: 'dāwa karun', english: 'say', audioId: '00922' },
+    { kashmiri: 'bāwun', english: 'tell', audioId: '00585' },
+    { kashmiri: 'bōz', english: 'listen', audioId: '00714' },
+    { kashmiri: 'hakə̄ni', english: 'real', audioId: '01411' },
+    { kashmiri: 'aʦun', english: 'come', audioId: '00371' },
+    { kashmiri: 'drāv', english: 'go', audioId: '01047' },
+    { kashmiri: 'Diyun', english: 'give', audioId: '00960' },
+    { kashmiri: 'anun', english: 'take', audioId: '00225' },
+    { kashmiri: 'Bihun', english: 'sit', audioId: '00654' },
+    { kashmiri: 'aḍḍι', english: 'stop', audioId: '00052' },
   ],
 };
 
@@ -148,7 +174,12 @@ async function loadAndSeed(userId: string): Promise<WordEntry[]> {
   let failed = 0;
   for (const entry of missing) {
     try {
-      await addGlossaryWord(userId, entry.kashmiri, entry.english);
+      const word = await addGlossaryWord(userId, entry.kashmiri, entry.english);
+      // Give the word its dictionary recording, unless it already has one.
+      if (!word.audio_url && !word.id.startsWith('lesson-vocab:')) {
+        const [audioUrl] = dictionaryAudioUrls(entry.audioId);
+        if (audioUrl) await linkAudioToWord(word.id, audioUrl);
+      }
     } catch (error) {
       failed++;
       console.warn('Starter glossary word failed:', entry.kashmiri, error);
@@ -161,7 +192,7 @@ async function loadAndSeed(userId: string): Promise<WordEntry[]> {
   try {
     await AsyncStorage.setItem(addedLevelKey(userId), level);
   } catch {
-    // non-fatal: addGlossaryWord skips words already in the glossary anyway
+    // non-fatal: words already in the glossary are skipped anyway
   }
   return missing.length > 0 ? getGlossaryWords(userId) : words;
 }
