@@ -222,7 +222,7 @@ export function TutorialOverlay() {
             ) : null}
 
             <View style={styles.actions}>
-              <Text style={styles.counter}>
+              <Text style={styles.counter} numberOfLines={1}>
                 {section} of {TOUR_SECTIONS}
               </Text>
               <View style={styles.actionButtons}>
@@ -453,6 +453,8 @@ const styles = StyleSheet.create({
   },
   counter: {
     fontSize: FontSize.sm,
+    // Never wrap: a wide button next to it was breaking "6 of 6" over three lines.
+    flexShrink: 0,
     color: Colors.textLight,
     fontFamily: FontFamily.bodySemi,
   },
