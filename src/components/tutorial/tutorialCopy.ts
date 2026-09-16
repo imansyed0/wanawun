@@ -111,7 +111,7 @@ export function getBubble(
       };
     case 'add-word':
       return {
-        text: 'Write asun in the Kashmiri box and smile in the English one, then tap Add.',
+        text: 'Write asun in the Kashmiri box and smile in the English one. Tap the red dot and record yourself, so you don’t forget how it sounds. Then tap Add.',
         pose: 'kangri',
       };
     case 'word-added':
