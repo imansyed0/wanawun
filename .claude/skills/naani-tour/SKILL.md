@@ -49,11 +49,17 @@ the tour can never trap someone.
 This is where most of the bugs have been. The bubble docks to the bottom by
 default, above the tab bar, and:
 
+- **Naani stands under the bubble, not beside it** (`styles.stack`). Beside it she
+  ate 110px, and the 88px gutter that used to clear the floating + button ate
+  another 88, leaving the bubble ~180px wide on a phone: every line wrapped after
+  three words and the bubble grew tall enough to cover the whole screen. Stacked,
+  the bubble gets the full width and her 104px strip is what clears the + button
+  (56px, `Spacing.md` above the tab bar), so no horizontal gutter is needed.
 - **Flashcards docks to the top** (`dockTop`). The card fills the middle of that
   screen and its buttons sit at the bottom, so a bottom-docked bubble covers either
   the word or "Reveal answer" — nudging it up the same column just swaps which.
-- **`padRight` is always 88** to clear the floating + button, which is mounted in
-  the root layout and therefore overlaps every tab.
+  It starts `SCREEN_TITLE_HEIGHT` (96) below the inset so the screen's own title
+  stays readable.
 - **On non-tab screens** (a lesson player) there is no tab bar, so the bottom
   offset drops to `Spacing.md` and the tab highlight ring is hidden.
 - **The step counter** is `flexShrink: 0` + `numberOfLines={1}`; without that a wide

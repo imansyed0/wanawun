@@ -143,8 +143,9 @@ class Cdp {
 // --- session ---------------------------------------------------------------
 
 async function signIn() {
-  const email = process.env.WANWUN_EMAIL;
-  const password = process.env.WANWUN_PASSWORD;
+  // Either spelling: the repo still uses the old "wanawun" slug in places.
+  const email = process.env.WANWUN_EMAIL || process.env.WANAWUN_EMAIL;
+  const password = process.env.WANWUN_PASSWORD || process.env.WANAWUN_PASSWORD;
   if (!email || !password) return null;
   const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     method: 'POST',
