@@ -182,12 +182,11 @@ export function TutorialOverlay() {
                 style={styles.wordChip}
                 onPress={playTourWord}
                 accessibilityRole="button"
-                accessibilityLabel={`Hear ${bubble.word.kashmiri}, which means ${bubble.word.english}`}
+                accessibilityLabel={`Hear ${bubble.word.kashmiri}, which means ${bubble.word.gloss}`}
               >
+                <Text style={styles.wordChipIcon}>{wordPlaying ? '■' : '▶'}</Text>
                 <Text style={styles.wordChipWord}>{bubble.word.kashmiri}</Text>
-                <Text style={styles.wordChipHint}>
-                  {wordPlaying ? 'playing…' : 'tap to listen'}
-                </Text>
+                <Text style={styles.wordChipGloss}>{bubble.word.gloss}</Text>
               </Pressable>
             ) : null}
 
@@ -402,8 +401,12 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bodySemi,
     color: Colors.primaryDark,
   },
-  wordChipHint: {
-    fontSize: FontSize.xs,
+  wordChipIcon: {
+    fontSize: FontSize.sm,
+    color: Colors.primaryDark,
+  },
+  wordChipGloss: {
+    fontSize: FontSize.md,
     color: Colors.textSecondary,
   },
   actions: {

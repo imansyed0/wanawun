@@ -69,13 +69,20 @@ export function sectionForStep(step: TutorialStep): number {
  * The word Naani has the learner add. It's in S. Hassan's dictionary with a
  * recording (DSAL 00325), so they can hear it before they save it.
  */
-export const TOUR_WORD = { kashmiri: 'asun', english: 'smile', audioId: '00325' };
+export const TOUR_WORD = {
+  kashmiri: 'asun',
+  /** What the learner types into the English box. */
+  english: 'smile',
+  /** Shown on the chip, so they know what they're hearing. */
+  gloss: 'smile/laugh',
+  audioId: '00325',
+};
 
 export type Bubble = {
   text: string;
   pose: GrandmotherPose;
-  /** Rendered as a tappable word that opens its dictionary entry and audio. */
-  word?: { kashmiri: string; english: string; audioId: string };
+  /** Rendered as a tappable word that plays its dictionary recording. */
+  word?: { kashmiri: string; english: string; gloss: string; audioId: string };
 };
 
 export function getBubble(
