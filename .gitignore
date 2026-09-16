@@ -45,8 +45,11 @@ yarn-error.*
 /supabase/.temp/
 /test-results/
 
-# local agent worktrees
-/.claude/
+# Local agent state stays out of git, but the skills are committed: git can't
+# look inside an excluded directory, so exclude .claude's children instead.
+/.claude/*
+!/.claude/skills/
+/.claude/skills/*/shots/
 
 # scraped course audio — lives in the `course-audio` Supabase bucket (scripts/uploadCourseAudio.js)
 /data/audio/
