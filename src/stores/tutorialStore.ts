@@ -50,6 +50,9 @@ interface TutorialState {
   answers: number;
   hadWrong: boolean;
   lastAnswer: 'right' | 'wrong' | null;
+  /** True once they've opened a lesson during the Lessons step, so Naani can
+   *  say something useful in there instead of repeating herself. */
+  insideLesson: boolean;
   // True while a native Modal (e.g. the Add sheet) covers the screen.
   // RN's Modal portals above everything else, including our docked
   // overlay, so the overlay hides itself and the screen that owns the
@@ -72,6 +75,7 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
   hadWrong: false,
   lastAnswer: null,
   modalOpen: false,
+  insideLesson: false,
 
   start: () =>
     set({
@@ -81,6 +85,7 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
       hadWrong: false,
       lastAnswer: null,
       modalOpen: false,
+      insideLesson: false,
     }),
 
   advanceIntro: () => {
@@ -100,7 +105,7 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
       return;
     }
     const i = TOUR_STEPS.indexOf(step);
-    set({ step: TOUR_STEPS[Math.min(i + 1, TOUR_STEPS.length - 1)] });
+    set({ step: TOUR_STEPS[Math.min(i + 1, TOUR_STEPS.length - 1)], insideLesson: false });
   },
 
   skipAddWord: () => {
@@ -138,8 +143,9 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
         if (state.step === 'flashcards') set({ step: 'lessons' });
         break;
       case 'lessonOpened':
-        // They opened a lesson, so she can move on to Play.
-        if (state.step === 'lessons') set({ step: 'play' });
+        // Naani follows them in and changes what she says. The step moves on
+        // when they tap Next, not the moment the player opens.
+        if (state.step === 'lessons') set({ insideLesson: true });
         break;
       case 'flashcardsOpened':
         break;

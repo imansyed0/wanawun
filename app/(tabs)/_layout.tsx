@@ -4,7 +4,6 @@ import { Redirect, Tabs, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontFamily, TabBarContentHeight } from '@/src/constants/theme';
 import { SymbolView } from 'expo-symbols';
-import { TutorialOverlay } from '@/src/components/tutorial/TutorialOverlay';
 import { useAuth } from '@/src/hooks/useAuth';
 
 const TAB_ICON_SIZE = 26;
@@ -16,12 +15,9 @@ export default function TabLayout() {
   if (loading) return <View style={{ flex: 1, backgroundColor: Colors.background }} />;
   if (!user) return <Redirect href={'/welcome' as Href} />;
 
-  return (
-    <View style={{ flex: 1 }}>
-      <TabsNav />
-      <TutorialOverlay />
-    </View>
-  );
+  // Naani's overlay is mounted in the root layout, so she stays on screen when
+  // a step sends someone into a lesson.
+  return <TabsNav />;
 }
 
 function TabsNav() {

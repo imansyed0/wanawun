@@ -91,7 +91,8 @@ export function getBubble(
   _onFlashcards?: boolean,
   _lastAnswer?: 'right' | 'wrong' | null,
   _hadWrong?: boolean,
-  signedIn: boolean = false
+  signedIn: boolean = false,
+  insideLesson: boolean = false
 ): Bubble {
   switch (step) {
     case 'glossary':
@@ -126,7 +127,9 @@ export function getBubble(
       };
     case 'lessons':
       return {
-        text: 'Proper audio courses. Open one and pick a lesson — listen along and tick them off as you go.',
+        text: insideLesson
+          ? 'Here you are. Play a clip and listen — the ✓ comes once you’ve heard it. Tap Next when you’re ready.'
+          : 'Proper audio courses. Open one and pick a lesson — listen along and tick them off as you go.',
         pose: 'point',
       };
     case 'play':

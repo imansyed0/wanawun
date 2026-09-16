@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { usePathname, useRouter } from 'expo-router';
+import { usePathname, useRouter, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
@@ -61,7 +61,7 @@ export function TutorialOverlay() {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
-  const { active, step, modalOpen, advanceIntro, next, skipAddWord, skip, complete } =
+  const { active, step, modalOpen, insideLesson, advanceIntro, next, skipAddWord, skip, complete } =
     useTutorialStore();
 
   const [introIndex, setIntroIndex] = useState(0);
@@ -98,10 +98,13 @@ export function TutorialOverlay() {
     }
   }
 
+  const segments = useSegments() as string[];
   const onGlossary = pathname === GLOSSARY_PATH;
   const stepPath = pathForStep(step);
   // A course list or lesson player counts as being on the Lessons step.
   const insideLessons = step === 'lessons' && pathname.startsWith('/lessons');
+  // Only tab screens have a tab bar to sit above; lesson screens don't.
+  const onTabs = segments[0] === '(tabs)';
 
   // Each step takes the user to its tab. Only fires when the step
   // changes, so the user can still wander without being yanked back.
@@ -161,12 +164,13 @@ export function TutorialOverlay() {
     );
   }
 
-  const bubble: Bubble = getBubble(step, onGlossary, false, null, false, !!user);
+  const bubble: Bubble = getBubble(step, onGlossary, false, null, false, !!user, insideLesson);
   // Wandered off the step's tab (e.g. tapped another tab mid-step).
   const offTrack =
     !!stepPath && pathname !== stepPath && step !== 'open-add' && !insideLessons;
   const section = sectionForStep(step);
-  const highlightPath: TourPath | null = step === 'wrap' ? null : stepPath;
+  // The ring points at a tab, so it only makes sense on the tab screens.
+  const highlightPath: TourPath | null = step === 'wrap' || !onTabs ? null : stepPath;
   // The + button floats bottom-right on every tab (56px wide, Spacing.lg from
   // the edge), so the bubble always leaves room or it covers Next.
   const padRight = 88;
@@ -182,7 +186,10 @@ export function TutorialOverlay() {
 
       <View
         pointerEvents="box-none"
-        style={[styles.root, { bottom: TabBarContentHeight + insets.bottom + liftAbove }]}
+        style={[
+          styles.root,
+          { bottom: (onTabs ? TabBarContentHeight : Spacing.md) + insets.bottom + liftAbove },
+        ]}
       >
         <Animated.View
           entering={FadeInDown.duration(300)}

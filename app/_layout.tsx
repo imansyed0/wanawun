@@ -16,6 +16,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { QuickAddFab } from '@/src/components/glossary/QuickAddFab';
+import { TutorialOverlay } from '@/src/components/tutorial/TutorialOverlay';
 import { QuickAddGlossarySheet } from '@/src/components/glossary/QuickAddGlossarySheet';
 
 export { ErrorBoundary } from 'expo-router';
@@ -105,6 +106,9 @@ function RootLayoutNav() {
       </Stack>
       {/* WAN-40: always-present quick add to glossary. */}
       <QuickAddFab />
+      {/* Mounted here, not in the tabs, so Naani can follow people into a
+          lesson instead of vanishing when they open one. */}
+      <TutorialOverlay />
       <QuickAddGlossarySheet />
       </View>
     </ThemeProvider>
