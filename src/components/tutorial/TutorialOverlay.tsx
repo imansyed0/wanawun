@@ -100,11 +100,15 @@ export function TutorialOverlay() {
 
   const onGlossary = pathname === GLOSSARY_PATH;
   const stepPath = pathForStep(step);
+  // A course list or lesson player counts as being on the Lessons step.
+  const insideLessons = step === 'lessons' && pathname.startsWith('/lessons');
 
   // Each step takes the user to its tab. Only fires when the step
   // changes, so the user can still wander without being yanked back.
   useEffect(() => {
     if (!active || !stepPath) return;
+    // The Lessons step asks them to open a lesson, so don't drag them back out.
+    if (step === 'lessons' && pathname.startsWith('/lessons')) return;
     if (pathname !== stepPath) router.navigate(stepPath);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, step]);
@@ -159,12 +163,16 @@ export function TutorialOverlay() {
 
   const bubble: Bubble = getBubble(step, onGlossary, false, null, false, !!user);
   // Wandered off the step's tab (e.g. tapped another tab mid-step).
-  const offTrack = !!stepPath && pathname !== stepPath && step !== 'open-add';
+  const offTrack =
+    !!stepPath && pathname !== stepPath && step !== 'open-add' && !insideLessons;
   const section = sectionForStep(step);
   const highlightPath: TourPath | null = step === 'wrap' ? null : stepPath;
   // The + button floats bottom-right on every tab (56px wide, Spacing.lg from
   // the edge), so the bubble always leaves room or it covers Next.
   const padRight = 88;
+  // The Flashcards step asks them to reveal and rate a card, and those controls
+  // sit just above the tab bar — so lift the bubble clear of them.
+  const liftAbove = step === 'flashcards' ? 132 : 0;
 
   return (
     <>
@@ -174,7 +182,7 @@ export function TutorialOverlay() {
 
       <View
         pointerEvents="box-none"
-        style={[styles.root, { bottom: TabBarContentHeight + insets.bottom }]}
+        style={[styles.root, { bottom: TabBarContentHeight + insets.bottom + liftAbove }]}
       >
         <Animated.View
           entering={FadeInDown.duration(300)}

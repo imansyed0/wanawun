@@ -121,12 +121,12 @@ export function getBubble(
       };
     case 'flashcards':
       return {
-        text: 'Flashcards quiz you on your own words. Be honest — the ones you miss come back sooner.',
+        text: 'Flashcards quiz you on your own words. Try this one — reveal it, then tell me honestly if you knew it.',
         pose: 'kangri',
       };
     case 'lessons':
       return {
-        text: 'Proper audio courses. Listen along and tick them off — each one keeps count for you.',
+        text: 'Proper audio courses. Open one and pick a lesson — listen along and tick them off as you go.',
         pose: 'point',
       };
     case 'play':

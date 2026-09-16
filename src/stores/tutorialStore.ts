@@ -23,9 +23,11 @@ export type TutorialEvent =
   | 'addModalOpened'
   | 'addModalClosed'
   | 'wordAdded'
-  // Still reported by screens; the tour no longer needs them to advance.
   | 'flashcardsOpened'
-  | 'flashcardAnswered';
+  /** A card was revealed and rated: the hands-on part of the Flashcards step. */
+  | 'flashcardAnswered'
+  /** A lesson player was opened: the hands-on part of the Lessons step. */
+  | 'lessonOpened';
 
 /** Order used by next(). */
 export const TOUR_STEPS: TutorialStep[] = [
@@ -131,8 +133,15 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
         // The Glossary screen closes its own modal right before this fires.
         set({ modalOpen: false, step: inGlossaryPart ? 'word-added' : state.step });
         break;
-      case 'flashcardsOpened':
       case 'flashcardAnswered':
+        // Answered one card, as Naani asked — move her on to Lessons.
+        if (state.step === 'flashcards') set({ step: 'lessons' });
+        break;
+      case 'lessonOpened':
+        // They opened a lesson, so she can move on to Play.
+        if (state.step === 'lessons') set({ step: 'play' });
+        break;
+      case 'flashcardsOpened':
         break;
     }
   },

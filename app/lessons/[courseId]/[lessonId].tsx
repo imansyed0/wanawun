@@ -44,6 +44,7 @@ import { ExternalLink } from '@/components/ExternalLink';
 import { TappableKashmiriText } from '@/src/components/ui/TappableKashmiriText';
 import { TappableEnglishText } from '@/src/components/ui/TappableEnglishText';
 import { useQuickAddStore } from '@/src/stores/quickAddStore';
+import { useTutorialStore } from '@/src/stores/tutorialStore';
 import { useAuth } from '@/src/hooks/useAuth';
 import {
   getLessonVocab,
@@ -715,6 +716,11 @@ export default function LessonPlayerScreen() {
       setVocabRecordingId(null);
     }
   };
+
+  // Naani's Lessons step waits for a lesson to be opened before moving on.
+  useEffect(() => {
+    useTutorialStore.getState().notify('lessonOpened');
+  }, []);
 
   const handleDeleteVocab = async (entry: LessonVocabEntry) => {
     await deleteLessonVocab(entry.id);
