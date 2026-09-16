@@ -126,7 +126,7 @@ export function getBubble(
       };
     case 'lessons':
       return {
-        text: 'Lessons are proper audio courses from koshur.org. Listen along, and when a word catches your ear, save it to your Glossary.',
+        text: 'Lessons are proper audio courses. Listen along and tick them off as you go — each course keeps count for you. When a word catches your ear, save it to your Glossary.',
         pose: 'point',
       };
     case 'play':

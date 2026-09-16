@@ -1,10 +1,14 @@
+import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/src/components/ui/Card';
 import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
 import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
 import { allCourses } from '@/src/data/courses';
+import { getFullyListenedLessonIds } from '@/src/services/clipProgressService';
+import { useAuth } from '@/src/hooks/useAuth';
 
 const badges: Record<string, { label: string; color: string }> = {
   'spoken-kashmiri': { label: '50 chapters', color: Colors.primary },
@@ -22,6 +26,29 @@ const icons: Record<string, string> = {
 
 export default function LessonsScreen() {
   const router = useRouter();
+  const { user } = useAuth();
+  // Lessons ticked off per course, so each card can show how far along it is.
+  const [listened, setListened] = useState<Record<string, number>>({});
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        for (const course of allCourses) {
+          try {
+            const ids = await getFullyListenedLessonIds(user?.id, course.id, course.lessons);
+            if (cancelled) return;
+            setListened((prev) => ({ ...prev, [course.id]: ids.length }));
+          } catch {
+            // Leave this course without a count rather than blocking the list.
+          }
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [user?.id])
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -64,6 +91,12 @@ export default function LessonsScreen() {
                   </View>
                 </View>
                 <Text style={styles.description}>{item.description}</Text>
+                {/* Only once something's ticked off: "0 of 50" greets nobody well. */}
+                {listened[item.id] ? (
+                  <Text style={styles.progress}>
+                    {'✓'} {listened[item.id]} of {item.lessons.length} ticked off
+                  </Text>
+                ) : null}
               </Card>
             </Pressable>
           );
@@ -118,5 +151,10 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textLight,
     lineHeight: LineHeight.body(FontSize.sm),
+  },
+  progress: {
+    fontSize: FontSize.sm,
+    fontFamily: FontFamily.bodySemi,
+    color: Colors.primaryDark,
   },
 });
