@@ -11,10 +11,12 @@ import { Amiri_400Regular, Amiri_700Bold } from '@expo-google-fonts/amiri';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { Platform, Text, TextInput } from 'react-native';
+import { Platform, Text, TextInput, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
+import { QuickAddFab } from '@/src/components/glossary/QuickAddFab';
+import { QuickAddGlossarySheet } from '@/src/components/glossary/QuickAddGlossarySheet';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -82,6 +84,7 @@ function RootLayoutNav() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <View style={{ flex: 1 }}>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -100,6 +103,10 @@ function RootLayoutNav() {
         <Stack.Screen name="lessons/[courseId]/[lessonId]" options={{ title: 'Lesson' }} />
         <Stack.Screen name="lessons/[id]" options={{ title: 'Lesson', headerShown: false }} />
       </Stack>
+      {/* WAN-40: always-present quick add to glossary. */}
+      <QuickAddFab />
+      <QuickAddGlossarySheet />
+      </View>
     </ThemeProvider>
   );
 }

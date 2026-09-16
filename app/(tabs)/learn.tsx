@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,7 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
-  Modal,
-  KeyboardAvoidingView,
   Keyboard,
-  Platform,
   TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,25 +16,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Card } from '@/src/components/ui/Card';
 import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
 import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
-import { addGlossaryWord, deleteGlossaryWord, invalidateWordCache } from '@/src/services/wordService';
-import {
-  isPendingWordId,
-  removePendingGlossaryWord,
-  stashPendingGlossaryWord,
-} from '@/src/services/pendingGlossaryService';
+import { deleteGlossaryWord, invalidateWordCache } from '@/src/services/wordService';
+import { isPendingWordId, removePendingGlossaryWord } from '@/src/services/pendingGlossaryService';
+// Starter words for the level the learner picked when Naani asked.
 import { getGlossaryWordsWithStarters } from '@/src/services/starterGlossaryService';
-import { useTutorialStore } from '@/src/stores/tutorialStore';
-import { getBubble } from '@/src/components/tutorial/tutorialCopy';
-import { Grandmother } from '@/src/components/onboarding/Grandmother';
-import {
-  playAudio,
-  stopAudio,
-  startRecording,
-  stopRecording,
-  stopAndUploadRecording,
-  uploadRecording,
-  linkAudioToWord,
-} from '@/src/services/audioService';
+import { useQuickAddStore } from '@/src/stores/quickAddStore';
+import { playAudio, stopAudio, startRecording, stopAndUploadRecording, linkAudioToWord } from '@/src/services/audioService';
 import { PlayButton, RecordButton, RecordingTimer } from '@/src/components/ui/RecordControls';
 import { useAuth } from '@/src/hooks/useAuth';
 import type { WordEntry } from '@/src/types';
@@ -45,19 +29,10 @@ import type { WordEntry } from '@/src/types';
 export default function LearnScreen() {
   const [words, setWords] = useState<WordEntry[]>([]);
   const [search, setSearch] = useState('');
-  const [newKashmiri, setNewKashmiri] = useState('');
-  const [newEnglish, setNewEnglish] = useState('');
-  const [addError, setAddError] = useState('');
-  const [adding, setAdding] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const tutorialActive = useTutorialStore((s) => s.active);
-  const tutorialStep = useTutorialStore((s) => s.step);
-  const showTutorialHint = tutorialActive && isAddModalOpen && tutorialStep === 'add-word';
-  const tutorialBubble = showTutorialHint
-    ? getBubble('add-word', true, false, null, false)
-    : null;
+  // Words added through the app-wide quick-add sheet (the floating +).
+  const lastAdded = useQuickAddStore((s) => s.lastAdded);
 
   // Audio state
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -65,13 +40,6 @@ export default function LearnScreen() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const recordingRef = useRef<AudioRecorder | null>(null);
-
-  // Optional clip recorded in the add sheet. The word doesn't exist yet, so it's
-  // kept locally and uploaded once Add has created the word.
-  const draftRecorderRef = useRef<AudioRecorder | null>(null);
-  const [draftState, setDraftState] = useState<'idle' | 'recording' | 'recorded'>('idle');
-  const [draftUri, setDraftUri] = useState<string | null>(null);
-  const [draftPlaying, setDraftPlaying] = useState(false);
 
   const loadWords = useCallback(async () => {
     setLoading(true);
@@ -108,142 +76,23 @@ export default function LearnScreen() {
       w.english.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleAddWord = useCallback(async () => {
-    const trimmedKashmiri = newKashmiri.trim();
-    const trimmedEnglish = newEnglish.trim();
+  useEffect(() => {
+    if (!lastAdded) return;
+    const newWord = lastAdded;
+    setWords((prev) => {
+      const withoutDuplicate = prev.filter(
+        (entry) =>
+          !(
+            entry.kashmiri.trim().toLowerCase() === newWord.kashmiri.trim().toLowerCase() &&
+            entry.english.trim().toLowerCase() === newWord.english.trim().toLowerCase()
+          )
+      );
 
-    if (!trimmedKashmiri || !trimmedEnglish) {
-      setAddError('Enter both Kashmiri and English before adding a word or phrase.');
-      return;
-    }
-
-    setAdding(true);
-    setAddError('');
-
-    try {
-      // Signed-out words live locally and sync into the account on sign-in.
-      const newWord = user?.id
-        ? await addGlossaryWord(user.id, trimmedKashmiri, trimmedEnglish)
-        : await stashPendingGlossaryWord({ kashmiri: trimmedKashmiri, english: trimmedEnglish });
-      if (
-        draftUri &&
-        user?.id &&
-        !newWord.id.startsWith('lesson-vocab:') &&
-        !isPendingWordId(newWord.id)
-      ) {
-        // Attach the clip recorded in the sheet. A failed upload shouldn't lose the word.
-        try {
-          const url = await uploadRecording(draftUri, user.id, newWord.id);
-          await linkAudioToWord(newWord.id, url);
-          newWord.audio_url = url;
-        } catch (audioError) {
-          console.error('Add-sheet recording upload error:', audioError);
-        }
-      }
-      setWords((prev) => {
-        const withoutDuplicate = prev.filter(
-          (entry) =>
-            !(
-              entry.kashmiri.trim().toLowerCase() === newWord.kashmiri.trim().toLowerCase() &&
-              entry.english.trim().toLowerCase() === newWord.english.trim().toLowerCase()
-            )
-        );
-
-        return [...withoutDuplicate, newWord].sort((a, b) =>
-          a.kashmiri.localeCompare(b.kashmiri)
-        );
-      });
-      invalidateWordCache();
-      setNewKashmiri('');
-      setNewEnglish('');
-      setDraftState('idle');
-      setDraftUri(null);
-      setDraftPlaying(false);
-      setIsAddModalOpen(false);
-      useTutorialStore.getState().notify('wordAdded');
-    } catch (error: any) {
-      console.error('Glossary add error:', error);
-      setAddError(error?.message || 'Could not add this word/phrase right now.');
-    } finally {
-      setAdding(false);
-    }
-  }, [draftUri, newEnglish, newKashmiri, user?.id]);
-
-  const openAddModal = useCallback(() => {
-    setAddError('');
-    setIsAddModalOpen(true);
-    useTutorialStore.getState().notify('addModalOpened');
-  }, []);
-
-  const closeAddModal = useCallback(() => {
-    if (adding) return;
-    // Closing the sheet throws away any clip that wasn't saved with a word.
-    if (draftRecorderRef.current) {
-      stopRecording(draftRecorderRef.current).catch(() => {});
-      draftRecorderRef.current = null;
-    }
-    if (draftPlaying) stopAudio();
-    setDraftState('idle');
-    setDraftUri(null);
-    setDraftPlaying(false);
-    setIsAddModalOpen(false);
-    setAddError('');
-    setNewKashmiri('');
-    setNewEnglish('');
-    useTutorialStore.getState().notify('addModalClosed');
-  }, [adding, draftPlaying]);
-
-  const handleDraftRecord = useCallback(async () => {
-    // Tapping stop keeps the clip locally until Add.
-    if (draftRecorderRef.current) {
-      const recorder = draftRecorderRef.current;
-      draftRecorderRef.current = null;
-      try {
-        const uri = await stopRecording(recorder);
-        setDraftUri(uri);
-        setDraftState('recorded');
-      } catch (e) {
-        console.error('Add-sheet recording stop error:', e);
-        setDraftState(draftUri ? 'recorded' : 'idle');
-      }
-      return;
-    }
-    try {
-      if (draftPlaying) {
-        await stopAudio();
-        setDraftPlaying(false);
-      }
-      draftRecorderRef.current = await startRecording();
-      setAddError('');
-      setDraftState('recording');
-    } catch (e: any) {
-      console.error('Add-sheet recording start error:', e);
-      setAddError(e?.message || 'Could not start recording.');
-    }
-  }, [draftPlaying, draftUri]);
-
-  const handleDraftPlay = useCallback(async () => {
-    if (!draftUri) return;
-    if (draftPlaying) {
-      await stopAudio();
-      setDraftPlaying(false);
-      return;
-    }
-    setDraftPlaying(true);
-    try {
-      await playAudio(draftUri, { onFinish: () => setDraftPlaying(false) });
-    } catch (e) {
-      console.error('Add-sheet playback error:', e);
-      setDraftPlaying(false);
-    }
-  }, [draftPlaying, draftUri]);
-
-  const discardDraft = useCallback(async () => {
-    if (draftPlaying) await stopAudio();
-    setDraftPlaying(false);
-    setDraftUri(null);
-    setDraftState('idle');
-  }, [draftPlaying]);
+      return [...withoutDuplicate, newWord].sort((a, b) =>
+        a.kashmiri.localeCompare(b.kashmiri)
+      );
+    });
+  }, [lastAdded]);
 
   const handlePlay = useCallback(async (word: WordEntry) => {
     if (!word.audio_url) return;
@@ -443,115 +292,8 @@ export default function LearnScreen() {
             </Text>
           }
         />
-
-        <Pressable style={styles.fab} onPress={openAddModal}>
-          <Text style={styles.fabText}>+</Text>
-        </Pressable>
+        {/* The + to add a word is the app-wide QuickAddFab (root layout). */}
       </View>
-
-      <Modal
-        visible={isAddModalOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={closeAddModal}
-      >
-        <KeyboardAvoidingView
-          style={styles.modalRoot}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <Pressable style={styles.modalBackdrop} onPress={closeAddModal} />
-          <View style={styles.modalWrap}>
-            {tutorialBubble ? (
-              <View style={styles.tutorialHintRow} pointerEvents="none">
-                <Grandmother pose={tutorialBubble.pose} size={56} />
-                <View style={styles.tutorialHintBubble}>
-                  <Text style={styles.tutorialHintText}>{tutorialBubble.text}</Text>
-                </View>
-              </View>
-            ) : null}
-            <Card style={styles.addCard}>
-              <View style={styles.addHeader}>
-                <Text style={styles.addTitle}>Add To Glossary</Text>
-                <Pressable
-                  style={styles.closeButton}
-                  onPress={closeAddModal}
-                  disabled={adding}
-                >
-                  <Text style={styles.closeButtonText}>{'\u00D7'}</Text>
-                </Pressable>
-              </View>
-              {/* The recording is of the Kashmiri pronunciation, so its controls sit on the
-                  Kashmiri row. Recordings upload to the user's storage, so only signed-in
-                  users can record. */}
-              <View style={styles.kashmiriRow}>
-                <TextInput
-                  style={[styles.addInput, styles.addInputKashmiri]}
-                  placeholder="Kashmiri"
-                  placeholderTextColor={Colors.textLight}
-                  value={newKashmiri}
-                  onChangeText={setNewKashmiri}
-                  autoCapitalize="none"
-                />
-                {user?.id ? (
-                  <View style={styles.pronunciationControls}>
-                    {draftState === 'recorded' ? (
-                      <>
-                        <PlayButton
-                          playing={draftPlaying}
-                          onPress={handleDraftPlay}
-                          accessibilityLabel="Play Kashmiri pronunciation"
-                        />
-                        <Pressable
-                          style={styles.draftDiscard}
-                          onPress={discardDraft}
-                          disabled={adding}
-                          hitSlop={6}
-                          accessibilityRole="button"
-                          accessibilityLabel="Remove pronunciation recording"
-                        >
-                          <Text style={styles.draftDiscardText}>{'×'}</Text>
-                        </Pressable>
-                      </>
-                    ) : (
-                      <>
-                        {draftState === 'recording' ? <RecordingTimer active /> : null}
-                        <RecordButton
-                          recording={draftState === 'recording'}
-                          onPress={handleDraftRecord}
-                          disabled={adding}
-                          accessibilityLabel={
-                            draftState === 'recording' ? 'Stop recording' : 'Record Kashmiri pronunciation'
-                          }
-                        />
-                      </>
-                    )}
-                  </View>
-                ) : null}
-              </View>
-              <TextInput
-                style={styles.addInput}
-                placeholder="English"
-                placeholderTextColor={Colors.textLight}
-                value={newEnglish}
-                onChangeText={setNewEnglish}
-                autoCapitalize="none"
-              />
-              <Pressable
-                style={[
-                  styles.addButton,
-                  (!newKashmiri.trim() || !newEnglish.trim() || adding || draftState === 'recording') &&
-                    styles.addButtonDisabled,
-                ]}
-                onPress={handleAddWord}
-                disabled={!newKashmiri.trim() || !newEnglish.trim() || adding || draftState === 'recording'}
-              >
-                <Text style={styles.addButtonText}>{adding ? 'Adding...' : 'Add'}</Text>
-              </Pressable>
-              {addError ? <Text style={styles.addError}>{addError}</Text> : null}
-            </Card>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -608,130 +350,27 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     color: Colors.text,
   },
-  fab: {
-    position: 'absolute',
-    right: Spacing.lg,
-    bottom: Spacing.xl,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
-  },
-  fabText: {
-    color: '#fff',
-    fontSize: 30,
-    lineHeight: LineHeight.body(30),
-    fontFamily: FontFamily.bodySemi,
-  },
-  modalRoot: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(8, 20, 24, 0.45)',
-  },
-  modalWrap: {
-    paddingHorizontal: Spacing.lg,
-  },
-  tutorialHintRow: {
+  recordingBanner: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: Spacing.xs,
+    alignItems: 'center',
+    backgroundColor: '#fef2f2',
+    marginHorizontal: Spacing.lg,
     marginBottom: Spacing.sm,
-  },
-  tutorialHintBubble: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderBottomLeftRadius: 4,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  tutorialHintText: {
-    fontSize: FontSize.md,
-    lineHeight: LineHeight.body(FontSize.md),
-    color: Colors.text,
-    fontFamily: FontFamily.bodySemi,
-  },
-  addCard: {
-    padding: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
     gap: Spacing.sm,
   },
-  addHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.xs,
+  recordingDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.wrong,
   },
-  addTitle: {
-    fontSize: FontSize.lg,
-    fontFamily: FontFamily.heading,
-    color: Colors.primaryDark,
-  },
-  addInput: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    minHeight: 48,
-    backgroundColor: Colors.surfaceLight,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    fontSize: FontSize.md,
-    color: Colors.text,
-  },
-  addInputKashmiri: {
-    // Same font and size as the English field; a little taller so typed
-    // Kashmiri diacritics aren't clipped. Fills the row beside the record controls.
-    flex: 1,
-    minHeight: 56,
-  },
-  addButton: {
-    minHeight: 44,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.md,
-  },
-  addButtonDisabled: {
-    opacity: 0.45,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontSize: FontSize.md,
-    fontFamily: FontFamily.bodyBold,
-  },
-  addError: {
+  recordingText: {
     fontSize: FontSize.sm,
     color: Colors.wrong,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.surfaceLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeButtonText: {
-    color: Colors.textSecondary,
-    fontSize: 22,
-    lineHeight: 24,
+    fontFamily: FontFamily.bodySemi,
   },
   list: {
     paddingHorizontal: Spacing.lg,

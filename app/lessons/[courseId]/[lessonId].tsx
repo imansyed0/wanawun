@@ -4,13 +4,13 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  TextInput,
   ScrollView,
   Image,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Dimensions,
+  PanResponder,
 } from 'react-native';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -29,6 +29,11 @@ import { allCourses, type AudioClip } from '@/src/data/courses';
 import { getSpokenKashmiriChapterContent } from '@/src/data/spokenKashmiriContent';
 import { getLessonCourseContext } from '@/src/data/courseContext';
 import { resolveCourseAudioUrl } from '@/src/data/courseAudio';
+import {
+  formatClipCount,
+  getClipNoun,
+  getKoulSectionClipNoun,
+} from '@/src/data/clipLabels';
 import { getKachruChapterVocabulary } from '@/src/data/kachruVocabulary';
 import {
   KOUL_SECTION_LABELS,
@@ -36,16 +41,19 @@ import {
   type KoulSectionKey,
 } from '@/src/data/koulContent';
 import { ExternalLink } from '@/components/ExternalLink';
+import { TappableKashmiriText } from '@/src/components/ui/TappableKashmiriText';
+import { TappableEnglishText } from '@/src/components/ui/TappableEnglishText';
+import { useQuickAddStore } from '@/src/stores/quickAddStore';
 import { useAuth } from '@/src/hooks/useAuth';
 import {
   getLessonVocab,
-  addLessonVocab,
   deleteLessonVocab,
   type LessonVocabEntry,
 } from '@/src/services/lessonService';
 import {
   playAudio,
   stopAudio,
+  onPauseAllAudio,
   startRecording as startAudioRecording,
   stopAndUploadRecording,
   linkAudioToWord,
@@ -131,12 +139,44 @@ export default function LessonPlayerScreen() {
   const [kachruVocabPlaying, setKachruVocabPlaying] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView | null>(null);
 
+  // Playback follow-along: keep the playing clip's chip left-most in the clip
+  // strip, and scroll the lesson content to the text/image being played.
+  const [hasStartedPlayback, setHasStartedPlayback] = useState(false);
+  const clipScrollRef = useRef<ScrollView | null>(null);
+  const clipChipXRef = useRef<Record<number, number>>({});
+  const clipScrollWidthRef = useRef(0);
+  const clipContentWidthRef = useRef(0);
+  // Content rows are nested inside sections/groups, so each onLayout y is
+  // stored relative to its parent and summed up when we need to scroll.
+  const contentLayoutYRef = useRef<Record<string, number>>({});
+  const contentLayoutParentsRef = useRef<Record<string, string[]>>({});
+  const pendingContentScrollKeyRef = useRef<string | null>(null);
+
+  // Seek bar scrubbing. While dragging, scrubPosition (ms) drives the UI and
+  // the player is only seeked on release. The responder is created once, so it
+  // calls through a ref that is refreshed on every render.
+  const [scrubPosition, setScrubPosition] = useState<number | null>(null);
+  const scrubTrackWidthRef = useRef(0);
+  const scrubStartXRef = useRef<number | null>(null);
+  const scrubHandlersRef = useRef({
+    start: (_x: number) => {},
+    move: (_dx: number) => {},
+    end: (_dx: number) => {},
+  });
+  const scrubResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: (e) => scrubHandlersRef.current.start(e.nativeEvent.locationX),
+      onPanResponderMove: (_e, g) => scrubHandlersRef.current.move(g.dx),
+      onPanResponderRelease: (_e, g) => scrubHandlersRef.current.end(g.dx),
+      onPanResponderTerminate: (_e, g) => scrubHandlersRef.current.end(g.dx),
+    })
+  ).current;
+
   // Vocab
   const [vocab, setVocab] = useState<LessonVocabEntry[]>([]);
-  const [newKashmiri, setNewKashmiri] = useState('');
-  const [newEnglish, setNewEnglish] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [vocabError, setVocabError] = useState('');
 
   // Vocab recording
   const [vocabPlayingId, setVocabPlayingId] = useState<string | null>(null);
@@ -155,6 +195,29 @@ export default function LessonPlayerScreen() {
     if (!user?.id || !lessonId) return;
     getLessonVocab(user.id, lessonId).then(setVocab).catch(console.error);
   }, [user?.id, lessonId]);
+
+  // While this lesson is open, words added with the + button (or by tapping a
+  // word) are saved to it, and show up in its Words tab straight away.
+  useFocusEffect(
+    useCallback(() => {
+      if (!lessonId || !courseId) return;
+      const context = { lessonId, courseId };
+      useQuickAddStore.getState().setLessonContext(context);
+      return () => {
+        if (useQuickAddStore.getState().lessonContext === context) {
+          useQuickAddStore.getState().setLessonContext(null);
+        }
+      };
+    }, [lessonId, courseId])
+  );
+
+  const lastAddedLessonVocab = useQuickAddStore((s) => s.lastAddedLessonVocab);
+  useEffect(() => {
+    if (!lastAddedLessonVocab || lastAddedLessonVocab.lesson_id !== lessonId) return;
+    setVocab((prev) =>
+      prev.some((v) => v.id === lastAddedLessonVocab.id) ? prev : [lastAddedLessonVocab, ...prev]
+    );
+  }, [lastAddedLessonVocab, lessonId]);
 
   useEffect(() => {
     currentClipIdxRef.current = currentClipIdx;
@@ -184,6 +247,23 @@ export default function LessonPlayerScreen() {
       setDuration(0);
     }
   }, []);
+
+  // Pause (don't unload) the clip when something asks all audio to stop, e.g.
+  // the add-to-glossary sheet or a word popup opening, so Play resumes in place.
+  useEffect(
+    () =>
+      onPauseAllAudio(() => {
+        const sound = soundRef.current;
+        if (sound?.isLoaded && sound.playing) {
+          try {
+            sound.pause();
+          } catch {}
+        }
+        setIsPlaying(false);
+        setVocabPlayingId(null);
+      }),
+    []
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -279,6 +359,53 @@ export default function LessonPlayerScreen() {
     Math.max(clips.length - 1, 0)
   );
   const currentClip = clips[safeCurrentClipIdx];
+  const currentClipNoun = getClipNoun(course.id, lesson, currentClip);
+
+  // The content row that belongs to the playing clip. Koul images are paired
+  // 1:1 with that section's clips; Spoken Kashmiri rows carry the audio file.
+  const activeContentKey = !currentClip
+    ? null
+    : isKoul
+      ? `item:koul:${safeCurrentClipIdx}`
+      : currentClip.label?.startsWith('Vocab:')
+        ? `item:kachru:${currentClip.filename}`
+        : `item:spoken:${currentClip.filename}`;
+  const getContentY = (key: string): number | null => {
+    const own = contentLayoutYRef.current[key];
+    if (own == null) return null;
+    let y = own;
+    for (const parent of contentLayoutParentsRef.current[key] ?? []) {
+      const parentY = contentLayoutYRef.current[parent];
+      if (parentY == null) return null;
+      y += parentY;
+    }
+    return y;
+  };
+
+  const scrollContentTo = (key: string) => {
+    const y = getContentY(key);
+    if (y == null || !scrollViewRef.current) {
+      // Not laid out yet (tab just switched, images loading); retry on layout.
+      pendingContentScrollKeyRef.current = key;
+      return;
+    }
+    pendingContentScrollKeyRef.current = null;
+    scrollViewRef.current.scrollTo({ y: Math.max(0, y - Spacing.sm), animated: true });
+  };
+
+  const recordContentLayout = (key: string, y: number, parents: string[] = []) => {
+    contentLayoutYRef.current[key] = y;
+    contentLayoutParentsRef.current[key] = parents;
+    const pending = pendingContentScrollKeyRef.current;
+    if (pending) scrollContentTo(pending);
+  };
+
+  const scrollClipStripTo = (idx: number) => {
+    const x = clipChipXRef.current[idx];
+    if (x == null || !clipScrollRef.current) return;
+    const maxX = Math.max(0, clipContentWidthRef.current - clipScrollWidthRef.current);
+    clipScrollRef.current.scrollTo({ x: Math.min(x, maxX), animated: true });
+  };
 
   const availableKoulSections = isKoul
     ? KOUL_SECTION_ORDER.filter((key) =>
@@ -329,6 +456,7 @@ export default function LessonPlayerScreen() {
 
       setCurrentClipIdx(idx);
       currentClipIdxRef.current = idx;
+      setHasStartedPlayback(true);
       setIsLoading(true);
       setPosition(0);
       setDuration(0);
@@ -394,6 +522,10 @@ export default function LessonPlayerScreen() {
   }, [clips, lesson.audioBaseUrl, onPlaybackStatusUpdate, stopLessonAudio, courseId, lessonId]);
 
   const togglePlayPause = async () => {
+    // About to start or resume playback: remind them the + button is there.
+    if (!soundRef.current?.isLoaded || !soundRef.current.playing) {
+      useQuickAddStore.getState().nudgeAddButton();
+    }
     if (!soundRef.current) {
       await playClip(currentClipIdxRef.current);
       return;
@@ -411,6 +543,18 @@ export default function LessonPlayerScreen() {
     }
   };
 
+  // Tapping a content card plays its clip; tapping the card that's already
+  // loaded pauses or resumes it instead of restarting.
+  const playCardClip = (idx: number) => {
+    if (idx < 0 || idx >= clips.length) return;
+    if (idx === currentClipIdxRef.current && soundRef.current?.isLoaded) {
+      void togglePlayPause();
+      return;
+    }
+    useQuickAddStore.getState().nudgeAddButton();
+    void playClip(idx);
+  };
+
   const seekBy = async (ms: number) => {
     if (!soundRef.current) return;
     if (!soundRef.current.isLoaded) return;
@@ -419,6 +563,49 @@ export default function LessonPlayerScreen() {
       Math.min(position + ms, duration || 0)
     );
     await soundRef.current.seekTo(newPos / 1000);
+  };
+
+  const canScrub = () =>
+    duration > 0 && !!soundRef.current && soundRef.current.isLoaded;
+
+  const seekToMs = async (ms: number) => {
+    const sound = soundRef.current;
+    if (!sound || !sound.isLoaded) return;
+    const target = Math.max(0, Math.min(ms, duration || 0));
+    setPosition(target);
+    try {
+      await sound.seekTo(target / 1000);
+    } catch (e) {
+      console.error('Seek error:', e);
+    }
+  };
+
+  const scrubXToMs = (x: number) => {
+    const width = scrubTrackWidthRef.current;
+    if (width <= 0) return 0;
+    return (Math.max(0, Math.min(x, width)) / width) * duration;
+  };
+
+  scrubHandlersRef.current = {
+    start: (x) => {
+      if (!canScrub()) {
+        scrubStartXRef.current = null;
+        return;
+      }
+      scrubStartXRef.current = x;
+      setScrubPosition(scrubXToMs(x));
+    },
+    move: (dx) => {
+      if (scrubStartXRef.current == null) return;
+      setScrubPosition(scrubXToMs(scrubStartXRef.current + dx));
+    },
+    end: (dx) => {
+      const startX = scrubStartXRef.current;
+      scrubStartXRef.current = null;
+      setScrubPosition(null);
+      if (startX == null) return;
+      void seekToMs(scrubXToMs(startX + dx));
+    },
   };
 
   const formatTime = (ms: number) => {
@@ -454,6 +641,7 @@ export default function LessonPlayerScreen() {
       await stopLessonAudio();
       setVocabPlayingId(null);
       setKachruVocabPlaying(audioFilename);
+      useQuickAddStore.getState().nudgeAddButton();
       await playAudio(resolveCourseAudioUrl(lesson.audioBaseUrl + audioFilename), {
         onFinish: () => setKachruVocabPlaying(null),
       });
@@ -528,43 +716,13 @@ export default function LessonPlayerScreen() {
     }
   };
 
-  const handleAddVocab = async () => {
-    const k = newKashmiri.trim();
-    const e = newEnglish.trim();
-    if (!k || !e) {
-      setVocabError('Enter both Kashmiri and English before adding a word or phrase.');
-      return;
-    }
-    if (!user?.id) {
-      setVocabError('Sign in to save lesson vocab.');
-      return;
-    }
-    if (!lessonId || !courseId) {
-      setVocabError('This lesson could not be identified. Reload and try again.');
-      return;
-    }
-
-    setVocabError('');
-    setSaving(true);
-    try {
-      const entry = await addLessonVocab(user.id, lessonId, courseId, k, e);
-      setVocab((prev) => [entry, ...prev]);
-      setNewKashmiri('');
-      setNewEnglish('');
-    } catch (err: any) {
-      setVocabError('Failed to save vocab');
-      console.error(err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleDeleteVocab = async (entry: LessonVocabEntry) => {
     await deleteLessonVocab(entry.id);
     setVocab((prev) => prev.filter((v) => v.id !== entry.id));
   };
 
-  const progress = duration > 0 ? position / duration : 0;
+  const displayPosition = scrubPosition ?? position;
+  const progress = duration > 0 ? Math.min(1, displayPosition / duration) : 0;
   const spokenIntro =
     spokenContent?.intro && !spokenContent.intro.includes('.mp3')
       ? spokenContent.intro
@@ -659,8 +817,27 @@ export default function LessonPlayerScreen() {
     if (!isKoul) return;
     setCurrentClipIdx(0);
     currentClipIdxRef.current = 0;
+    setHasStartedPlayback(false);
+    clipChipXRef.current = {};
+    pendingContentScrollKeyRef.current = null;
     void stopLessonAudio(true);
   }, [isKoul, koulSection, stopLessonAudio]);
+
+  // Keep the playing clip left-most in the horizontal clip strip.
+  useEffect(() => {
+    scrollClipStripTo(safeCurrentClipIdx);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [safeCurrentClipIdx, koulSection]);
+
+  // Follow along in the lesson content as clips advance.
+  useEffect(() => {
+    if (!hasStartedPlayback || activeTab !== 'content' || !activeContentKey) {
+      pendingContentScrollKeyRef.current = null;
+      return;
+    }
+    scrollContentTo(activeContentKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeContentKey, activeTab, hasStartedPlayback]);
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -691,7 +868,7 @@ export default function LessonPlayerScreen() {
                   </Text>
                 </View>
                 <Text style={styles.koulPickerCount}>
-                  {clips.length} clip{clips.length === 1 ? '' : 's'}
+                  {formatClipCount(clips.length, getKoulSectionClipNoun(koulSection))}
                 </Text>
                 <View
                   style={[
@@ -763,10 +940,17 @@ export default function LessonPlayerScreen() {
           {/* Clip selector for multi-clip lessons */}
           {clips.length > 1 && (
             <ScrollView
+              ref={clipScrollRef}
               horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.clipScroll}
               contentContainerStyle={styles.clipRow}
+              onLayout={(e) => {
+                clipScrollWidthRef.current = e.nativeEvent.layout.width;
+              }}
+              onContentSizeChange={(width) => {
+                clipContentWidthRef.current = width;
+              }}
             >
               {clips.map((clip, idx) => {
                 const isListened = listenedClips.has(clip.filename);
@@ -779,7 +963,17 @@ export default function LessonPlayerScreen() {
                       isActive && styles.clipChipActive,
                       isListened && !isActive && styles.clipChipListened,
                     ]}
-                    onPress={() => playClip(idx)}
+                    onPress={() => {
+                      useQuickAddStore.getState().nudgeAddButton();
+                      void playClip(idx);
+                    }}
+                    onLayout={(e) => {
+                      clipChipXRef.current[idx] = e.nativeEvent.layout.x;
+                      if (isActive) scrollClipStripTo(idx);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Play ${currentClipNoun.toLowerCase()} ${idx + 1}`}
+                    accessibilityState={{ selected: isActive }}
                   >
                     <Text
                       style={[
@@ -797,17 +991,49 @@ export default function LessonPlayerScreen() {
             </ScrollView>
           )}
 
-          {/* Progress bar */}
-          <View style={styles.progressBar}>
-            <View
-              style={[styles.progressFill, { width: `${progress * 100}%` }]}
-            />
+          {/* Seek bar: tap or drag anywhere on the 44pt-tall track to scrub */}
+          <View
+            style={styles.scrubber}
+            onLayout={(e) => {
+              scrubTrackWidthRef.current = e.nativeEvent.layout.width;
+            }}
+            {...scrubResponder.panHandlers}
+            accessible
+            accessibilityRole="adjustable"
+            accessibilityLabel="Seek"
+            accessibilityValue={{
+              min: 0,
+              max: Math.round(duration / 1000),
+              now: Math.round(displayPosition / 1000),
+              text: `${formatTime(displayPosition)} of ${duration > 0 ? formatTime(duration) : 'unknown'}`,
+            }}
+            accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+            onAccessibilityAction={(e) => {
+              if (e.nativeEvent.actionName === 'increment') void seekToMs(position + 5000);
+              if (e.nativeEvent.actionName === 'decrement') void seekToMs(position - 5000);
+            }}
+          >
+            <View style={styles.progressBar} pointerEvents="none">
+              <View
+                style={[styles.progressFill, { width: `${progress * 100}%` }]}
+              />
+            </View>
+            {duration > 0 ? (
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.scrubThumb,
+                  scrubPosition != null && styles.scrubThumbActive,
+                  { left: `${progress * 100}%` },
+                ]}
+              />
+            ) : null}
           </View>
           <View style={styles.timeRow}>
-            <Text style={styles.timeText}>{formatTime(position)}</Text>
+            <Text style={styles.timeText}>{formatTime(displayPosition)}</Text>
             <Text style={styles.timeText}>
               {clips.length > 1
-                ? `Clip ${safeCurrentClipIdx + 1}/${clips.length}`
+                ? `${currentClipNoun} ${safeCurrentClipIdx + 1}/${clips.length}`
                 : ''}
             </Text>
             <Text style={styles.timeText}>
@@ -823,29 +1049,55 @@ export default function LessonPlayerScreen() {
                   onPress={() => { if (safeCurrentClipIdx > 0) playClip(safeCurrentClipIdx - 1); }}
                   style={styles.seekBtn}
                   disabled={safeCurrentClipIdx === 0}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Previous ${currentClipNoun.toLowerCase()}`}
                 >
                   <Text style={[styles.seekText, safeCurrentClipIdx === 0 && { color: Colors.border }]}>{'\u23EE'}</Text>
                 </Pressable>
-                <Pressable onPress={togglePlayPause} style={[styles.playBtn, isLoading && styles.playBtnLoading]} disabled={isLoading}>
+                <Pressable
+                  onPress={togglePlayPause}
+                  style={[styles.playBtn, isLoading && styles.playBtnLoading]}
+                  disabled={isLoading}
+                  accessibilityRole="button"
+                  accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
+                >
                   {renderPlayPauseIcon()}
                 </Pressable>
                 <Pressable
                   onPress={() => { if (safeCurrentClipIdx < clips.length - 1) playClip(safeCurrentClipIdx + 1); }}
                   style={styles.seekBtn}
                   disabled={safeCurrentClipIdx === clips.length - 1}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Next ${currentClipNoun.toLowerCase()}`}
                 >
                   <Text style={[styles.seekText, safeCurrentClipIdx === clips.length - 1 && { color: Colors.border }]}>{'\u23ED'}</Text>
                 </Pressable>
               </>
             ) : (
               <>
-                <Pressable onPress={() => seekBy(-15000)} style={styles.seekBtn}>
+                <Pressable
+                  onPress={() => seekBy(-15000)}
+                  style={styles.seekBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Back 15 seconds"
+                >
                   <Text style={styles.seekText}>-15s</Text>
                 </Pressable>
-                <Pressable onPress={togglePlayPause} style={[styles.playBtn, isLoading && styles.playBtnLoading]} disabled={isLoading}>
+                <Pressable
+                  onPress={togglePlayPause}
+                  style={[styles.playBtn, isLoading && styles.playBtnLoading]}
+                  disabled={isLoading}
+                  accessibilityRole="button"
+                  accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
+                >
                   {renderPlayPauseIcon()}
                 </Pressable>
-                <Pressable onPress={() => seekBy(15000)} style={styles.seekBtn}>
+                <Pressable
+                  onPress={() => seekBy(15000)}
+                  style={styles.seekBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Forward 15 seconds"
+                >
                   <Text style={styles.seekText}>+15s</Text>
                 </Pressable>
               </>
@@ -864,7 +1116,7 @@ export default function LessonPlayerScreen() {
               <Text
                 style={[styles.tabButtonText, activeTab === 'content' && styles.tabButtonTextActive]}
               >
-                Lesson Content
+                Lesson
               </Text>
             </Pressable>
             <Pressable
@@ -874,7 +1126,7 @@ export default function LessonPlayerScreen() {
               <Text
                 style={[styles.tabButtonText, activeTab === 'vocab' && styles.tabButtonTextActive]}
               >
-                Add Words & Phrases ({vocab.length})
+                Words ({vocab.length})
               </Text>
             </Pressable>
           </View>
@@ -896,10 +1148,21 @@ export default function LessonPlayerScreen() {
             <>
               {/* Kachru vocabulary — rendered at the top of each lesson tab */}
               {hasKachruVocab && kachruVocab && (
-                <View style={styles.imagesSection}>
+                <View
+                  style={styles.imagesSection}
+                  onLayout={(e) => recordContentLayout('section:kachru', e.nativeEvent.layout.y)}
+                >
                   <Text style={styles.sectionTitle}>Vocabulary</Text>
                   {kachruVocab.groups.map((group) => (
-                    <View key={group.title} style={styles.kachruVocabGroup}>
+                    <View
+                      key={group.title}
+                      style={styles.kachruVocabGroup}
+                      onLayout={(e) =>
+                        recordContentLayout(`group:kachru:${group.title}`, e.nativeEvent.layout.y, [
+                          'section:kachru',
+                        ])
+                      }
+                    >
                       <Text style={styles.contextSectionTitle}>{group.title}</Text>
                       {group.items.map((item) => {
                         const imageUri = lesson.imageBaseUrl
@@ -907,11 +1170,18 @@ export default function LessonPlayerScreen() {
                           : undefined;
                         const aspect = imageAspectRatios[item.image];
                         const isPlaying = kachruVocabPlaying === item.audio;
+                        const rowKey = `item:kachru:${item.audio}`;
                         return (
                           <Pressable
                             key={`${group.title}-${item.audio}`}
                             onPress={() => handleKachruVocabPlay(item.audio)}
                             style={styles.kachruVocabCard}
+                            onLayout={(e) =>
+                              recordContentLayout(rowKey, e.nativeEvent.layout.y, [
+                                `group:kachru:${group.title}`,
+                                'section:kachru',
+                              ])
+                            }
                           >
                             {imageUri ? (
                               <View
@@ -960,19 +1230,46 @@ export default function LessonPlayerScreen() {
 
               {/* Structured page content for Spoken Kashmiri */}
               {spokenContent && (spokenIntro || spokenContent.exchanges.length > 0) && (
-                <View style={styles.imagesSection}>
+                <View
+                  style={styles.imagesSection}
+                  onLayout={(e) => recordContentLayout('section:spoken', e.nativeEvent.layout.y)}
+                >
                   <Text style={styles.sectionTitle}>Lesson Content</Text>
                   {spokenIntro ? (
                     <Text style={styles.translationIntro}>{spokenIntro}</Text>
                   ) : null}
-                  {spokenContent.exchanges.map((exchange) => {
+                  {spokenContent.exchanges.map((exchange, exchangeIdx) => {
                     const imageUri = lesson.imageBaseUrl
                       ? lesson.imageBaseUrl + exchange.image
                       : undefined;
                     const imageAspectRatio = imageAspectRatios[exchange.image];
+                    const rowKey = `item:spoken:${exchange.audio}`;
+                    // Conversation lines come in a/b pairs (conv1a, conv1b);
+                    // alternate the tint by that letter, else by position.
+                    const pairLetter = exchange.audio.match(/([a-z])\.mp3$/i)?.[1];
+                    const isAltRow = pairLetter
+                      ? (pairLetter.toLowerCase().charCodeAt(0) - 97) % 2 === 1
+                      : exchangeIdx % 2 === 1;
+                    const cardClipIdx = clips.findIndex((c) => c.filename === exchange.audio);
+                    const isCardPlaying =
+                      cardClipIdx !== -1 && cardClipIdx === safeCurrentClipIdx && isPlaying;
 
                     return (
-                      <View key={`${exchange.audio}-${exchange.image}`} style={styles.translationCard}>
+                      <Pressable
+                        key={`${exchange.audio}-${exchange.image}`}
+                        onPress={() => playCardClip(cardClipIdx)}
+                        disabled={cardClipIdx === -1}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${isCardPlaying ? 'Pause' : 'Play'} ${exchange.speaker ? `${exchange.speaker}: ` : ''}${exchange.english}`}
+                        style={[
+                          styles.translationCard,
+                          styles.exchangeCard,
+                          isAltRow ? styles.exchangeCardAlt : styles.exchangeCardBase,
+                        ]}
+                        onLayout={(e) =>
+                          recordContentLayout(rowKey, e.nativeEvent.layout.y, ['section:spoken'])
+                        }
+                      >
                         {imageUri && imageAspectRatio ? (
                           <View
                             style={[
@@ -995,9 +1292,9 @@ export default function LessonPlayerScreen() {
                           {exchange.speaker ? (
                             <Text style={styles.translationSpeaker}>{exchange.speaker}</Text>
                           ) : null}
-                          <Text style={styles.translationEnglish}>{exchange.english}</Text>
+                          <TappableEnglishText text={exchange.english} style={styles.translationEnglish} />
                         </View>
-                      </View>
+                      </Pressable>
                     );
                   })}
                 </View>
@@ -1092,7 +1389,7 @@ export default function LessonPlayerScreen() {
                                   </View>
                                 ) : null}
                                 <View style={styles.translationCopy}>
-                                  <Text style={styles.translationEnglish}>{item}</Text>
+                                  <TappableEnglishText text={item} style={styles.translationEnglish} />
                                 </View>
                               </View>
                             );
@@ -1166,24 +1463,48 @@ export default function LessonPlayerScreen() {
                               const right = parts.slice(1).join(' - ').trim();
                               return (
                                 <View key={item} style={styles.contextTableRow}>
-                                  <Text style={styles.contextTableKashmiri}>{left}</Text>
-                                  <Text style={styles.contextTableEnglish}>{right}</Text>
+                                  <TappableKashmiriText
+                                    text={left}
+                                    style={styles.contextTableKashmiri}
+                                  />
+                                  <TappableEnglishText text={right} style={styles.contextTableEnglish} />
                                 </View>
                               );
                             })}
                           </View>
                         ) : isDialogue ? (
-                          section.items.map((item, idx) => (
-                            <View key={`${section.title}-${idx}`} style={styles.contextDialogueLine}>
-                              <Text style={styles.contextDialogueText}>{item}</Text>
-                            </View>
-                          ))
+                          section.items.map((item, idx) => {
+                            // Some dialogues pair Kashmiri with a translation:
+                            // "A: tati kyuth mosam chu ? - How about the climate?"
+                            const [kashmiriPart, ...englishParts] = item.split(' - ');
+                            return (
+                              <View key={`${section.title}-${idx}`} style={styles.contextDialogueLine}>
+                                {englishParts.length > 0 ? (
+                                  <>
+                                    <TappableKashmiriText
+                                      text={kashmiriPart}
+                                      style={styles.contextDialogueText}
+                                    />
+                                    <TappableEnglishText
+                                      text={englishParts.join(' - ')}
+                                      style={styles.contextDialogueText}
+                                    />
+                                  </>
+                                ) : (
+                                  <Text style={styles.contextDialogueText}>{item}</Text>
+                                )}
+                              </View>
+                            );
+                          })
                         ) : isNumbered ? (
                           // Render as numbered list
                           section.items.map((item, idx) => (
                             <View key={`${section.title}-${idx}`} style={styles.contextNumberedRow}>
                               <Text style={styles.contextNumber}>{idx + 1}.</Text>
-                              <Text style={styles.contextNumberedText}>{item}</Text>
+                              <TappableKashmiriText
+                                text={item}
+                                style={styles.contextNumberedText}
+                              />
                             </View>
                           ))
                         ) : (
@@ -1209,7 +1530,10 @@ export default function LessonPlayerScreen() {
 
               {/* Image-only course content */}
               {hasImages && !spokenContent && !hasLessonContext && (
-                <View style={styles.imagesSection}>
+                <View
+                  style={styles.imagesSection}
+                  onLayout={(e) => recordContentLayout('section:koul', e.nativeEvent.layout.y)}
+                >
                   <Text style={styles.sectionTitle}>
                     {isKoul
                       ? KOUL_SECTION_LABELS[koulSection]
@@ -1218,20 +1542,28 @@ export default function LessonPlayerScreen() {
                   {displayImages.map((img, idx) => {
                     const uri = img.imageUrl ?? lesson.imageBaseUrl + img.filename;
                     const aspect = imageAspectRatios[img.filename];
+                    const rowKey = `item:koul:${idx}`;
                     return (
-                      <View
+                      <Pressable
                         key={`${img.filename}-${idx}`}
+                        onPress={() => playCardClip(idx)}
+                        disabled={idx >= clips.length}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Play ${currentClipNoun.toLowerCase()} ${idx + 1}`}
                         style={[
                           styles.koulImageFrame,
                           aspect ? { aspectRatio: aspect, height: undefined } : null,
                         ]}
+                        onLayout={(e) =>
+                          recordContentLayout(rowKey, e.nativeEvent.layout.y, ['section:koul'])
+                        }
                       >
                         <Image
                           source={{ uri }}
                           style={styles.koulImage}
                           resizeMode="contain"
                         />
-                      </View>
+                      </Pressable>
                     );
                   })}
                 </View>
@@ -1242,66 +1574,26 @@ export default function LessonPlayerScreen() {
               <Text style={styles.sectionTitle}>
                 Words & Phrases ({vocab.length})
               </Text>
-              <Text style={styles.vocabHint}>
-                Add words/phrases you hear — they sync to the glossary
-              </Text>
               {!user?.id ? (
                 <Text style={styles.vocabWarning}>
                   Sign in to add words/phrases from lessons.
                 </Text>
               ) : null}
-              <View style={styles.audioGuideCard}>
-                <Text style={styles.audioGuideTitle}>Record lesson audio</Text>
-                <Text style={styles.audioGuideText}>
-                  1. Add the word/phrase above.
-                </Text>
-                <Text style={styles.audioGuideText}>
-                  2. Wait for the green checkmark to appear.
-                </Text>
-                <Text style={styles.audioGuideText}>
-                  3. Tap the red record button, then tap stop to upload the audio to the glossary.
-                </Text>
-              </View>
 
-              <View style={styles.addRow}>
-                <TextInput
-                  style={[styles.vocabInput, styles.vocabInputKashmiri, { flex: 1.2 }]}
-                  placeholder="Kashmiri"
-                  placeholderTextColor={Colors.textLight}
-                  value={newKashmiri}
-                  onChangeText={setNewKashmiri}
-                />
-                <TextInput
-                  style={[styles.vocabInput, { flex: 1 }]}
-                  placeholder="English"
-                  placeholderTextColor={Colors.textLight}
-                  value={newEnglish}
-                  onChangeText={setNewEnglish}
-                />
-                <Pressable
-                  style={[
-                    styles.addBtn,
-                    (!newKashmiri.trim() || !newEnglish.trim() || !user?.id) &&
-                      styles.addBtnDisabled,
-                  ]}
-                  onPress={handleAddVocab}
-                  disabled={
-                    !newKashmiri.trim() || !newEnglish.trim() || saving || !user?.id
-                  }
-                >
-                  <Text style={styles.addBtnText}>
-                    {saving ? '...' : '+'}
+              {vocabRecordingId && (
+                <View style={styles.recordingBanner}>
+                  <View style={styles.recordingDot} />
+                  <Text style={styles.recordingText}>
+                    Recording... tap Stop on the matching word to upload it.
                   </Text>
-                </Pressable>
-              </View>
+                </View>
+              )}
 
-              {vocabError ? (
-                <Text style={styles.vocabError}>{vocabError}</Text>
-              ) : null}
+
 
               {vocab.length === 0 ? (
                 <Text style={styles.emptyVocab}>
-                  No words/phrases added yet. Listen and add what you learn!
+                  No words/phrases yet. Tap the + button to add what you hear in this lesson.
                 </Text>
               ) : (
                 vocab.map((item) => {
@@ -1416,15 +1708,18 @@ const styles = StyleSheet.create({
   clipScroll: { marginBottom: Spacing.sm },
   clipRow: { gap: Spacing.xs },
   clipChip: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
-    borderRadius: BorderRadius.sm,
+    minHeight: 44,
+    minWidth: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
     backgroundColor: Colors.surfaceLight,
-    maxWidth: 100,
+    maxWidth: 140,
   },
   clipChipActive: { backgroundColor: Colors.primary },
   clipChipListened: { backgroundColor: '#EAF1EE' },
-  clipChipText: { fontSize: FontSize.xs, color: Colors.textSecondary },
+  clipChipText: { fontSize: FontSize.sm, color: Colors.textSecondary },
   clipChipTextActive: { color: '#fff', fontFamily: FontFamily.bodyBold },
   clipChipTextListened: { color: Colors.correct, fontFamily: FontFamily.bodyBold },
   progressBar: {
@@ -1438,10 +1733,33 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     borderRadius: 3,
   },
+  scrubber: {
+    height: 44,
+    justifyContent: 'center',
+  },
+  scrubThumb: {
+    position: 'absolute',
+    top: (44 - 18) / 2,
+    width: 18,
+    height: 18,
+    marginLeft: -9,
+    borderRadius: 9,
+    backgroundColor: Colors.primary,
+    borderWidth: 2,
+    borderColor: Colors.surface,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  scrubThumbActive: {
+    transform: [{ scale: 1.3 }],
+    backgroundColor: Colors.primaryDark,
+  },
   timeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 4,
   },
   timeText: {
     fontSize: FontSize.xs,
@@ -1455,27 +1773,35 @@ const styles = StyleSheet.create({
     gap: Spacing.lg,
     marginTop: Spacing.sm,
   },
-  seekBtn: { paddingHorizontal: Spacing.md, paddingVertical: 6 },
-  seekText: { fontSize: FontSize.md, color: Colors.textSecondary, fontFamily: FontFamily.bodySemi },
+  // All player controls are at least 48pt so they're easy to hit mid-lesson.
+  seekBtn: {
+    minWidth: 56,
+    minHeight: 48,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  seekText: { fontSize: FontSize.lg, color: Colors.textSecondary, fontFamily: FontFamily.bodySemi },
   playBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   playBtnLoading: { backgroundColor: Colors.textLight },
-  playIcon: { fontSize: 18, color: '#fff' },
+  playIcon: { fontSize: 24, color: '#fff' },
   pauseIcon: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 5,
   },
   pauseBar: {
-    width: 4,
-    height: 16,
+    width: 5,
+    height: 20,
     borderRadius: 2,
     backgroundColor: '#fff',
   },
@@ -1610,17 +1936,18 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     backgroundColor: '#DDE5E1',
     borderRadius: BorderRadius.lg,
-    padding: 3,
-    gap: 4,
+    padding: 2,
+    gap: 2,
     borderWidth: 1,
     borderColor: '#C4D3CC',
-    marginTop: 6,
+    marginTop: 4,
     marginBottom: 2,
   },
   tabButton: {
     flex: 1,
+    minHeight: 30,
     borderRadius: BorderRadius.md,
-    paddingVertical: 7,
+    paddingVertical: 3,
     paddingHorizontal: Spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1666,6 +1993,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     width: '100%',
   },
+  // Spoken Kashmiri exchange cards alternate tints so a/b pairs read apart.
+  exchangeCard: {
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+  },
+  exchangeCardBase: { backgroundColor: Colors.surface },
+  exchangeCardAlt: { backgroundColor: '#F6EFE4' },
   translationImageFrame: {
     width: '100%',
     height: 220,
@@ -1706,74 +2040,12 @@ const styles = StyleSheet.create({
 
   // Vocab
   vocabSection: { marginTop: Spacing.md, paddingHorizontal: Spacing.lg },
-  vocabHint: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-    marginTop: 2,
-    marginBottom: Spacing.sm,
-  },
   vocabWarning: {
     fontSize: FontSize.xs,
     color: Colors.secondary,
     fontFamily: FontFamily.bodySemi,
     marginBottom: Spacing.sm,
   },
-  vocabError: {
-    fontSize: FontSize.xs,
-    color: Colors.wrong,
-    marginBottom: Spacing.sm,
-  },
-  audioGuideCard: {
-    backgroundColor: '#EDF2EF',
-    borderWidth: 1,
-    borderColor: '#CEDBD4',
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-    gap: 4,
-  },
-  audioGuideTitle: {
-    fontSize: FontSize.sm,
-    fontFamily: FontFamily.bodyBold,
-    color: Colors.primaryDark,
-    marginBottom: 2,
-  },
-  audioGuideText: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-  },
-  addRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm },
-  vocabInput: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    // Room for Kashmiri diacritics, and a 44pt-tall tap target either way.
-    minHeight: 44,
-    // Without this the fields keep their intrinsic width, overflow the row,
-    // and shove the Add button off the right edge of the screen.
-    minWidth: 0,
-    fontSize: FontSize.sm,
-    color: Colors.text,
-  },
-  vocabInputKashmiri: {
-    fontFamily: FontFamily.kashmiriRegular,
-    fontSize: FontSize.md,
-    minHeight: 48,
-  },
-  addBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addBtnDisabled: { backgroundColor: Colors.textLight },
-  addBtnText: { color: '#fff', fontSize: 22, fontFamily: FontFamily.bodyBold, lineHeight: 24 },
   vocabRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1811,14 +2083,60 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deleteBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   deleteBtnText: { color: Colors.wrong, fontSize: 18, fontFamily: FontFamily.bodyBold, lineHeight: 20 },
+  vocabAudioBtn: {
+    minWidth: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.surfaceLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xs,
+  },
+  vocabAudioBtnActive: { backgroundColor: Colors.primary },
+  vocabAudioIcon: { fontSize: 16, color: Colors.primary },
+  vocabAudioIconActive: { color: '#fff' },
+  vocabRecordBtn: {
+    backgroundColor: '#fef2f2',
+    minWidth: 76,
+    paddingHorizontal: Spacing.md,
+  },
+  vocabRecordBtnActive: { backgroundColor: Colors.wrong },
+  vocabRecordIcon: {
+    color: Colors.wrong,
+    fontSize: FontSize.xs,
+    fontFamily: FontFamily.bodyBold,
+    letterSpacing: 0.2,
+  },
+  vocabRecordIconActive: { color: '#fff' },
+  recordingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef2f2',
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    gap: Spacing.sm,
+  },
+  recordingDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.wrong,
+  },
+  recordingText: {
+    fontSize: FontSize.sm,
+    color: Colors.wrong,
+    fontFamily: FontFamily.bodySemi,
+  },
   emptyVocab: {
     textAlign: 'center',
     color: Colors.textLight,
@@ -1913,6 +2231,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   koulPickerItem: {
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
@@ -1982,9 +2301,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   kachruVocabPlayBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1993,7 +2312,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   kachruVocabPlayIcon: {
-    fontSize: 12,
+    fontSize: 16,
     color: Colors.primary,
   },
   kachruVocabPlayIconActive: {

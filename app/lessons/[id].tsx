@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
 import { allCourses } from '@/src/data/courses';
+import { formatClipCount, getLessonClipNoun } from '@/src/data/clipLabels';
 import { getFullyListenedLessonIds } from '@/src/services/clipProgressService';
 import { useAuth } from '@/src/hooks/useAuth';
 
@@ -70,7 +71,7 @@ export default function CourseDetailScreen() {
               <View style={styles.lessonInfo}>
                 <Text style={styles.lessonTitle}>{item.title}</Text>
                 <Text style={styles.lessonMeta}>
-                  {item.audioClips.length} clip{item.audioClips.length !== 1 ? 's' : ''}
+                  {formatClipCount(item.audioClips.length, getLessonClipNoun(course.id, item))}
                   {item.images && item.images.length > 0
                     ? ` \u00B7 ${item.images.length} image${item.images.length !== 1 ? 's' : ''}`
                     : ''}
