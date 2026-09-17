@@ -8,7 +8,7 @@
  * instructions for the phone they chose (iphone / android / both).
  *
  * Android closed testing is gated on the Google Group
- * wanawun-android-beta-testers@googlegroups.com: the Play listing only shows
+ * wanwun-android-beta-testers@googlegroups.com: the Play listing only shows
  * the app to accounts in that group. Testers join it themselves through the
  * link in this email (a consumer @googlegroups.com group has no API to add
  * them for us), and the form also asks Android testers for the Google account
@@ -36,7 +36,7 @@
 import nodemailer from 'nodemailer';
 
 const IOS_TESTFLIGHT_LINK = 'https://testflight.apple.com/join/dM2tsXYj';
-const ANDROID_GROUP_LINK = 'https://groups.google.com/g/wanawun-android-beta-testers';
+const ANDROID_GROUP_LINK = 'https://groups.google.com/g/wanwun-android-beta-testers';
 const ANDROID_BETA_LINK = 'https://play.google.com/store/apps/details?id=org.koshur.wanawun';
 
 const DEFAULT_SMTP_HOST = 'mail.privateemail.com';
