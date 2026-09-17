@@ -1,0 +1,6 @@
+# wanwun.org
+User-agent: *
+Allow: /
+
+# /success.html, /auth/confirmed.html and /join/thanks/ carry a noindex meta
+# tag rather than a Disallow, so crawlers can read the tag and drop them.

@@ -22,6 +22,36 @@
 # wanawun.com is attached to this Netlify site as a domain alias. Paths and
 # query strings carry over, so https://wanawun.com/privacy.html lands on
 # https://wanwun.org/privacy.html.
+#
+# ORDER MATTERS. Netlify stops at the first matching rule, so every old-domain
+# rule has to sit above the path-only rules below. When the path rules came
+# first, https://wanawun.com/join matched "/join" and was rewritten to the
+# relative "/join/", which stayed on the old domain and served the page with a
+# 200 instead of redirecting off it.
+[[redirects]]
+  from = "https://wanawun.com/*"
+  to = "https://wanwun.org/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://wanawun.com/*"
+  to = "https://wanwun.org/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.wanawun.com/*"
+  to = "https://wanwun.org/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://www.wanawun.com/*"
+  to = "https://wanwun.org/:splat"
+  status = 301
+  force = true
+
 # QR code at community gatherings points at https://wanwun.org/join
 # (WAN-49). The page lives at site/join/index.html; these send the short
 # and capitalised forms straight there in one hop.
@@ -34,15 +64,3 @@
   from = "/Join"
   to = "/join/"
   status = 301
-
-[[redirects]]
-  from = "https://wanawun.com/*"
-  to = "https://wanwun.org/:splat"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "https://www.wanawun.com/*"
-  to = "https://wanwun.org/:splat"
-  status = 301
-  force = true
