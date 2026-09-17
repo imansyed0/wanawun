@@ -76,6 +76,20 @@
           <p class="error" id="join-device-error" hidden>Please choose your phone type so we can send the right beta link.</p>
         </div>
 
+        <!--
+          Android closed testing is tied to a Google account: the Play listing
+          only shows the app to members of wanawun-android-beta-testers. The
+          email walks them through joining the group themselves; this field is
+          for adding by hand anyone who doesn't. Revealed by the script below
+          when they pick Android or Both.
+        -->
+        <div class="field" id="join-google-field" hidden>
+          <label for="join-google">Google account you use on the Play Store <span class="optional">(optional)</span></label>
+          <input id="join-google" type="email" name="google_account" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" maxlength="254" placeholder="you@gmail.com" />
+          <p class="hint">Android testing runs through a Google group. Tell us the account you're signed in with on the Play Store and we can add you to it; leave it blank and we'll just send you the link to join yourself.</p>
+          <p class="error" id="join-google-error" hidden>That doesn't look like a valid email address.</p>
+        </div>
+
         <div class="field">
           <label class="check consent"><input type="checkbox" name="consent" value="yes" required id="join-consent" /> <span>I agree that Wanwun can contact me about the app, as described in the <a href="/privacy.html" target="_blank" rel="noopener">privacy policy</a>. I can ask to be removed any time.</span></label>
           <p class="error" id="join-consent-error" hidden>Please tick this so we can contact you.</p>
@@ -114,6 +128,24 @@
       var submitError = document.getElementById('join-submit-error');
       var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
       var PHONE_RE = /^\+?[0-9\s().-]{6,}$/;
+      var googleField = document.getElementById('join-google-field');
+
+      // The Play Store account only matters to Android testers.
+      function syncGoogleField() {
+        var device = form.elements.device.value;
+        googleField.hidden = !(device === 'android' || device === 'both');
+      }
+      form.elements.device.addEventListener('change', function () {
+        syncGoogleField();
+        if (googleField.hidden) {
+          form.elements.google_account.value = '';
+          setError(form.elements.google_account, 'join-google-error', false);
+        }
+      });
+      // Also on pageshow, so a value the browser restores on back/forward
+      // doesn't leave the field hidden.
+      window.addEventListener('pageshow', syncGoogleField);
+      syncGoogleField();
 
       function setError(input, errorId, show) {
         var el = document.getElementById(errorId);
@@ -133,14 +165,17 @@
         var email = form.elements.email;
         var phone = form.elements.phone;
         var device = form.elements.device;
+        var google = form.elements.google_account;
         var consent = form.elements.consent;
         name.value = name.value.trim();
         email.value = email.value.trim();
         phone.value = phone.value.trim();
+        google.value = google.value.trim();
 
         // Checked bottom-up so the first invalid field (top of form) gets focus.
         var checks = [
           [consent, setError(consent, 'join-consent-error', !consent.checked)],
+          [google, setError(google, 'join-google-error', !googleField.hidden && google.value !== '' && !EMAIL_RE.test(google.value))],
           [device, setError(device, 'join-device-error', device.value === '')],
           [phone, setError(phone, 'join-phone-error', phone.value !== '' && !PHONE_RE.test(phone.value))],
           [email, setError(email, 'join-email-error', !EMAIL_RE.test(email.value))],

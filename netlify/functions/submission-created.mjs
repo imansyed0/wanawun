@@ -7,6 +7,14 @@
  * wanwun.org Namecheap Private Email mailbox, with the right beta
  * instructions for the phone they chose (iphone / android / both).
  *
+ * Android closed testing is gated on the Google Group
+ * wanawun-android-beta-testers@googlegroups.com: the Play listing only shows
+ * the app to accounts in that group. Testers join it themselves through the
+ * link in this email (a consumer @googlegroups.com group has no API to add
+ * them for us), and the form also asks Android testers for the Google account
+ * they use on the Play Store, so anyone who doesn't join can be added by hand
+ * from the Groups UI.
+ *
  * Setup:
  *   1. In Netlify (Site configuration > Environment variables) set:
  *        SMTP_USER  full mailbox address, e.g. hello@wanwun.org
@@ -19,7 +27,6 @@
  *   2. Make sure the Google Group allows anyone to join without approval
  *      (Group settings > "Who can join group" > "Anyone on the web can
  *      join"). "Ask to join" would leave testers stuck waiting.
- *   3. Replace ANDROID_BETA_LINK below with the real Play testing link.
  *
  * nodemailer is bundled by esbuild (netlify.toml [functions] node_bundler).
  * Always returns 200 so a mail problem never affects the form submission;
@@ -30,8 +37,7 @@ import nodemailer from 'nodemailer';
 
 const IOS_TESTFLIGHT_LINK = 'https://testflight.apple.com/join/dM2tsXYj';
 const ANDROID_GROUP_LINK = 'https://groups.google.com/g/wanawun-android-beta-testers';
-// TODO(WAN-49): replace with the real Google Play testing opt-in / download link.
-const ANDROID_BETA_LINK = 'TODO_ANDROID_BETA_LINK';
+const ANDROID_BETA_LINK = 'https://play.google.com/store/apps/details?id=org.koshur.wanawun';
 
 const DEFAULT_SMTP_HOST = 'mail.privateemail.com';
 const DEFAULT_SMTP_PORT = 465;
@@ -56,7 +62,6 @@ export function buildEmail({ name, device } = {}) {
   const deviceKey = String(device || '').toLowerCase();
   const wantsIos = deviceKey === 'iphone' || deviceKey === 'both';
   const wantsAndroid = deviceKey === 'android' || deviceKey === 'both';
-  const androidLinkReady = !ANDROID_BETA_LINK.startsWith('TODO');
 
   const greetingText = first ? `Hi ${first},` : 'Hi there,';
   const greetingHtml = first ? `Hi ${escapeHtml(first)},` : 'Hi there,';
@@ -84,24 +89,23 @@ export function buildEmail({ name, device } = {}) {
   }
 
   if (wantsAndroid) {
-    const step2Text = androidLinkReady
-      ? `2. On your Android phone, open this link to download the beta: ${ANDROID_BETA_LINK}`
-      : "2. We'll email you the download link very soon.";
-    const step2Html = androidLinkReady
-      ? `<li>On your Android phone, open this link to download the beta: <a href="${escapeHtml(ANDROID_BETA_LINK)}">${escapeHtml(ANDROID_BETA_LINK)}</a></li>`
-      : "<li>We'll email you the download link very soon.</li>";
     text.push(
       'To get the beta on Android:',
-      `1. Join our beta testers group, signed in with the Google account you use for the Play Store: ${ANDROID_GROUP_LINK}`,
-      step2Text,
+      `1. Join the Wanwun Android testers group, signed in with the Google account you use on the Play Store: ${ANDROID_GROUP_LINK}`,
+      `2. On that phone, open the Play Store listing and tap Install: ${ANDROID_BETA_LINK}`,
+      '',
+      // Play only serves a closed test to accounts in the tester group, and the
+      // membership can take a few minutes to reach Play.
+      "The Play Store only shows the app to testers in that group, so please join it first. If Play says the app isn't available, give it a few minutes after joining and try the link again.",
       ''
     );
     html.push(
       '<h3 style="margin:20px 0 6px">Android</h3>',
       '<ol>',
-      `<li>Join our beta testers group, signed in with the Google account you use for the Play Store: <a href="${ANDROID_GROUP_LINK}">${ANDROID_GROUP_LINK}</a></li>`,
-      step2Html,
-      '</ol>'
+      `<li>Join the Wanwun Android testers group, signed in with the Google account you use on the Play Store: <a href="${ANDROID_GROUP_LINK}">${ANDROID_GROUP_LINK}</a></li>`,
+      `<li>On that phone, open the Play Store listing and tap <strong>Install</strong>: <a href="${ANDROID_BETA_LINK}">${ANDROID_BETA_LINK}</a></li>`,
+      '</ol>',
+      "<p>The Play Store only shows the app to testers in that group, so please join it first. If Play says the app isn't available, give it a few minutes after joining and try the link again.</p>"
     );
   }
 

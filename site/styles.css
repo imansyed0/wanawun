@@ -201,6 +201,11 @@ p { margin: 8px 0 12px; }
   accent-color: var(--primary);
 }
 .join label.consent { color: var(--text-secondary); font-size: 14px; }
+.join .hint {
+  color: var(--text-light);
+  font-size: 14px;
+  margin: 6px 0 0;
+}
 .join .error {
   color: #B5523B;
   font-size: 14px;
