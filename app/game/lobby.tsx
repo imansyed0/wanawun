@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, FlatList } from 'react-native';
+import { View, Text, TextInput, StyleSheet, FlatList, KeyboardAvoidingView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '@/src/components/ui/Button';
 import { Card } from '@/src/components/ui/Card';
@@ -83,7 +83,9 @@ export default function LobbyScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    // Edge-to-edge Android doesn't resize for the keyboard, which would leave it
+    // over the room-code field. Padding shrinks the open-games list instead.
+    <KeyboardAvoidingView style={styles.container} behavior="padding">
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <Card style={styles.createSection}>
@@ -147,8 +149,10 @@ export default function LobbyScreen() {
         ListEmptyComponent={
           <Text style={styles.emptyText}>No open games. Create one!</Text>
         }
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

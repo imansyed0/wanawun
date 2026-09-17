@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/src/components/ui/Card';
@@ -224,7 +224,20 @@ export default function AsyncGameScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      {/* The trap-spotter's translation fields sit low on the page, and Android
+          is edge-to-edge: nothing resizes for the keyboard, so pad instead. iOS
+          insets the scroll view natively. */}
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior="padding"
+        enabled={Platform.OS === 'android'}
+      >
+      <ScrollView
+        contentContainerStyle={styles.content}
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      >
         <ScoreBar
           playerAName="You"
           playerBName={opponentName}
@@ -290,6 +303,7 @@ export default function AsyncGameScreen() {
           </View>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

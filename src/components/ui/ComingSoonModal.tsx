@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -76,63 +76,71 @@ export function ComingSoonModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        style={styles.root}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <Pressable style={styles.backdrop} onPress={handleClose} />
-        <View style={styles.wrap}>
-          <Card style={styles.card}>
-            <View style={styles.header}>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>IN BUILD</Text>
+      {/* Android is edge-to-edge, so the window never resizes for the keyboard
+          and a Modal gets no inset of its own; the centred card needs the same
+          padding on iOS. Same handling as the quick-add glossary sheet. */}
+      <KeyboardAvoidingView style={styles.root} behavior="padding">
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Inside the scroll content: a ScrollView swallows touches, so a
+              backdrop behind it would stop closing the modal. */}
+          <Pressable style={styles.backdrop} onPress={handleClose} />
+          <View style={styles.wrap}>
+            <Card style={styles.card}>
+              <View style={styles.header}>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>IN BUILD</Text>
+                </View>
+                <Pressable
+                  style={styles.closeButton}
+                  onPress={handleClose}
+                  disabled={submitting}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close"
+                >
+                  <Text style={styles.closeButtonText}>{'×'}</Text>
+                </Pressable>
               </View>
-              <Pressable
-                style={styles.closeButton}
-                onPress={handleClose}
-                disabled={submitting}
-                accessibilityRole="button"
-                accessibilityLabel="Close"
-              >
-                <Text style={styles.closeButtonText}>{'×'}</Text>
-              </Pressable>
-            </View>
 
-            <Text style={styles.title}>{title}</Text>
-            <Text style={styles.body}>{description}</Text>
+              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.body}>{description}</Text>
 
-            {submitted ? (
-              <>
-                <Text style={styles.thanks}>
-                  Thank you! Your ideas will help shape what we build.
-                </Text>
-                <Button title="Done" onPress={onClose} />
-              </>
-            ) : (
-              <>
-                <Text style={styles.label}>Your ideas</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder={placeholder}
-                  placeholderTextColor={Colors.textLight}
-                  value={feedback}
-                  onChangeText={setFeedback}
-                  maxLength={MAX_FEEDBACK_LENGTH}
-                  multiline
-                  textAlignVertical="top"
-                  editable={!submitting}
-                />
-                {error ? <Text style={styles.error}>{error}</Text> : null}
-                <Button
-                  title={submitting ? 'Sending…' : 'Send feedback'}
-                  onPress={handleSubmit}
-                  disabled={!canSubmit}
-                />
-                <Button title="Maybe later" variant="ghost" size="sm" onPress={handleClose} />
-              </>
-            )}
-          </Card>
-        </View>
+              {submitted ? (
+                <>
+                  <Text style={styles.thanks}>
+                    Thank you! Your ideas will help shape what we build.
+                  </Text>
+                  <Button title="Done" onPress={onClose} />
+                </>
+              ) : (
+                <>
+                  <Text style={styles.label}>Your ideas</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={placeholder}
+                    placeholderTextColor={Colors.textLight}
+                    value={feedback}
+                    onChangeText={setFeedback}
+                    maxLength={MAX_FEEDBACK_LENGTH}
+                    multiline
+                    textAlignVertical="top"
+                    editable={!submitting}
+                  />
+                  {error ? <Text style={styles.error}>{error}</Text> : null}
+                  <Button
+                    title={submitting ? 'Sending…' : 'Send feedback'}
+                    onPress={handleSubmit}
+                    disabled={!canSubmit}
+                  />
+                  <Button title="Maybe later" variant="ghost" size="sm" onPress={handleClose} />
+                </>
+              )}
+            </Card>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -141,6 +149,9 @@ export function ComingSoonModal({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
   },
   backdrop: {
