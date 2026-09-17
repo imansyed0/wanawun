@@ -3,8 +3,8 @@ import type { AudioRecorder } from 'expo-audio';
 import {
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -257,119 +257,128 @@ export function QuickAddGlossarySheet() {
 
   return (
     <Modal visible={isOpen} transparent animationType="fade" onRequestClose={close}>
-      <KeyboardAvoidingView
-        style={styles.root}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <Pressable style={styles.backdrop} onPress={close} />
-        <View style={styles.wrap}>
-          {tutorialBubble ? (
-            <View style={styles.tutorialHintRow} pointerEvents="none">
-              <Grandmother pose={tutorialBubble.pose} size={56} />
-              <View style={styles.tutorialHintBubble}>
-                <Text style={styles.tutorialHintText}>{tutorialBubble.text}</Text>
-              </View>
-            </View>
-          ) : null}
-          <Card style={styles.card}>
-            <View style={styles.header}>
-              <Text style={styles.title}>Add a word to glossary</Text>
-              <Pressable
-                style={styles.closeButton}
-                onPress={close}
-                disabled={adding}
-                accessibilityLabel="Close"
-              >
-                <Text style={styles.closeButtonText}>{'×'}</Text>
-              </Pressable>
-            </View>
-            {/* The recording is of the Kashmiri pronunciation, so its controls sit on
-                the Kashmiri row. Recordings upload to the user's storage, so only
-                signed-in users can record. */}
-            <View style={styles.kashmiriRow}>
-              <TextInput
-                // Amiri only once there's Kashmiri typed, so the placeholder
-                // matches the English field.
-                style={[styles.input, styles.inputFlex, kashmiri ? styles.inputKashmiri : null]}
-                placeholder="Kashmiri"
-                placeholderTextColor={Colors.textLight}
-                value={kashmiri}
-                onChangeText={setKashmiri}
-                autoCapitalize="none"
-                autoFocus
-                returnKeyType="next"
-              />
-              {user ? (
-                <View style={styles.pronunciationControls}>
-                  {recordingState === 'recorded' ? (
-                    <>
-                      <PlayButton
-                        playing={isPlayingRecording}
-                        onPress={handlePlayRecording}
-                        accessibilityLabel="Play Kashmiri pronunciation"
-                      />
-                      <Pressable
-                        style={styles.discardButton}
-                        onPress={discardRecording}
-                        disabled={adding}
-                        hitSlop={6}
-                        accessibilityRole="button"
-                        accessibilityLabel="Remove pronunciation recording"
-                      >
-                        <Text style={styles.discardButtonText}>{'×'}</Text>
-                      </Pressable>
-                    </>
-                  ) : (
-                    <>
-                      {recordingState === 'recording' ? <RecordingTimer active /> : null}
-                      <RecordButton
-                        recording={recordingState === 'recording'}
-                        onPress={handleRecordPress}
-                        disabled={adding}
-                        accessibilityLabel={
-                          recordingState === 'recording'
-                            ? 'Stop recording'
-                            : 'Record Kashmiri pronunciation'
-                        }
-                      />
-                    </>
-                  )}
+      {/* Android is edge-to-edge, so the window never resizes for the keyboard
+          and a Modal gets no inset of its own: without padding here the keyboard
+          covers the English field and the Add button. iOS needs the same padding
+          because the card is centred rather than in a scroll view. */}
+      <KeyboardAvoidingView style={styles.root} behavior="padding">
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Inside the scroll content, not beside it: a ScrollView swallows
+              touches, so a backdrop behind it would stop closing the sheet. */}
+          <Pressable style={styles.backdrop} onPress={close} />
+          <View style={styles.wrap}>
+            {tutorialBubble ? (
+              <View style={styles.tutorialHintRow} pointerEvents="none">
+                <Grandmother pose={tutorialBubble.pose} size={56} />
+                <View style={styles.tutorialHintBubble}>
+                  <Text style={styles.tutorialHintText}>{tutorialBubble.text}</Text>
                 </View>
-              ) : null}
-            </View>
-            <TextInput
-              style={styles.input}
-              placeholder="English"
-              placeholderTextColor={Colors.textLight}
-              value={english}
-              onChangeText={setEnglish}
-              autoCapitalize="none"
-              returnKeyType="done"
-              onSubmitEditing={() => {
-                if (canSubmit) handleAdd();
-              }}
-            />
-            {recordingError ? <Text style={styles.error}>{recordingError}</Text> : null}
-            <Pressable
-              style={[styles.addButton, !canSubmit && styles.addButtonDisabled]}
-              onPress={handleAdd}
-              disabled={!canSubmit}
-            >
-              <Text style={styles.addButtonText}>{adding ? 'Adding...' : 'Add'}</Text>
-            </Pressable>
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-            {showSignedOutNote ? (
-              <Text style={styles.signedOutNote}>
-                You’re not signed in — this word is saved on this device and syncs to your
-                account when you{' '}
-                <Text style={styles.signedOutLink} onPress={goToSignIn}>
-                  sign in
-                </Text>
-                . Signing in also lets you record how it sounds.
-              </Text>
+              </View>
             ) : null}
-          </Card>
-        </View>
+            <Card style={styles.card}>
+              <View style={styles.header}>
+                <Text style={styles.title}>Add a word to glossary</Text>
+                <Pressable
+                  style={styles.closeButton}
+                  onPress={close}
+                  disabled={adding}
+                  accessibilityLabel="Close"
+                >
+                  <Text style={styles.closeButtonText}>{'×'}</Text>
+                </Pressable>
+              </View>
+              {/* The recording is of the Kashmiri pronunciation, so its controls sit on
+                  the Kashmiri row. Recordings upload to the user's storage, so only
+                  signed-in users can record. */}
+              <View style={styles.kashmiriRow}>
+                <TextInput
+                  // Amiri only once there's Kashmiri typed, so the placeholder
+                  // matches the English field.
+                  style={[styles.input, styles.inputFlex, kashmiri ? styles.inputKashmiri : null]}
+                  placeholder="Kashmiri"
+                  placeholderTextColor={Colors.textLight}
+                  value={kashmiri}
+                  onChangeText={setKashmiri}
+                  autoCapitalize="none"
+                  autoFocus
+                  returnKeyType="next"
+                />
+                {user ? (
+                  <View style={styles.pronunciationControls}>
+                    {recordingState === 'recorded' ? (
+                      <>
+                        <PlayButton
+                          playing={isPlayingRecording}
+                          onPress={handlePlayRecording}
+                          accessibilityLabel="Play Kashmiri pronunciation"
+                        />
+                        <Pressable
+                          style={styles.discardButton}
+                          onPress={discardRecording}
+                          disabled={adding}
+                          hitSlop={6}
+                          accessibilityRole="button"
+                          accessibilityLabel="Remove pronunciation recording"
+                        >
+                          <Text style={styles.discardButtonText}>{'×'}</Text>
+                        </Pressable>
+                      </>
+                    ) : (
+                      <>
+                        {recordingState === 'recording' ? <RecordingTimer active /> : null}
+                        <RecordButton
+                          recording={recordingState === 'recording'}
+                          onPress={handleRecordPress}
+                          disabled={adding}
+                          accessibilityLabel={
+                            recordingState === 'recording'
+                              ? 'Stop recording'
+                              : 'Record Kashmiri pronunciation'
+                          }
+                        />
+                      </>
+                    )}
+                  </View>
+                ) : null}
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="English"
+                placeholderTextColor={Colors.textLight}
+                value={english}
+                onChangeText={setEnglish}
+                autoCapitalize="none"
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  if (canSubmit) handleAdd();
+                }}
+              />
+              {recordingError ? <Text style={styles.error}>{recordingError}</Text> : null}
+              <Pressable
+                style={[styles.addButton, !canSubmit && styles.addButtonDisabled]}
+                onPress={handleAdd}
+                disabled={!canSubmit}
+              >
+                <Text style={styles.addButtonText}>{adding ? 'Adding...' : 'Add'}</Text>
+              </Pressable>
+              {error ? <Text style={styles.error}>{error}</Text> : null}
+              {showSignedOutNote ? (
+                <Text style={styles.signedOutNote}>
+                  You’re not signed in — this word is saved on this device and syncs to your
+                  account when you{' '}
+                  <Text style={styles.signedOutLink} onPress={goToSignIn}>
+                    sign in
+                  </Text>
+                  . Signing in also lets you record how it sounds.
+                </Text>
+              ) : null}
+            </Card>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -378,6 +387,9 @@ export function QuickAddGlossarySheet() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
   },
   backdrop: {

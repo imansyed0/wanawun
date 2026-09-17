@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '@/src/components/ui/Button';
 import { Colors, FontSize, Spacing, BorderRadius } from '@/src/constants/theme';
@@ -54,7 +54,10 @@ export default function NewAsyncGameScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    // Android is edge-to-edge, so the window never resizes for the keyboard and
+    // it lands on Start Game; iOS gets the same treatment since this form isn't
+    // in a scroll view.
+    <KeyboardAvoidingView style={styles.container} behavior="padding">
       <Text style={styles.title}>New Messenger Game</Text>
       <Text style={styles.subtitle}>
         Challenge a friend to a game of Koshur Messenger!
@@ -82,7 +85,7 @@ export default function NewAsyncGameScreen() {
           size="lg"
         />
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
