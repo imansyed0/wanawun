@@ -57,65 +57,74 @@ export async function saveLearnerLevel(level: LearnerLevel, userId?: string): Pr
 // ---------------------------------------------------------------------------
 // Starter sets per level.
 //
-// Transliteration and meaning come from the Kaeshir word list; `audioId` is the
-// DSAL id of S. Hassan's Kashmiri dictionary recording for that word, hosted in
-// course-audio/hassan-dictionary/ (see data/dictionary_audio_manifest.json).
-// Every clip below was checked against the bucket on 2026-09-16.
+// Transliteration and meaning are the headword and gloss of S. Hassan's Kashmiri
+// dictionary entry (data/hassan_dictionary_full.csv); `audioId` is the DSAL id of
+// that entry's recording, hosted in course-audio/hassan-dictionary/ (see
+// data/dictionary_audio_manifest.json). Every clip below was checked against the
+// bucket on 2026-09-19.
+//
+// Reviewed by a Kashmiri speaker on 2026-09-19. Two rules came out of it: keep
+// everyday speech over the formal register (bandιgī, hamud and gιzah were all
+// cut for being too formal), and prefer the word people actually say — rūd for
+// rain, not the literary bə̄riš.
 // ---------------------------------------------------------------------------
 
 type StarterEntry = { kashmiri: string; english: string; audioId: string };
 
 const STARTER_SETS: Record<LearnerLevel, StarterEntry[]> = {
   beginner: [
-    { kashmiri: 'bandιgī', english: 'greetings', audioId: '00520' },
-    { kashmiri: 'hamud', english: 'thank', audioId: '01447' },
+    { kashmiri: 'pōnʸ', english: 'water', audioId: '03258' },
     { kashmiri: 'dɔd', english: 'milk', audioId: '01030' },
     { kashmiri: 'cāy', english: 'tea', audioId: '00784' },
     { kashmiri: 'batι', english: 'rice', audioId: '00550' },
-    { kashmiri: 'gιzah', english: 'food', audioId: '01392' },
+    { kashmiri: 'kʰen', english: 'food', audioId: '01998' },
     { kashmiri: 'beni', english: 'sister', audioId: '00611' },
-    { kashmiri: 'dɔdι baci', english: 'child', audioId: '01035' },
+    { kashmiri: 'šur', english: 'child', audioId: '03873' },
     { kashmiri: 'garι', english: 'house', audioId: '01251' },
     { kashmiri: 'bar', english: 'door', audioId: '00526' },
     { kashmiri: 'gām', english: 'village', audioId: '01219' },
-    { kashmiri: 'Az', english: 'today', audioId: '00384' },
-    { kashmiri: 'Doh', english: 'day', audioId: '00991' },
+    { kashmiri: 'az', english: 'today', audioId: '00384' },
+    { kashmiri: 'subhan', english: 'tomorrow', audioId: '03846' },
+    { kashmiri: 'doh', english: 'day', audioId: '00991' },
     { kashmiri: 'anigaṭι', english: 'dusk', audioId: '00220' },
     { kashmiri: 'boḍ', english: 'big', audioId: '00695' },
   ],
   intermediate: [
     { kashmiri: 'garιwājenʸ', english: 'wife', audioId: '01253' },
-    { kashmiri: 'brιtʰā', english: 'husband', audioId: '00537' },
-    { kashmiri: 'haš', english: 'mother in law', audioId: '01475' },
-    { kashmiri: 'hehrιbāb', english: 'father in law', audioId: '01512' },
-    { kashmiri: 'astʰ', english: 'moon', audioId: '00322' },
-    { kashmiri: 'bə̄riš', english: 'rain', audioId: '00678' },
+    { kashmiri: 'rūn', english: 'husband', audioId: '03484' },
+    { kashmiri: 'haš', english: 'mother-in-law', audioId: '01475' },
+    { kashmiri: 'hehrιbāb', english: 'father-in-law', audioId: '01512' },
+    { kashmiri: 'zūn', english: 'moon', audioId: '04855' },
+    { kashmiri: 'rūd', english: 'rain', audioId: '03475' },
     { kashmiri: 'dǝryāv', english: 'river', audioId: '00977' },
     { kashmiri: 'bāg', english: 'garden', audioId: '00562' },
     { kashmiri: 'bādām', english: 'almond', audioId: '00561' },
     { kashmiri: 'akun', english: 'tired', audioId: '00120' },
     { kashmiri: 'dōdlad', english: 'ill', audioId: '01019' },
-    { kashmiri: 'dilkʰoš', english: 'easy', audioId: '00952' },
+    { kashmiri: 'āsān', english: 'easy', audioId: '00442' },
     { kashmiri: 'bǝḍʸ', english: 'old', audioId: '00696' },
-    { kashmiri: 'digar', english: 'dusk', audioId: '00945' },
+    { kashmiri: 'šām', english: 'evening', audioId: '03580' },
     { kashmiri: 'haftι', english: 'week', audioId: '01407' },
   ],
+  // Phrases, not single words. This group already has the vocabulary and freezes
+  // on their turn to speak, so what they need is the joins — asking, hedging,
+  // saying when — which are the hardest thing to produce from a word list.
   understands: [
+    { kashmiri: 'kitʰ pə̄ṭʰ', english: 'how', audioId: '02090' },
+    { kashmiri: 'kami wakʰtι', english: 'when', audioId: '01770' },
+    { kashmiri: 'yitʰ pə̄ṭʰ', english: 'like this', audioId: '04679' },
+    { kashmiri: 'yeti tati', english: 'anyway', audioId: '04700' },
+    { kashmiri: 'yemi kʰātrι', english: 'therefore', audioId: '04667' },
+    { kashmiri: 'pǝz pʸῑṭʰ', english: 'certainly', audioId: '03168' },
+    { kashmiri: 'zaⁿh nι', english: 'never', audioId: '04768' },
     { kashmiri: 'astι astι', english: 'slowly', audioId: '00323' },
+    { kashmiri: 'jaṭʰ paṭʰ', english: 'quickly', audioId: '05600' },
     { kashmiri: 'beyi pʰiri', english: 'again', audioId: '00619' },
-    { kashmiri: 'hamēšι', english: 'always', audioId: '01433' },
-    { kashmiri: 'gutul', english: 'enough', audioId: '01383' },
-    { kashmiri: 'bōzun', english: 'feel', audioId: '00716' },
-    { kashmiri: 'dāwa karun', english: 'say', audioId: '00922' },
-    { kashmiri: 'bāwun', english: 'tell', audioId: '00585' },
-    { kashmiri: 'bōz', english: 'listen', audioId: '00714' },
-    { kashmiri: 'hakə̄ni', english: 'real', audioId: '01411' },
-    { kashmiri: 'aʦun', english: 'come', audioId: '00371' },
-    { kashmiri: 'drāv', english: 'go', audioId: '01047' },
-    { kashmiri: 'Diyun', english: 'give', audioId: '00960' },
-    { kashmiri: 'anun', english: 'take', audioId: '00225' },
-    { kashmiri: 'Bihun', english: 'sit', audioId: '00654' },
-    { kashmiri: 'aḍḍι', english: 'stop', audioId: '00052' },
+    { kashmiri: 'yeli teli', english: 'now and then', audioId: '04663' },
+    { kashmiri: 'hǝna ṭʰιrit', english: 'after a while', audioId: '01517' },
+    { kashmiri: 'har dōh', english: 'every day', audioId: '01600' },
+    { kashmiri: 'asān asān', english: 'gladly', audioId: '00299' },
+    { kashmiri: 'wārι kārι', english: "you're welcome", audioId: '04623' },
   ],
 };
 
