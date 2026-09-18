@@ -12,13 +12,13 @@ import { saveLearnerLevel, type LearnerLevel } from '@/src/services/starterGloss
 const OPTIONS: { level: LearnerLevel; title: string; description: string }[] = [
   {
     level: 'beginner',
-    title: 'Total beginner',
+    title: 'Beginner',
     description: 'Starting from scratch. Maybe there’s someone Kashmiri you’d love to impress.',
   },
   {
     level: 'intermediate',
     title: 'Intermediate',
-    description: 'You know bits and pieces from home and want to get back to your roots.',
+    description: 'You know bits and pieces from home and want to reconnect with your roots.',
   },
   {
     level: 'understands',
@@ -69,7 +69,7 @@ export default function LevelScreen() {
           <Grandmother pose="point" size={84} />
           <View style={styles.bubble}>
             <Text style={styles.bubbleText}>
-              Before we start, tell me how much Koshur you have already.
+              Before we start, tell me how much Koshur you know already.
             </Text>
           </View>
         </View>

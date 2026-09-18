@@ -128,7 +128,7 @@ export function getBubble(
     case 'lessons':
       return {
         text: insideLesson
-          ? 'Here you are. Play a clip and listen — the ✓ comes once you’ve heard it. Tap Next when you’re ready.'
+          ? 'Here you are. Play a clip and listen — the ✓ comes as soon as you start it. Tap Next when you’re ready.'
           : 'Proper audio courses. Open one and pick a lesson — listen along and tick them off as you go.',
         pose: 'point',
       };
@@ -142,7 +142,7 @@ export function getBubble(
     case 'profile':
       return {
         text: signedIn
-          ? 'Your Profile keeps count. Want me round again? Tap Replay Naani’s tour.'
+          ? 'Your Profile keeps count of your progress. Want to see me again? Tap Replay Naani’s tour.'
           : 'Sign in here so your words are safe on every phone — and so you can play.',
         pose: 'point',
       };
