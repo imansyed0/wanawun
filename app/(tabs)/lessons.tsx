@@ -47,24 +47,35 @@ function courseProgress(course: Course, startedIds: string[]): CourseProgress {
   };
 }
 
+/** Everything the cards read, gathered in one go for one signed-in learner. */
+interface CourseState {
+  /** The course to begin with, from the level they gave Naani. */
+  startHereId: string | null;
+  progress: Record<string, CourseProgress>;
+}
+
 export default function LessonsScreen() {
   const router = useRouter();
-  const { user } = useAuth();
-  // Progress per course, so each card can show how far along it is. Null until
-  // every course has been counted: the counts land together that way, instead
-  // of dropping onto the cards one after another.
-  const [progress, setProgress] = useState<Record<string, CourseProgress> | null>(null);
-  // The course to begin with, from the level they gave Naani.
-  const [startHereId, setStartHereId] = useState<string | null>(null);
+  const { user, loading: authLoading } = useAuth();
+  // Null until it has been gathered. The recommendation and the counts live in
+  // one piece of state, and land together: apart, a reread could pair a fresh
+  // recommendation with the last one's counts, and "start here" would appear
+  // on a course the learner is already partway through.
+  const [courseState, setCourseState] = useState<CourseState | null>(null);
 
   useFocusEffect(
     useCallback(() => {
+      // Nothing is worth reading until we know who is asking. Signed-in
+      // learners look signed out for a moment while the session is restored,
+      // and answering then means an empty glossary and someone else's level.
+      if (authLoading) return;
+
       let cancelled = false;
       (async () => {
+        let startHereId: string | null = null;
         try {
           const level = await getLearnerLevel(user?.id);
-          if (cancelled) return;
-          setStartHereId(level ? recommendedCourseId(level) : null);
+          startHereId = level ? recommendedCourseId(level) : null;
         } catch {
           // No recommendation rather than no list.
         }
@@ -81,12 +92,12 @@ export default function LessonsScreen() {
           })
         );
         if (cancelled) return;
-        setProgress(Object.fromEntries(counted));
+        setCourseState({ startHereId, progress: Object.fromEntries(counted) });
       })();
       return () => {
         cancelled = true;
       };
-    }, [user?.id])
+    }, [authLoading, user?.id])
   );
 
   return (
@@ -109,10 +120,10 @@ export default function LessonsScreen() {
         renderItem={({ item }) => {
           const badge = badges[item.id];
           const icon = icons[item.id] ?? '\u{1F3B5}';
-          const courseDone = progress?.[item.id];
+          const courseDone = courseState?.progress[item.id];
           // Only worth pointing at until they've actually started it — and only
           // once the counts are in, so it can't appear and then think better.
-          const startHere = !!progress && item.id === startHereId && !courseDone?.done;
+          const startHere = item.id === courseState?.startHereId && !courseDone?.done;
           return (
             <Pressable
               style={({ pressed }) => [pressed && { opacity: 0.7 }]}

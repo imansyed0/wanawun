@@ -30,16 +30,20 @@ function parseLevel(raw: string | null): LearnerLevel | null {
 
 export async function getLearnerLevel(userId?: string): Promise<LearnerLevel | null> {
   try {
+    const pending = parseLevel(await AsyncStorage.getItem(DEVICE_LEVEL_KEY));
+
     if (userId) {
       const own = parseLevel(await AsyncStorage.getItem(userLevelKey(userId)));
-      if (own) return own;
+      // Either way the device's answer has found its owner, so clear it: it is
+      // only there to carry an answer given before signing in, and left behind
+      // it is the answer everyone else on this phone is read as having given.
+      if (pending) {
+        if (!own) await AsyncStorage.setItem(userLevelKey(userId), pending);
+        await AsyncStorage.removeItem(DEVICE_LEVEL_KEY);
+      }
+      return own ?? pending;
     }
-    const pending = parseLevel(await AsyncStorage.getItem(DEVICE_LEVEL_KEY));
-    if (pending && userId) {
-      // Claim it, so the next person to sign up on this phone still gets asked.
-      await AsyncStorage.setItem(userLevelKey(userId), pending);
-      await AsyncStorage.removeItem(DEVICE_LEVEL_KEY);
-    }
+
     return pending;
   } catch {
     return null;
