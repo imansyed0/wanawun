@@ -73,7 +73,7 @@ type StarterEntry = { kashmiri: string; english: string; audioId: string };
 
 const STARTER_SETS: Record<LearnerLevel, StarterEntry[]> = {
   beginner: [
-    { kashmiri: 'pōnʸ', english: 'water', audioId: '03258' },
+    { kashmiri: 'āb', english: 'water', audioId: '00405' },
     { kashmiri: 'dɔd', english: 'milk', audioId: '01030' },
     { kashmiri: 'cāy', english: 'tea', audioId: '00784' },
     { kashmiri: 'batι', english: 'rice', audioId: '00550' },
