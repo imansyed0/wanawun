@@ -6,8 +6,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/src/components/ui/Card';
 import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
 import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
-import { allCourses } from '@/src/data/courses';
+import { allCourses, recommendedCourseId } from '@/src/data/courses';
 import { getFullyListenedLessonIds } from '@/src/services/clipProgressService';
+import { getLearnerLevel } from '@/src/services/starterGlossaryService';
 import { useAuth } from '@/src/hooks/useAuth';
 
 const badges: Record<string, { label: string; color: string }> = {
@@ -29,11 +30,21 @@ export default function LessonsScreen() {
   const { user } = useAuth();
   // Lessons ticked off per course, so each card can show how far along it is.
   const [listened, setListened] = useState<Record<string, number>>({});
+  // The course to begin with, from the level they gave Naani.
+  const [startHereId, setStartHereId] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
       (async () => {
+        try {
+          const level = await getLearnerLevel(user?.id);
+          if (cancelled) return;
+          setStartHereId(level ? recommendedCourseId(level) : null);
+        } catch {
+          // No recommendation rather than no list.
+        }
+
         for (const course of allCourses) {
           try {
             const ids = await getFullyListenedLessonIds(user?.id, course.id, course.lessons);
@@ -70,12 +81,17 @@ export default function LessonsScreen() {
         renderItem={({ item }) => {
           const badge = badges[item.id];
           const icon = icons[item.id] ?? '\u{1F3B5}';
+          // Only worth pointing at until they've actually started it.
+          const startHere = item.id === startHereId && !listened[item.id];
           return (
             <Pressable
               style={({ pressed }) => [pressed && { opacity: 0.7 }]}
               onPress={() => router.push(`/lessons/${item.id}`)}
             >
-              <Card style={styles.card}>
+              <Card style={[styles.card, startHere && styles.cardStartHere]}>
+                {startHere ? (
+                  <Text style={styles.startHere}>Naani says: start here</Text>
+                ) : null}
                 <View style={styles.cardTop}>
                   <Text style={styles.courseIcon}>{icon}</Text>
                   <View style={styles.cardTitleArea}>
@@ -118,6 +134,17 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: Spacing.xs },
   list: { padding: Spacing.lg, gap: Spacing.md, paddingBottom: Spacing.xxl },
   card: { gap: Spacing.sm },
+  cardStartHere: {
+    borderColor: Colors.primary,
+    borderWidth: 2,
+  },
+  startHere: {
+    fontSize: FontSize.xs,
+    fontFamily: FontFamily.bodyBold,
+    color: Colors.primaryDark,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
   cardTop: {
     flexDirection: 'row',
     alignItems: 'flex-start',

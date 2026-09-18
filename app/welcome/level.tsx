@@ -6,6 +6,7 @@ import { Grandmother } from '@/src/components/onboarding/Grandmother';
 import { Button } from '@/src/components/ui/Button';
 import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
 import { useAuth } from '@/src/hooks/useAuth';
+import { allCourses, recommendedCourseId } from '@/src/data/courses';
 import { saveLearnerLevel, type LearnerLevel } from '@/src/services/starterGlossaryService';
 
 const OPTIONS: { level: LearnerLevel; title: string; description: string }[] = [
@@ -36,6 +37,12 @@ export default function LevelScreen() {
   const { user, loading } = useAuth();
   const [selected, setSelected] = useState<LearnerLevel | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // The course their answer points them at, so the choice means something
+  // before they've even signed up. The Lessons list marks the same one.
+  const startHere = selected
+    ? allCourses.find((course) => course.id === recommendedCourseId(selected))
+    : undefined;
 
   async function handleContinue() {
     if (!selected || saving || loading) return;
@@ -93,6 +100,14 @@ export default function LevelScreen() {
             );
           })}
         </View>
+
+        {startHere ? (
+          <View style={styles.startHere}>
+            <Text style={styles.startHereLabel}>Naani says: start here</Text>
+            <Text style={styles.startHereTitle}>{startHere.title}</Text>
+            <Text style={styles.startHereAuthor}>{startHere.author}</Text>
+          </View>
+        ) : null}
       </ScrollView>
 
       <View style={styles.footer}>
@@ -192,6 +207,33 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     lineHeight: LineHeight.body(FontSize.sm),
     color: Colors.textSecondary,
+  },
+  startHere: {
+    backgroundColor: '#F3F7F5',
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    padding: Spacing.md,
+    gap: 2,
+  },
+  startHereLabel: {
+    fontSize: FontSize.xs,
+    fontFamily: FontFamily.bodyBold,
+    color: Colors.primaryDark,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  startHereTitle: {
+    fontFamily: FontFamily.bodyBold,
+    fontSize: FontSize.md,
+    lineHeight: LineHeight.body(FontSize.md),
+    color: Colors.text,
+  },
+  startHereAuthor: {
+    fontSize: FontSize.sm,
+    lineHeight: LineHeight.body(FontSize.sm),
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
   },
   footer: {
     paddingHorizontal: Spacing.lg,
