@@ -6,8 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/src/components/ui/Card';
 import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
 import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
-import { allCourses, recommendedCourseId } from '@/src/data/courses';
-import { getFullyListenedLessonIds } from '@/src/services/clipProgressService';
+import { allCourses, recommendedCourseId, type Course } from '@/src/data/courses';
+import { getStartedLessonIds } from '@/src/services/clipProgressService';
 import { getLearnerLevel } from '@/src/services/starterGlossaryService';
 import { useAuth } from '@/src/hooks/useAuth';
 
@@ -25,11 +25,35 @@ const icons: Record<string, string> = {
   'learn-kashmiri': '\u{1F3B6}',   // musical notes
 };
 
+/** How far along a course is, and which lesson to pick up next. */
+interface CourseProgress {
+  /** Lessons they've started — the same thing the lesson list ticks. */
+  done: number;
+  /** Title of the lesson after the last one ticked off; null at the end. */
+  upNext: string | null;
+}
+
+function courseProgress(course: Course, startedIds: string[]): CourseProgress {
+  const started = new Set(startedIds);
+  // Pick up after the furthest lesson they've started, not the first gap:
+  // having done 2 and 4, the next one up is 5.
+  let lastDone = -1;
+  course.lessons.forEach((lesson, index) => {
+    if (started.has(lesson.id)) lastDone = index;
+  });
+  return {
+    done: started.size,
+    upNext: course.lessons[lastDone + 1]?.title ?? null,
+  };
+}
+
 export default function LessonsScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  // Lessons ticked off per course, so each card can show how far along it is.
-  const [listened, setListened] = useState<Record<string, number>>({});
+  // Progress per course, so each card can show how far along it is. Null until
+  // every course has been counted: the counts land together that way, instead
+  // of dropping onto the cards one after another.
+  const [progress, setProgress] = useState<Record<string, CourseProgress> | null>(null);
   // The course to begin with, from the level they gave Naani.
   const [startHereId, setStartHereId] = useState<string | null>(null);
 
@@ -45,15 +69,19 @@ export default function LessonsScreen() {
           // No recommendation rather than no list.
         }
 
-        for (const course of allCourses) {
-          try {
-            const ids = await getFullyListenedLessonIds(user?.id, course.id, course.lessons);
-            if (cancelled) return;
-            setListened((prev) => ({ ...prev, [course.id]: ids.length }));
-          } catch {
-            // Leave this course without a count rather than blocking the list.
-          }
-        }
+        const counted = await Promise.all(
+          allCourses.map(async (course) => {
+            try {
+              const ids = await getStartedLessonIds(user?.id, course.id, course.lessons);
+              return [course.id, courseProgress(course, ids)] as const;
+            } catch {
+              // Leave this course without a count rather than blocking the list.
+              return [course.id, { done: 0, upNext: null }] as const;
+            }
+          })
+        );
+        if (cancelled) return;
+        setProgress(Object.fromEntries(counted));
       })();
       return () => {
         cancelled = true;
@@ -81,8 +109,10 @@ export default function LessonsScreen() {
         renderItem={({ item }) => {
           const badge = badges[item.id];
           const icon = icons[item.id] ?? '\u{1F3B5}';
-          // Only worth pointing at until they've actually started it.
-          const startHere = item.id === startHereId && !listened[item.id];
+          const courseDone = progress?.[item.id];
+          // Only worth pointing at until they've actually started it — and only
+          // once the counts are in, so it can't appear and then think better.
+          const startHere = !!progress && item.id === startHereId && !courseDone?.done;
           return (
             <Pressable
               style={({ pressed }) => [pressed && { opacity: 0.7 }]}
@@ -107,11 +137,18 @@ export default function LessonsScreen() {
                   </View>
                 </View>
                 <Text style={styles.description}>{item.description}</Text>
-                {/* Only once something's complete: "0 of 50" greets nobody well. */}
-                {listened[item.id] ? (
-                  <Text style={styles.progress}>
-                    {'✓'} {listened[item.id]} of {item.lessons.length} complete
-                  </Text>
+                {/* Only once something's started: "0 of 50" greets nobody well. */}
+                {courseDone?.done ? (
+                  <View>
+                    <Text style={styles.progress}>
+                      {'✓'} {courseDone.done} of {item.lessons.length} started
+                    </Text>
+                    {courseDone.upNext ? (
+                      <Text style={styles.upNext} numberOfLines={1}>
+                        Up next: {courseDone.upNext}
+                      </Text>
+                    ) : null}
+                  </View>
                 ) : null}
               </Card>
             </Pressable>
@@ -183,5 +220,10 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontFamily: FontFamily.bodySemi,
     color: Colors.primaryDark,
+  },
+  upNext: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
 });

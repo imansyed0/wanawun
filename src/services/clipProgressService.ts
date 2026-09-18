@@ -146,8 +146,12 @@ export async function isLessonFullyListened(
   return totalClipFilenames.every((f) => listened.has(f));
 }
 
-/** Get all lesson IDs in a course that have been fully listened to */
-export async function getFullyListenedLessonIds(
+/**
+ * Lesson IDs in a course the learner has started — one clip played is enough.
+ * The tick is there to show where they've been, not to withhold credit until
+ * they've sat through every last second of audio.
+ */
+export async function getStartedLessonIds(
   userId: string | null | undefined,
   courseId: string,
   lessons: { id: string; audioClips: { filename: string }[] }[]
@@ -177,7 +181,7 @@ export async function getFullyListenedLessonIds(
     .filter((lesson) => {
       if (lesson.audioClips.length === 0) return false;
       const listened = new Set(data[lessonKey(courseId, lesson.id)] ?? []);
-      return lesson.audioClips.every((clip) => listened.has(clip.filename));
+      return lesson.audioClips.some((clip) => listened.has(clip.filename));
     })
     .map((lesson) => lesson.id);
 }

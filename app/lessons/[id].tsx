@@ -6,7 +6,7 @@ import { useCallback, useState } from 'react';
 import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
 import { allCourses } from '@/src/data/courses';
 import { formatClipCount, getLessonClipNoun } from '@/src/data/clipLabels';
-import { getFullyListenedLessonIds } from '@/src/services/clipProgressService';
+import { getStartedLessonIds } from '@/src/services/clipProgressService';
 import { useAuth } from '@/src/hooks/useAuth';
 
 export default function CourseDetailScreen() {
@@ -14,13 +14,13 @@ export default function CourseDetailScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const course = allCourses.find((c) => c.id === id);
-  const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(new Set());
+  const [startedLessonIds, setStartedLessonIds] = useState<Set<string>>(new Set());
 
   useFocusEffect(
     useCallback(() => {
       if (!id || !course) return;
-      getFullyListenedLessonIds(user?.id, id, course.lessons)
-        .then((ids) => setCompletedLessonIds(new Set(ids)))
+      getStartedLessonIds(user?.id, id, course.lessons)
+        .then((ids) => setStartedLessonIds(new Set(ids)))
         .catch(() => {});
     }, [id, course, user?.id])
   );
@@ -52,7 +52,7 @@ export default function CourseDetailScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => {
-          const isCompleted = completedLessonIds.has(item.id);
+          const isStarted = startedLessonIds.has(item.id);
           return (
             <Pressable
               style={({ pressed }) => [styles.lessonCard, pressed && { opacity: 0.7 }]}
@@ -60,9 +60,9 @@ export default function CourseDetailScreen() {
                 router.push(`/lessons/${course.id}/${item.id}`)
               }
             >
-              <View style={[styles.lessonNumber, isCompleted && styles.lessonNumberCompleted]}>
+              <View style={[styles.lessonNumber, isStarted && styles.lessonNumberCompleted]}>
                 <Text style={styles.lessonNumberText}>{item.number}</Text>
-                {isCompleted && (
+                {isStarted && (
                   <View style={styles.checkBadge}>
                     <Text style={styles.checkText}>{'\u2713'}</Text>
                   </View>
