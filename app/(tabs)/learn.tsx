@@ -26,9 +26,30 @@ import { PlayButton, RecordButton, RecordingTimer } from '@/src/components/ui/Re
 import { useAuth } from '@/src/hooks/useAuth';
 import type { WordEntry } from '@/src/types';
 
+/** How the glossary is ordered. 'added' is the order the words came in. */
+type SortKey = 'added' | 'newest' | 'kashmiri' | 'english';
+
+const SORTS: { key: SortKey; label: string }[] = [
+  { key: 'added', label: 'Added' },
+  { key: 'newest', label: 'Newest' },
+  { key: 'kashmiri', label: 'A\u2013Z Koshur' },
+  { key: 'english', label: 'A\u2013Z English' },
+];
+
+/** Sorts a copy of the glossary; the list itself stays in the order it loaded. */
+function sortWords(words: WordEntry[], sort: SortKey): WordEntry[] {
+  if (sort === 'added') return words;
+  if (sort === 'newest') return [...words].reverse();
+  const field = sort === 'kashmiri' ? 'kashmiri' : 'english';
+  return [...words].sort((a, b) =>
+    a[field].localeCompare(b[field], undefined, { sensitivity: 'base' })
+  );
+}
+
 export default function LearnScreen() {
   const [words, setWords] = useState<WordEntry[]>([]);
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<SortKey>('added');
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   // Words added through the app-wide quick-add sheet (the floating +).
@@ -70,10 +91,13 @@ export default function LearnScreen() {
     }, [])
   );
 
-  const filtered = words.filter(
-    (w) =>
-      w.kashmiri.toLowerCase().includes(search.toLowerCase()) ||
-      w.english.toLowerCase().includes(search.toLowerCase())
+  const filtered = sortWords(
+    words.filter(
+      (w) =>
+        w.kashmiri.toLowerCase().includes(search.toLowerCase()) ||
+        w.english.toLowerCase().includes(search.toLowerCase())
+    ),
+    sort
   );
 
   useEffect(() => {
@@ -88,9 +112,8 @@ export default function LearnScreen() {
           )
       );
 
-      return [...withoutDuplicate, newWord].sort((a, b) =>
-        a.kashmiri.localeCompare(b.kashmiri)
-      );
+      // Onto the end: the glossary reads in the order words were added.
+      return [...withoutDuplicate, newWord];
     });
   }, [lastAdded]);
 
@@ -248,7 +271,12 @@ export default function LearnScreen() {
           <View>
             <View style={styles.header}>
               <Text style={styles.title}>Glossary</Text>
-              <Text style={styles.subtitle}>{words.length} Kashmiri words/phrases</Text>
+              {/* Don't claim "0 words" while the first fetch is still in flight. */}
+              <Text style={styles.subtitle}>
+                {loading && words.length === 0
+                  ? 'Counting your words...'
+                  : `${words.length} Kashmiri words/phrases`}
+              </Text>
             </View>
 
             <ScreenHeaderDecoration variant="teal" />
@@ -273,6 +301,30 @@ export default function LearnScreen() {
                   <Text style={styles.searchClearText}>{'✕'}</Text>
                 </Pressable>
               ) : null}
+            </View>
+
+            <View style={styles.sortRow} accessibilityRole="radiogroup">
+              <Text style={styles.sortLabel}>Sort</Text>
+              {SORTS.map((option) => {
+                const isActive = sort === option.key;
+                return (
+                  <Pressable
+                    key={option.key}
+                    onPress={() => setSort(option.key)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: isActive }}
+                    style={({ pressed }) => [
+                      styles.sortChip,
+                      isActive && styles.sortChipActive,
+                      pressed && { opacity: 0.7 },
+                    ]}
+                  >
+                    <Text style={[styles.sortChipText, isActive && styles.sortChipTextActive]}>
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
           </View>
         </TouchableWithoutFeedback>
@@ -319,8 +371,44 @@ const styles = StyleSheet.create({
   },
   searchWrap: {
     marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.sm,
     justifyContent: 'center',
+  },
+  sortRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    gap: Spacing.xs,
+  },
+  sortLabel: {
+    fontSize: FontSize.xs,
+    color: Colors.textLight,
+    fontFamily: FontFamily.bodySemi,
+    marginRight: Spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  sortChip: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  sortChipActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary,
+  },
+  sortChipText: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    fontFamily: FontFamily.bodySemi,
+  },
+  sortChipTextActive: {
+    color: '#fff',
   },
   searchClear: {
     position: 'absolute',

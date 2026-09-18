@@ -92,11 +92,13 @@ export async function getGlossaryWords(userId?: string): Promise<WordEntry[]> {
     merged.set(key, lessonWord);
   }
 
+  // Oldest first: the rows come back by `created_at`, and the glossary shows
+  // words in the order they were added rather than alphabetically.
   return Array.from(
     new Map(
       Array.from(merged.values()).map((word) => [word.id, word])
     ).values()
-  ).sort((a, b) => a.kashmiri.localeCompare(b.kashmiri));
+  );
 }
 
 export async function addGlossaryWord(
