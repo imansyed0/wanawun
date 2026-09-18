@@ -39,25 +39,44 @@ async function saveCachedAll(data: ListenedClips, userId?: string | null): Promi
   await AsyncStorage.setItem(storageKey(userId), JSON.stringify(data));
 }
 
+/**
+ * Updates to the cache run one at a time. Every one of them reads the whole
+ * cache, changes a corner of it and writes it back, so two courses loading at
+ * once would otherwise each save what they read and the slower write would
+ * drop the other's lessons.
+ */
+let cacheQueue: Promise<unknown> = Promise.resolve();
+
+function queueCacheUpdate<T>(update: () => Promise<T>): Promise<T> {
+  const next = cacheQueue.then(update, update);
+  // Keep the chain going whatever happens to this link.
+  cacheQueue = next.catch(() => {});
+  return next;
+}
+
 async function markClipListenedInCache(
   userId: string | null | undefined,
   courseId: string,
   lessonId: string,
   clipFilename: string
 ): Promise<void> {
-  const data = await getCachedAll(userId);
-  const key = lessonKey(courseId, lessonId);
-  const clips = data[key] ?? [];
-  if (!clips.includes(clipFilename)) {
-    data[key] = [...clips, clipFilename];
-    await saveCachedAll(data, userId);
-  }
+  return queueCacheUpdate(async () => {
+    const data = await getCachedAll(userId);
+    const key = lessonKey(courseId, lessonId);
+    const clips = data[key] ?? [];
+    if (!clips.includes(clipFilename)) {
+      data[key] = [...clips, clipFilename];
+      await saveCachedAll(data, userId);
+    }
+  });
 }
 
 async function mergeCacheFromRows(userId: string, rows: ClipProgressRow[]): Promise<void> {
-  const current = await getCachedAll(userId);
-  const next = toCache(rows);
-  await saveCachedAll({ ...current, ...next }, userId);
+  return queueCacheUpdate(async () => {
+    const current = await getCachedAll(userId);
+    const next = toCache(rows);
+    await saveCachedAll({ ...current, ...next }, userId);
+  });
 }
 
 export async function clearClipProgressCache(userId?: string | null): Promise<void> {
