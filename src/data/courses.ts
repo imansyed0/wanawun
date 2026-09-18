@@ -7,6 +7,7 @@ import {
   type KoulSectionKey,
 } from './koulContent';
 import { getKachruChapterVocabulary } from './kachruVocabulary';
+import type { LearnerLevel } from '@/src/services/starterGlossaryService';
 
 export interface AudioClip {
   filename: string; // e.g. "conv1a.mp3"
@@ -373,10 +374,30 @@ export const learnKashmiri: Course = {
 // ---------------------------------------------------------------------------
 
 export const allCourses: Course[] = [
-  // CIIL leads: it starts from pronunciation, so it's the better first course.
+  // In order of difficulty. CIIL leads: it starts from pronunciation, so it's
+  // the better first course. Koul's course sits in the middle, and Kachru's
+  // Introduction is the hardest of the three despite its name.
   ciilCourse,
-  spokenKashmiri,
   kashmiriKoul,
+  spokenKashmiri,
   // Temporarily hidden — the Let's Learn Kashmiri course is disabled in the app.
   // learnKashmiri,
 ];
+
+// ---------------------------------------------------------------------------
+// Where to begin
+// ---------------------------------------------------------------------------
+
+/**
+ * The course to start on, from the level chosen when Naani asked. `allCourses`
+ * is listed in order of difficulty, so the answer is the first, middle or last
+ * one — nothing to keep in step when a course is added or hidden.
+ */
+export function recommendedCourseId(level: LearnerLevel): string {
+  const index: Record<LearnerLevel, number> = {
+    beginner: 0,
+    intermediate: Math.floor((allCourses.length - 1) / 2),
+    understands: allCourses.length - 1,
+  };
+  return allCourses[index[level]].id;
+}
