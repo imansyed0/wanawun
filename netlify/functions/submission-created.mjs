@@ -8,12 +8,10 @@
  * instructions for the phone they chose (iphone / android / both).
  *
  * Android closed testing is gated on the Google Group
- * wanawun-android-beta-testers@googlegroups.com: the Play listing only shows
+ * wanwun-android-beta-testers@googlegroups.com: the Play listing only shows
  * the app to accounts in that group. Testers join it themselves through the
- * link in this email (a consumer @googlegroups.com group has no API to add
- * them for us), and the form also asks Android testers for the Google account
- * they use on the Play Store, so anyone who doesn't join can be added by hand
- * from the Groups UI.
+ * link in this email -- a consumer @googlegroups.com group has no API to add
+ * them for us, so the group has to stay publicly visible and joinable.
  *
  * Setup:
  *   1. In Netlify (Site configuration > Environment variables) set:
@@ -24,9 +22,13 @@
  *      EMAIL_FROM must use the SMTP_USER address (or an alias of that
  *      mailbox), otherwise Private Email rejects or spoof-flags the message.
  *      Redeploy after changing env vars.
- *   2. Make sure the Google Group allows anyone to join without approval
- *      (Group settings > "Who can join group" > "Anyone on the web can
- *      join"). "Ask to join" would leave testers stuck waiting.
+ *   2. Make sure the Google Group is publicly joinable AND publicly visible
+ *      (Group settings > Privacy): "Who can join group" = "Anyone on the web
+ *      can join", plus "Who can see group" / "Who can view conversations" =
+ *      "Anyone on the web". Joining permission alone is not enough -- without
+ *      the visibility settings the link above 404s for non-members, who then
+ *      never reach the Join button. "Ask to join" would leave them stuck
+ *      waiting for approval.
  *
  * nodemailer is bundled by esbuild (netlify.toml [functions] node_bundler).
  * Always returns 200 so a mail problem never affects the form submission;
@@ -36,7 +38,7 @@
 import nodemailer from 'nodemailer';
 
 const IOS_TESTFLIGHT_LINK = 'https://testflight.apple.com/join/dM2tsXYj';
-const ANDROID_GROUP_LINK = 'https://groups.google.com/g/wanawun-android-beta-testers';
+const ANDROID_GROUP_LINK = 'https://groups.google.com/g/wanwun-android-beta-testers';
 const ANDROID_BETA_LINK = 'https://play.google.com/store/apps/details?id=org.koshur.wanawun';
 
 const DEFAULT_SMTP_HOST = 'mail.privateemail.com';
