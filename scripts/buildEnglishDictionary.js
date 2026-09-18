@@ -342,7 +342,11 @@ function main() {
     const ranked = merged
       // Only romanised entries are shown; Perso-Arabic script never is.
       .filter((item) => !absorbed.has(item) && item.entry.roman)
-      .sort((a, b) => b.score - a.score)
+      // A recording outranks everything: the app exists to let people hear a
+      // word, and MAX_TRANSLATIONS is small enough that a silent entry scoring
+      // higher would push a recorded one off the list entirely. Score only
+      // decides the order within each group.
+      .sort((a, b) => (b.entry.audioId ? 1 : 0) - (a.entry.audioId ? 1 : 0) || b.score - a.score)
       .filter(({ entry }) => {
         const id = entry.roman || entry.arabic;
         if (seen.has(id)) return false;
