@@ -77,8 +77,18 @@ export function TutorialOverlay() {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
-  const { active, step, modalOpen, insideLesson, advanceIntro, next, skipAddWord, skip, complete } =
-    useTutorialStore();
+  const {
+    active,
+    step,
+    modalOpen,
+    insideLesson,
+    glossaryCount,
+    advanceIntro,
+    next,
+    skipAddWord,
+    skip,
+    complete,
+  } = useTutorialStore();
 
   const [introIndex, setIntroIndex] = useState(0);
 
@@ -180,7 +190,16 @@ export function TutorialOverlay() {
     );
   }
 
-  const bubble: Bubble = getBubble(step, onGlossary, false, null, false, !!user, insideLesson);
+  const bubble: Bubble = getBubble(
+    step,
+    onGlossary,
+    false,
+    null,
+    false,
+    !!user,
+    insideLesson,
+    glossaryCount
+  );
   // Wandered off the step's tab (e.g. tapped another tab mid-step).
   const offTrack =
     !!stepPath && pathname !== stepPath && step !== 'open-add' && !insideLessons;

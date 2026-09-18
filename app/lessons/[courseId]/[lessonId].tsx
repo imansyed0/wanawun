@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, usePreventRemove } from '@react-navigation/native';
+import type { NavigationAction } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   createAudioPlayer,
@@ -62,6 +63,7 @@ import {
 } from '@/src/services/audioService';
 import { invalidateWordCache } from '@/src/services/wordService';
 import { PlayButton, RecordButton, RecordingTimer } from '@/src/components/ui/RecordControls';
+import { LeaveLessonModal } from '@/src/components/ui/LeaveLessonModal';
 import { markClipListened, getListenedClips } from '@/src/services/clipProgressService';
 import { useLessonCompletionStore } from '@/src/stores/lessonCompletionStore';
 
@@ -205,6 +207,23 @@ export default function LessonPlayerScreen() {
     if (!user?.id || !lessonId) return;
     getLessonVocab(user.id, lessonId).then(setVocab).catch(console.error);
   }, [user?.id, lessonId]);
+
+  // Leaving with nothing saved: Naani asks for one word before they go.
+  // The exit is held (header back, swipe, hardware back) until they choose.
+  // Not during the tour, and not when signed out, where nothing can be saved.
+  const tutorialActive = useTutorialStore((s) => s.active);
+  const [pendingExit, setPendingExit] = useState<NavigationAction | null>(null);
+  const [leaveConfirmed, setLeaveConfirmed] = useState(false);
+  const guardExit = !!user?.id && vocab.length === 0 && !tutorialActive && !leaveConfirmed;
+
+  usePreventRemove(guardExit, ({ data }) => setPendingExit(data.action));
+
+  // Dispatched from an effect, not from the button: the guard has to be off
+  // (one render later) or the same action gets held again.
+  useEffect(() => {
+    if (!leaveConfirmed || !pendingExit) return;
+    navigation.dispatch(pendingExit);
+  }, [leaveConfirmed, pendingExit, navigation]);
 
   // While this lesson is open, words added with the + button (or by tapping a
   // word) are saved to it, and show up in its Words tab straight away.
@@ -1710,6 +1729,17 @@ export default function LessonPlayerScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <LeaveLessonModal
+        visible={pendingExit !== null && !leaveConfirmed}
+        onAddWord={() => {
+          setPendingExit(null);
+          setActiveTab('vocab');
+          useQuickAddStore.getState().open();
+        }}
+        onStay={() => setPendingExit(null)}
+        onLeave={() => setLeaveConfirmed(true)}
+      />
     </SafeAreaView>
   );
 }

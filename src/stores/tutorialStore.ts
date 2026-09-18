@@ -58,6 +58,11 @@ interface TutorialState {
   // overlay, so the overlay hides itself and the screen that owns the
   // modal renders Naani's bubble inline instead.
   modalOpen: boolean;
+  /** How many words are in the glossary, reported by the Glossary screen as it
+   *  loads; null until it has. Naani mentions the starter words she put in,
+   *  so she needs to know they're actually there before she takes credit. */
+  glossaryCount: number | null;
+  setGlossaryCount: (count: number) => void;
   start: () => void;
   advanceIntro: () => void;
   next: () => void;
@@ -76,6 +81,9 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
   lastAnswer: null,
   modalOpen: false,
   insideLesson: false,
+  glossaryCount: null,
+
+  setGlossaryCount: (glossaryCount) => set({ glossaryCount }),
 
   start: () =>
     set({
