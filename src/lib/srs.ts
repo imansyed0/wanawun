@@ -356,8 +356,12 @@ function isLearning(card: SrsCard): boolean {
 }
 
 export interface PickOptions {
-  /** Avoid repeating the card just answered unless it is the only option. */
-  excludeKey?: string | null;
+  /**
+   * Cards to hold back unless there is nothing else to show: the card just
+   * answered, and its other direction, so the same word isn't asked twice in
+   * a row with the prompt and answer swapped.
+   */
+  excludeKeys?: (string | null | undefined)[];
   /** Ignore due dates entirely and take the earliest-due card. */
   studyAhead?: boolean;
 }
@@ -378,11 +382,10 @@ export function pickNextCard(
   const pick = (pool: SrsCard[]) =>
     selectFrom(pool, now, options.studyAhead ?? false, newBudget);
 
-  const withoutExcluded = options.excludeKey
-    ? cards.filter((card) => card.key !== options.excludeKey)
-    : cards;
+  const held = new Set((options.excludeKeys ?? []).filter(Boolean) as string[]);
+  const withoutExcluded = held.size > 0 ? cards.filter((card) => !held.has(card.key)) : cards;
 
-  return pick(withoutExcluded) ?? (options.excludeKey ? pick(cards) : null);
+  return pick(withoutExcluded) ?? (held.size > 0 ? pick(cards) : null);
 }
 
 function selectFrom(
@@ -405,7 +408,10 @@ function selectFrom(
 
   const newCards = cards.filter((card) => card.state === 'new');
   if (newCards.length > 0 && (studyAhead || newBudget > 0)) {
-    return newCards[0];
+    // At random rather than in deck order: the deck holds both directions of
+    // each word side by side, so taking them in order marches through the
+    // glossary asking every word twice over.
+    return newCards[Math.floor(Math.random() * newCards.length)];
   }
 
   const learnAheadCutoff = now + SRS_CONFIG.learnAheadMinutes * MINUTE_MS;

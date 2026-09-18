@@ -18,7 +18,13 @@ import { ScreenHeaderDecoration } from '@/src/components/ui/KashmiriPattern';
 import { BorderRadius, Colors, FontFamily, FontSize, LineHeight, Spacing } from '@/src/constants/theme';
 import { playAudio, stopAudio } from '@/src/services/audioService';
 import { getGlossaryWords } from '@/src/services/wordService';
-import { loadDeck, saveCardReview, type DeckItem } from '@/src/services/srsService';
+import {
+  REVIEW_DIRECTIONS,
+  cardKeyFor,
+  loadDeck,
+  saveCardReview,
+  type DeckItem,
+} from '@/src/services/srsService';
 import {
   formatDuration,
   pickNextCard,
@@ -208,7 +214,14 @@ export default function FlashcardsScreen() {
       const next = pickNextCard(
         nextDeck.map((item) => item.card),
         now,
-        { excludeKey: graded.key, studyAhead }
+        {
+          // Hold back both the card just answered and the same word the other
+          // way round, so "salām -> hello" isn't followed by "hello -> salām".
+          excludeKeys: REVIEW_DIRECTIONS.map((direction) =>
+            cardKeyFor(current.word, direction)
+          ),
+          studyAhead,
+        }
       );
 
       setDeck(nextDeck);

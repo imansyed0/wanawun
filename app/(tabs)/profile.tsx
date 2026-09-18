@@ -155,11 +155,11 @@ export default function ProfileScreen() {
           </Card>
           <Card style={styles.statCard}>
             <Text style={styles.statValue}>{gameCount}</Text>
-            <Text style={styles.statLabel}>Games</Text>
+            <Text style={styles.statLabel}>Games Played</Text>
           </Card>
           <Card style={styles.statCard}>
             <Text style={styles.statValue}>{wordCount}</Text>
-            <Text style={styles.statLabel}>Words/Phrases</Text>
+            <Text style={styles.statLabel}>Words Learned</Text>
           </Card>
         </View>
 

@@ -342,11 +342,13 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   introBubbleText: {
+    // Same face and size as the in-app tour bubble below: Rozha One is a
+    // display serif and was hard to read at paragraph length.
     fontSize: FontSize.lg,
-    lineHeight: LineHeight.heading(FontSize.lg),
+    lineHeight: LineHeight.body(FontSize.lg),
     color: Colors.text,
     textAlign: 'center',
-    fontFamily: FontFamily.heading,
+    fontFamily: FontFamily.bodySemi,
   },
   introTapHint: {
     fontSize: FontSize.sm,

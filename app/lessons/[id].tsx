@@ -2,25 +2,46 @@ import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Celebration } from '@/src/components/ui/Celebration';
 import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
 import { allCourses } from '@/src/data/courses';
 import { formatClipCount, getLessonClipNoun } from '@/src/data/clipLabels';
-import { getFullyListenedLessonIds } from '@/src/services/clipProgressService';
+import { getStartedLessonIds } from '@/src/services/clipProgressService';
 import { useAuth } from '@/src/hooks/useAuth';
+import { useLessonCompletionStore } from '@/src/stores/lessonCompletionStore';
 
 export default function CourseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
   const course = allCourses.find((c) => c.id === id);
-  const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(new Set());
+  const [startedLessonIds, setStartedLessonIds] = useState<Set<string>>(new Set());
+  // Set by the player when a lesson's last clip plays out, so the tick it just
+  // earned arrives with confetti rather than just appearing.
+  const justCompleted = useLessonCompletionStore((s) => s.justCompleted);
+  const celebrating = justCompleted?.courseId === id ? justCompleted : null;
+  // Keep the lesson just played ticked while its progress is still on its way
+  // to the server and this screen reloads its counts.
+  const [justFinishedId, setJustFinishedId] = useState<string | null>(null);
+  const started = useMemo(
+    () => (justFinishedId ? new Set([...startedLessonIds, justFinishedId]) : startedLessonIds),
+    [startedLessonIds, justFinishedId]
+  );
+
+  // One party per finished lesson: forget it once it has been thrown.
+  useEffect(() => {
+    if (!celebrating) return;
+    setJustFinishedId(celebrating.lessonId);
+    const timer = setTimeout(() => useLessonCompletionStore.getState().clear(), 2000);
+    return () => clearTimeout(timer);
+  }, [celebrating]);
 
   useFocusEffect(
     useCallback(() => {
       if (!id || !course) return;
-      getFullyListenedLessonIds(user?.id, id, course.lessons)
-        .then((ids) => setCompletedLessonIds(new Set(ids)))
+      getStartedLessonIds(user?.id, id, course.lessons)
+        .then((ids) => setStartedLessonIds(new Set(ids)))
         .catch(() => {});
     }, [id, course, user?.id])
   );
@@ -52,7 +73,7 @@ export default function CourseDetailScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => {
-          const isCompleted = completedLessonIds.has(item.id);
+          const isStarted = started.has(item.id);
           return (
             <Pressable
               style={({ pressed }) => [styles.lessonCard, pressed && { opacity: 0.7 }]}
@@ -60,9 +81,21 @@ export default function CourseDetailScreen() {
                 router.push(`/lessons/${course.id}/${item.id}`)
               }
             >
-              <View style={[styles.lessonNumber, isCompleted && styles.lessonNumberCompleted]}>
+              {celebrating?.lessonId === item.id ? (
+                // Pinned left and twice as wide as the gap to the middle of the
+                // tick, so the confetti sprays up out of it and stays on the card.
+                <Celebration
+                  id="lesson-tick"
+                  trigger={celebrating.at}
+                  width={(Spacing.md + 18) * 2}
+                  height={Spacing.md + 36}
+                  scale={0.62}
+                  style={{ left: 0, top: 0 }}
+                />
+              ) : null}
+              <View style={[styles.lessonNumber, isStarted && styles.lessonNumberCompleted]}>
                 <Text style={styles.lessonNumberText}>{item.number}</Text>
-                {isCompleted && (
+                {isStarted && (
                   <View style={styles.checkBadge}>
                     <Text style={styles.checkText}>{'\u2713'}</Text>
                   </View>

@@ -63,6 +63,7 @@ import {
 import { invalidateWordCache } from '@/src/services/wordService';
 import { PlayButton, RecordButton, RecordingTimer } from '@/src/components/ui/RecordControls';
 import { markClipListened, getListenedClips } from '@/src/services/clipProgressService';
+import { useLessonCompletionStore } from '@/src/stores/lessonCompletionStore';
 
 // Cap lesson images at a reasonable fraction of the screen so tall/portrait
 // images don't dominate the viewport. Width is always 100% of the card;
@@ -186,10 +187,18 @@ export default function LessonPlayerScreen() {
   const vocabRecordingRef = useRef<AudioRecorder | null>(null);
 
   const [listenedClips, setListenedClips] = useState<Set<string>>(new Set());
+  // The same set, readable from the playback callback without re-subscribing
+  // the player every time a clip is ticked off.
+  const listenedClipsRef = useRef<Set<string>>(listenedClips);
 
   useEffect(() => {
     if (!courseId || !lessonId) return;
-    getListenedClips(user?.id, courseId, lessonId).then(setListenedClips).catch(console.error);
+    getListenedClips(user?.id, courseId, lessonId)
+      .then((clips) => {
+        listenedClipsRef.current = clips;
+        setListenedClips(clips);
+      })
+      .catch(console.error);
   }, [courseId, lessonId, user?.id]);
 
   useEffect(() => {
@@ -430,18 +439,39 @@ export default function LessonPlayerScreen() {
       }
       setIsPlaying(false);
 
+      let lessonFinished = false;
       if (courseId && lessonId && clips[clipIdx]) {
         const finishedFilename = clips[clipIdx].filename;
-        setListenedClips((prev) => new Set([...prev, finishedFilename]));
-        markClipListened(user?.id, courseId, lessonId, finishedFilename).catch(console.error);
+        // Normally already recorded when the clip started; this catches a clip
+        // that began before that record could be written.
+        if (!listenedClipsRef.current.has(finishedFilename)) {
+          const updated = new Set(listenedClipsRef.current).add(finishedFilename);
+          listenedClipsRef.current = updated;
+          setListenedClips(updated);
+          markClipListened(user?.id, courseId, lessonId, finishedFilename).catch(console.error);
+        }
+        const nowListened = listenedClipsRef.current;
+        lessonFinished =
+          lesson.audioClips.length > 0 &&
+          lesson.audioClips.every((clip) => nowListened.has(clip.filename));
       }
 
+      // That was the last of the lesson: hand them back to the lesson list,
+      // where the tick they just earned lands with a little party.
+      if (lessonFinished && courseId && lessonId) {
+        useLessonCompletionStore.getState().lessonCompleted(courseId, lessonId);
+        // dismissTo, not back: it pops to the course's lesson list wherever the
+        // player was opened from, and falls back to replacing this screen with
+        // it when the list isn't in the stack at all (e.g. a deep link).
+        router.dismissTo(`/lessons/${courseId}`);
+        return;
+      }
 
       if (clipIdx < clips.length - 1) {
         void playClip(clipIdx + 1);
       }
     }
-  }, [clips, courseId, lessonId, user?.id]);
+  }, [clips, courseId, lesson, lessonId, router, user?.id]);
 
   const playClip = useCallback(async (idx: number) => {
     setError('');
@@ -492,6 +522,18 @@ export default function LessonPlayerScreen() {
 
       soundRef.current = sound;
       const detachVerbose = attachVerbosePlaybackLogging(sound, uri, logTag);
+
+      // Credit the clip as soon as it starts, not when it plays out: the tick
+      // on the lesson list is for having started, not for sitting to the end.
+      if (courseId && lessonId && clips[idx]) {
+        const startedFilename = clips[idx].filename;
+        if (!listenedClipsRef.current.has(startedFilename)) {
+          const nowListened = new Set(listenedClipsRef.current).add(startedFilename);
+          listenedClipsRef.current = nowListened;
+          setListenedClips(nowListened);
+          markClipListened(user?.id, courseId, lessonId, startedFilename).catch(console.error);
+        }
+      }
 
       sound.addListener('playbackStatusUpdate', (status) => {
         if (playbackSessionRef.current !== sessionId || soundRef.current !== sound) {

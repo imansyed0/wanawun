@@ -42,9 +42,8 @@ export async function removePendingGlossaryWord(id: string): Promise<void> {
 /** The signed-out user's local glossary, shaped like real entries. */
 export async function getPendingWordEntries(): Promise<WordEntry[]> {
   const pending = await readPendingWords();
-  return pending
-    .map(pendingWordToEntry)
-    .sort((a, b) => a.kashmiri.localeCompare(b.kashmiri));
+  // Stored in the order they were added, and shown that way too.
+  return pending.map(pendingWordToEntry);
 }
 
 function pendingWordToEntry(word: PendingWord): WordEntry {

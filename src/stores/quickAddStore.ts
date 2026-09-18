@@ -43,6 +43,8 @@ interface QuickAddState {
   /** Bumped when someone presses play, so the + button can glow as a reminder. */
   playNudge: number;
   nudgeAddButton: () => void;
+  /** Bumped when a word lands in the glossary, so the + button can celebrate. */
+  celebration: number;
 }
 
 export const useQuickAddStore = create<QuickAddState>((set) => ({
@@ -55,6 +57,7 @@ export const useQuickAddStore = create<QuickAddState>((set) => ({
   lessonVocabAdded: (entry) => set({ lastAddedLessonVocab: entry }),
   playNudge: 0,
   nudgeAddButton: () => set((s) => ({ playNudge: s.playNudge + 1 })),
+  celebration: 0,
   open: (prefill) => {
     // Don't let a lesson clip or pronunciation talk over typing or recording.
     void pauseAllAudio();
@@ -62,5 +65,11 @@ export const useQuickAddStore = create<QuickAddState>((set) => ({
   },
   close: () => set({ isOpen: false, prefill: null }),
   wordAdded: (word, keepOpen = false) =>
-    set(keepOpen ? { lastAdded: word } : { isOpen: false, lastAdded: word, prefill: null }),
+    // No confetti while the sheet stays open: it would be hidden behind the
+    // sheet, and it's only staying open to show a problem with the recording.
+    set((s) =>
+      keepOpen
+        ? { lastAdded: word }
+        : { isOpen: false, lastAdded: word, prefill: null, celebration: s.celebration + 1 }
+    ),
 }));
