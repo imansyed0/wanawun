@@ -92,12 +92,19 @@ export function getBubble(
   _lastAnswer?: 'right' | 'wrong' | null,
   _hadWrong?: boolean,
   signedIn: boolean = false,
-  insideLesson: boolean = false
+  insideLesson: boolean = false,
+  /** Words in the glossary; null while the Glossary screen is still counting. */
+  glossaryCount: number | null = null
 ): Bubble {
   switch (step) {
     case 'glossary':
       return {
-        text: 'This is your Glossary — your own little dictionary. Whatever you hear at dinner and don’t know goes in here.',
+        // Everyone who answers Naani's level question is seeded a few starter
+        // words, so she says so, unless the glossary has come back empty.
+        text:
+          glossaryCount === 0
+            ? 'This is your Glossary, your own little dictionary. Whatever you hear at dinner and don’t know goes in here.'
+            : 'This is your Glossary, your own little dictionary. I’ve tucked a few words in already to give you a head start, picked for the level you told me. Whatever you hear at dinner and don’t know goes in here too.',
         pose: 'kangri',
       };
     case 'open-add':

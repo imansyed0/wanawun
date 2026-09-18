@@ -21,6 +21,7 @@ import { isPendingWordId, removePendingGlossaryWord } from '@/src/services/pendi
 // Starter words for the level the learner picked when Naani asked.
 import { getGlossaryWordsWithStarters } from '@/src/services/starterGlossaryService';
 import { useQuickAddStore } from '@/src/stores/quickAddStore';
+import { useTutorialStore } from '@/src/stores/tutorialStore';
 import { playAudio, stopAudio, startRecording, stopAndUploadRecording, linkAudioToWord } from '@/src/services/audioService';
 import { PlayButton, RecordButton, RecordingTimer } from '@/src/components/ui/RecordControls';
 import { useAuth } from '@/src/hooks/useAuth';
@@ -68,6 +69,8 @@ export default function LearnScreen() {
       // Brand-new learners get a few personalised starter words, once.
       const data = await getGlossaryWordsWithStarters(user?.id);
       setWords(data);
+      // So Naani's tour only takes credit for the starter words if they landed.
+      useTutorialStore.getState().setGlossaryCount(data.length);
     } catch {
       // Keep the existing list if the refresh fails.
     } finally {
