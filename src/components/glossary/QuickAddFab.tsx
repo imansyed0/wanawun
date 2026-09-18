@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { AccessibilityInfo, Animated, Easing, Pressable, StyleSheet, Text } from 'react-native';
 import { useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Celebration } from '@/src/components/ui/Celebration';
 import { Colors, FontFamily, LineHeight, Spacing, TabBarContentHeight } from '@/src/constants/theme';
 import { useQuickAddStore } from '@/src/stores/quickAddStore';
 import { useTutorialStore } from '@/src/stores/tutorialStore';
@@ -28,6 +29,7 @@ export function QuickAddFab() {
   const isSheetOpen = useQuickAddStore((s) => s.isOpen);
   const openSheet = useQuickAddStore((s) => s.open);
   const playNudge = useQuickAddStore((s) => s.playNudge);
+  const celebration = useQuickAddStore((s) => s.celebration);
   const tutorialIntro = useTutorialStore((s) => s.active && s.step === 'intro');
 
   // Glow: a ring that swells out from the button and fades, plus a small bump.
@@ -83,18 +85,30 @@ export function QuickAddFab() {
   };
 
   return (
-    <Animated.View style={[styles.wrap, { bottom }, bumpStyle]} pointerEvents="box-none">
-      <Animated.View style={[styles.ring, ringStyle]} pointerEvents="none" />
-      <Pressable
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-        onPress={handlePress}
-        accessibilityRole="button"
-        accessibilityLabel="Add a word to your glossary"
-        hitSlop={6}
-      >
-        <Text style={styles.fabText}>+</Text>
-      </Pressable>
-    </Animated.View>
+    <>
+      {/* Confetti for a word just added. It sits behind the button, and is as
+          wide as twice the gap from the screen's right edge to the middle of
+          the button, so pinning it right centres it on the button — and no
+          piece flies off the side of the screen. */}
+      <Celebration
+        id="glossary-fab"
+        trigger={celebration}
+        width={(Spacing.lg + 28) * 2}
+        style={{ right: 0, bottom: bottom + 40 }}
+      />
+      <Animated.View style={[styles.wrap, { bottom }, bumpStyle]} pointerEvents="box-none">
+        <Animated.View style={[styles.ring, ringStyle]} pointerEvents="none" />
+        <Pressable
+          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+          onPress={handlePress}
+          accessibilityRole="button"
+          accessibilityLabel="Add a word to your glossary"
+          hitSlop={6}
+        >
+          <Text style={styles.fabText}>+</Text>
+        </Pressable>
+      </Animated.View>
+    </>
   );
 }
 
