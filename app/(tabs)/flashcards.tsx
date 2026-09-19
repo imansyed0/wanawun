@@ -68,6 +68,11 @@ export default function FlashcardsScreen() {
   // The intro text wraps to a different number of lines on every screen width,
   // so measure it rather than guess, or the deck ends up under the tab bar.
   const [introHeight, setIntroHeight] = useState(0);
+  // The trailing constant stands for the header, stats and gaps above the deck.
+  // It deliberately claims a little more than those now cost: the floor below
+  // wins when this comes out smaller, and a floor taller than the real gap is
+  // what used to push the top card up over the stat cards. Don't tighten it to
+  // match the spacing exactly without re-checking that overlap on a short screen.
   const deckHeight = Math.max(
     isShortHeight ? 240 : 300,
     Math.min(
@@ -547,13 +552,7 @@ export default function FlashcardsScreen() {
                         </View>
                       </View>
 
-                      <View
-                        style={[
-                          styles.promptSection,
-                          !revealed && styles.promptSectionUnrevealed,
-                          revealed && styles.promptSectionRevealed,
-                        ]}
-                      >
+                      <View style={styles.promptSection}>
                         <Text style={styles.promptLabel}>{promptLabel}</Text>
                         <Text
                           style={[
@@ -601,39 +600,57 @@ export default function FlashcardsScreen() {
                         ) : null}
                       </View>
 
-                      {revealed ? (
-                        <View
+                      {/* The slot is there from the start, empty until they
+                          reveal: reserving it is what stops the prompt above
+                          from shifting, and an empty box says the answer lands
+                          here where a blank gap just looked like a hole. */}
+                      <View
+                        style={[
+                          styles.answerBox,
+                          isCompactHeight && styles.answerBoxCompact,
+                          isShortHeight && styles.answerBoxShort,
+                        ]}
+                        pointerEvents={revealed ? 'auto' : 'none'}
+                        accessibilityElementsHidden={!revealed}
+                        importantForAccessibility={revealed ? 'auto' : 'no-hide-descendants'}
+                      >
+                        <Text style={[styles.answerLabel, !revealed && styles.answerHidden]}>
+                          {answerLabel}
+                        </Text>
+                        <Text
                           style={[
-                            styles.answerBox,
-                            isCompactHeight && styles.answerBoxCompact,
-                            isShortHeight && styles.answerBoxShort,
+                            styles.answerText,
+                            !revealed && styles.answerHidden,
+                            isCompactHeight && styles.answerTextCompact,
+                            isShortHeight && styles.answerTextShort,
+                            useCondensedAnswer && styles.answerTextCondensed,
+                            useUltraCondensedAnswer && styles.answerTextUltraCondensed,
+                            !showsKashmiriPrompt && styles.kashmiriFont,
+                            { lineHeight: answerLineHeight },
                           ]}
+                          numberOfLines={isShortHeight ? 3 : 4}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.62}
                         >
-                          <Text style={styles.answerLabel}>{answerLabel}</Text>
-                          <Text
-                            style={[
-                              styles.answerText,
-                              isCompactHeight && styles.answerTextCompact,
-                              isShortHeight && styles.answerTextShort,
-                              useCondensedAnswer && styles.answerTextCondensed,
-                              useUltraCondensedAnswer && styles.answerTextUltraCondensed,
-                              !showsKashmiriPrompt && styles.kashmiriFont,
-                              { lineHeight: answerLineHeight },
-                            ]}
-                            numberOfLines={isShortHeight ? 3 : 4}
-                            adjustsFontSizeToFit
-                            minimumFontScale={0.62}
-                          >
-                            {answerText}
-                          </Text>
-                        </View>
-                      ) : null}
+                          {answerText}
+                        </Text>
+                      </View>
                     </View>
                   </Card>
                 </Animated.View>
               </View>
-              {revealed ? (
-                <View style={styles.ratingRow}>
+              {/* The rating pills are laid out in both states and give this area
+                  its height; before the answer is revealed they are invisible
+                  and the Reveal button sits over them. Swapping one control for
+                  the other instead would make the taller pills shove the card
+                  upwards at the exact moment the learner is reading it. */}
+              <View style={styles.answerArea}>
+                <View
+                  style={[styles.ratingRow, !revealed && styles.answerHidden]}
+                  pointerEvents={revealed ? 'auto' : 'none'}
+                  accessibilityElementsHidden={!revealed}
+                  importantForAccessibility={revealed ? 'auto' : 'no-hide-descendants'}
+                >
                   {REVIEW_RATINGS.map((rating) => (
                     <Pressable
                       key={rating}
@@ -651,16 +668,18 @@ export default function FlashcardsScreen() {
                     </Pressable>
                   ))}
                 </View>
-              ) : (
-                <View style={styles.actionFooter}>
-                  <Button
-                    title="Reveal answer"
-                    onPress={() => setRevealed(true)}
-                    size={isCompactHeight ? 'sm' : 'lg'}
-                    style={styles.revealFooterButton}
-                  />
-                </View>
-              )}
+
+                {revealed ? null : (
+                  <View style={styles.actionFooter} pointerEvents="box-none">
+                    <Button
+                      title="Reveal answer"
+                      onPress={() => setRevealed(true)}
+                      size={isCompactHeight ? 'sm' : 'lg'}
+                      style={styles.revealFooterButton}
+                    />
+                  </View>
+                )}
+              </View>
             </View>
           )}
         </View>
@@ -679,7 +698,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.md,
   },
   headerCompact: {
     paddingTop: Spacing.sm,
@@ -731,7 +750,7 @@ const styles = StyleSheet.create({
   },
   introSection: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.sm,
   },
   introCard: {
     paddingVertical: Spacing.md,
@@ -755,7 +774,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    marginTop: Spacing.lg,
+    marginTop: Spacing.md,
   },
   statsRowCompact: {
     marginTop: Spacing.sm,
@@ -802,10 +821,13 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     justifyContent: 'center',
   },
+  // The deck's height is a fixed number with a floor, so when the screen is
+  // tight the floor wins and the top card rides up over the stat cards above.
+  // These gaps are kept small to leave that floor room to sit in.
   deckContent: {
     alignItems: 'stretch',
     justifyContent: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   centeredState: {
     flex: 1,
@@ -898,20 +920,16 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.7,
   },
+  // One share of the card whether or not the answer is showing. The answer box
+  // below is laid out either way, so the prompt is handed the same box every
+  // time and the word doesn't jump the moment the learner reveals it.
   promptSection: {
-    flex: 1,
     flexBasis: 0,
+    flexGrow: 1.45,
+    flexShrink: 1,
     justifyContent: 'center',
     alignItems: 'center',
     gap: Spacing.sm,
-  },
-  promptSectionUnrevealed: {
-    flexGrow: 1,
-    flexShrink: 1,
-  },
-  promptSectionRevealed: {
-    flexGrow: 1.45,
-    flexShrink: 1,
   },
   promptLabel: {
     fontSize: FontSize.xs,
@@ -1023,7 +1041,19 @@ const styles = StyleSheet.create({
   answerTextUltraCondensed: {
     fontSize: FontSize.xs,
   },
+  // The area both answer controls share. Its height comes from the rating row,
+  // which is always laid out, so it never changes between the two states.
+  answerArea: {
+    justifyContent: 'center',
+  },
+  answerHidden: {
+    opacity: 0,
+  },
+  // Laid over the hidden pills rather than beside them, so the two states are
+  // exactly the same height.
   actionFooter: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
     paddingHorizontal: Spacing.md,
   },
   ratingRow: {
