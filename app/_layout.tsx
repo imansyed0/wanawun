@@ -15,6 +15,7 @@ import { Platform, Text, TextInput, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
+import { BetaFeedbackButton } from '@/src/components/feedback/BetaFeedbackButton';
 import { QuickAddFab } from '@/src/components/glossary/QuickAddFab';
 import { TutorialOverlay } from '@/src/components/tutorial/TutorialOverlay';
 import { QuickAddGlossarySheet } from '@/src/components/glossary/QuickAddGlossarySheet';
@@ -106,6 +107,10 @@ function RootLayoutNav() {
       </Stack>
       {/* WAN-40: always-present quick add to glossary. */}
       <QuickAddFab />
+      {/* TEMPORARY beta feedback button (top right). Gated by
+          BETA_FEEDBACK_ENABLED; delete this line and its import when the beta
+          ends. */}
+      <BetaFeedbackButton />
       {/* Mounted here, not in the tabs, so Naani can follow people into a
           lesson instead of vanishing when they open one. */}
       <TutorialOverlay />
