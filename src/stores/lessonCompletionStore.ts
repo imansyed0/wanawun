@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 
 /**
- * The lesson whose last clip just played out. The player sets it on its way
- * back to the course's lesson list, which celebrates the tick appearing.
+ * The lesson that just met both halves of done — its audio played out and a
+ * word was kept from it. The player sets it on its way back to the course's
+ * lesson list, which celebrates the tick appearing.
  */
 export interface JustCompletedLesson {
   courseId: string;

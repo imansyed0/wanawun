@@ -3,8 +3,10 @@ import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-na
 import { usePathname, useRouter, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
+  Easing,
   FadeIn,
   FadeInDown,
+  interpolate,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -48,6 +50,9 @@ const PLUS_TOKEN = '{plus}';
  * lands on top of it.
  */
 const GRANNY_SIZE = 104;
+// Docked to the top, Naani hangs down into the screen instead of away from it,
+// so she shrinks to clear the first row of content below the bubble.
+const GRANNY_SIZE_DOCKED = 72;
 
 /**
  * Height of a screen's title block (title + one line of subtitle). The only
@@ -57,6 +62,14 @@ const GRANNY_SIZE = 104;
  */
 const SCREEN_TITLE_HEIGHT = 96;
 
+/**
+ * Geometry of the floating + button, mirrored from QuickAddFab so the tour can
+ * draw its halo exactly over it. Keep in sync with that component.
+ */
+const FAB_SIZE = 56;
+const FAB_RIGHT = Spacing.lg;
+const FAB_GAP = Spacing.md;
+
 /** Her line, with {plus} drawn as a small green + like the floating button. */
 function bubbleContent(text: string) {
   const pieces = text.split(PLUS_TOKEN);
@@ -64,8 +77,10 @@ function bubbleContent(text: string) {
     i === 0
       ? [piece]
       : [
+          // Non-breaking spaces: with ordinary ones the pill's padding splits
+          // off onto the previous line when the sentence wraps here.
           <Text key={`plus-${i}`} style={styles.inlinePlus}>
-            {' + '}
+            {' + '}
           </Text>,
           piece,
         ]
@@ -167,12 +182,21 @@ export function TutorialOverlay() {
     const text = INTRO_LINES[introIndex];
     return (
       <View style={styles.introRoot}>
+        {/* The stage still advances on a tap anywhere, but the button below is
+            what the eye lands on — the same one that carries the rest of the
+            tour, so advancing never changes shape. */}
         <Pressable style={styles.introStage} onPress={handleIntroTap}>
           <View style={styles.introBubble}>
             <Animated.Text key={text} entering={FadeIn.duration(220)} style={styles.introBubbleText}>
               {text}
             </Animated.Text>
-            <Text style={styles.introTapHint}>Tap to continue ▸</Text>
+            <Pressable
+              style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed]}
+              onPress={handleIntroTap}
+              accessibilityRole="button"
+            >
+              <Text style={styles.primaryButtonText}>Continue ▸</Text>
+            </Pressable>
           </View>
           <View style={styles.introBubbleTail} />
           <Grandmother pose="wave" size={200} />
@@ -206,10 +230,30 @@ export function TutorialOverlay() {
   const section = sectionForStep(step);
   // The ring points at a tab, so it only makes sense on the tab screens.
   const highlightPath: TourPath | null = step === 'wrap' || !onTabs ? null : stepPath;
-  // The card fills the middle of the Flashcards screen and its buttons sit at
-  // the bottom, so there's no room for her down there: dock her at the top for
-  // that step, leaving the word and the rating pills clear.
-  const dockTop = step === 'flashcards';
+  // Two screens have no room for her at the bottom, so she docks at the top:
+  // Flashcards (the card fills the middle, the rating pills sit at the bottom)
+  // and Profile, whose stats and the "Replay Naani's tour" button she names all
+  // live below the avatar block.
+  const dockTop = step === 'flashcards' || step === 'profile' || step === 'wrap';
+  // Flashcards has a title block to keep readable; Profile starts straight in
+  // with the avatar, which is the one thing there she isn't talking about, so
+  // she can sit right at the top of it.
+  const dockTopOffset = step === 'flashcards' ? SCREEN_TITLE_HEIGHT : Spacing.md;
+  // The + button is the target of the hands-on add-a-word step, so pulse a halo
+  // over it. Only on the Glossary tab, where the step's copy points at it.
+  const highlightFab = step === 'open-add' && onGlossary && onTabs;
+
+  // Her one advance control, drawn as a full-width button under her line. The
+  // add-a-word step has nothing to advance to — the learner taps the real +
+  // button — so it offers only the "Maybe later" escape.
+  const advance: { label: string; onPress: () => void } | null =
+    step === 'open-add'
+      ? null
+      : step === 'wrap'
+        ? { label: 'Shukriya, Naani', onPress: complete }
+        : offTrack
+          ? { label: 'Take me back', onPress: () => stepPath && router.navigate(stepPath) }
+          : { label: 'Continue ▸', onPress: next };
 
   return (
     <>
@@ -217,12 +261,14 @@ export function TutorialOverlay() {
         <TabHighlight index={TAB_ORDER.indexOf(highlightPath)} bottom={insets.bottom} />
       ) : null}
 
+      {highlightFab ? <FabHighlight bottom={TabBarContentHeight + insets.bottom + FAB_GAP} /> : null}
+
       <View
         pointerEvents="box-none"
         style={[
           styles.root,
           dockTop
-            ? { top: insets.top + SCREEN_TITLE_HEIGHT }
+            ? { top: insets.top + dockTopOffset }
             : { bottom: (onTabs ? TabBarContentHeight : Spacing.md) + insets.bottom },
         ]}
       >
@@ -249,35 +295,30 @@ export function TutorialOverlay() {
               </Pressable>
             ) : null}
 
-            <View style={styles.actions}>
+            <View style={styles.footer}>
               <Text style={styles.counter} numberOfLines={1}>
                 {section} of {TOUR_SECTIONS}
               </Text>
-              <View style={styles.actionButtons}>
-                {step === 'open-add' ? (
-                  <Pressable onPress={skipAddWord} hitSlop={8} accessibilityRole="button">
-                    <Text style={styles.secondaryText}>Maybe later</Text>
-                  </Pressable>
-                ) : null}
 
-                {step === 'wrap' ? (
-                  <Pressable style={styles.primaryButton} onPress={complete} accessibilityRole="button">
-                    <Text style={styles.primaryButtonText}>Shukriya, Naani</Text>
-                  </Pressable>
-                ) : step === 'open-add' ? null : offTrack ? (
-                  <Pressable
-                    style={styles.primaryButton}
-                    onPress={() => stepPath && router.navigate(stepPath)}
-                    accessibilityRole="button"
-                  >
-                    <Text style={styles.primaryButtonText}>Take me back</Text>
-                  </Pressable>
-                ) : (
-                  <Pressable style={styles.primaryButton} onPress={next} accessibilityRole="button">
-                    <Text style={styles.primaryButtonText}>Next ▸</Text>
-                  </Pressable>
-                )}
-              </View>
+              {advance ? (
+                <Pressable
+                  style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed]}
+                  onPress={advance.onPress}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.primaryButtonText}>{advance.label}</Text>
+                </Pressable>
+              ) : null}
+
+              {step === 'open-add' ? (
+                <Pressable
+                  style={styles.secondaryButton}
+                  onPress={skipAddWord}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.secondaryText}>Maybe later</Text>
+                </Pressable>
+              ) : null}
             </View>
 
             <Pressable
@@ -292,7 +333,7 @@ export function TutorialOverlay() {
           </View>
 
           <View style={styles.granny} pointerEvents="none">
-            <Grandmother pose={bubble.pose} size={GRANNY_SIZE} />
+            <Grandmother pose={bubble.pose} size={dockTop ? GRANNY_SIZE_DOCKED : GRANNY_SIZE} />
           </View>
         </Animated.View>
       </View>
@@ -328,6 +369,43 @@ function TabHighlight({ index, bottom }: { index: number; bottom: number }) {
         animated,
       ]}
     />
+  );
+}
+
+/**
+ * Halo over the floating + button for the hands-on add-a-word step. Deliberately
+ * louder than the tab ring: a saffron ring against the button's green, swelling
+ * and fading so the button reads as the one thing to tap.
+ */
+function FabHighlight({ bottom }: { bottom: number }) {
+  const pulse = useSharedValue(0);
+
+  useEffect(() => {
+    pulse.value = withRepeat(
+      withTiming(1, { duration: 1200, easing: Easing.out(Easing.quad) }),
+      -1,
+      false
+    );
+  }, [pulse]);
+
+  const halo = useAnimatedStyle(() => ({
+    opacity: interpolate(pulse.value, [0, 0.15, 1], [0, 0.5, 0]),
+    transform: [{ scale: interpolate(pulse.value, [0, 1], [1, 2.4]) }],
+  }));
+
+  const ring = useAnimatedStyle(() => ({
+    opacity: interpolate(pulse.value, [0, 0.5, 1], [0.65, 1, 0.65]),
+    transform: [{ scale: interpolate(pulse.value, [0, 0.5, 1], [1, 1.2, 1]) }],
+  }));
+
+  return (
+    <View
+      pointerEvents="none"
+      style={[styles.fabHighlight, { bottom, right: FAB_RIGHT }]}
+    >
+      <Animated.View style={[styles.fabHalo, halo]} />
+      <Animated.View style={[styles.fabRing, ring]} />
+    </View>
   );
 }
 
@@ -368,12 +446,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
     textAlign: 'center',
     fontFamily: FontFamily.bodySemi,
-  },
-  introTapHint: {
-    fontSize: FontSize.sm,
-    color: Colors.textLight,
-    fontFamily: FontFamily.bodySemi,
-    textAlign: 'center',
   },
   introBubbleTail: {
     width: 0,
@@ -425,7 +497,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    paddingRight: Spacing.xl,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
@@ -438,6 +509,8 @@ const styles = StyleSheet.create({
     lineHeight: LineHeight.body(FontSize.lg),
     color: Colors.text,
     fontFamily: FontFamily.bodySemi,
+    // Room for the × in the corner, without insetting the button below.
+    paddingRight: Spacing.md,
   },
   // Matches the floating + button: white on the app's green, rounded.
   inlinePlus: {
@@ -474,16 +547,11 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     color: Colors.textSecondary,
   },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  // The advance button sits full width at the bottom of the bubble, with the
+  // step counter as a quiet line above it. Inline beside the counter it was a
+  // small chip people kept missing, which read as the tour being stuck.
+  footer: {
     gap: Spacing.sm,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
   },
   counter: {
     fontSize: FontSize.sm,
@@ -492,21 +560,32 @@ const styles = StyleSheet.create({
     color: Colors.textLight,
     fontFamily: FontFamily.bodySemi,
   },
+  secondaryButton: {
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+  },
   secondaryText: {
     fontSize: FontSize.md,
     color: Colors.textSecondary,
     fontFamily: FontFamily.bodySemi,
   },
+  // Matches Button's primary / size="lg".
   primaryButton: {
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs + 2,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryButtonPressed: {
+    opacity: 0.85,
   },
   primaryButtonText: {
     color: '#fff',
-    fontSize: FontSize.md,
+    fontSize: FontSize.lg,
     fontFamily: FontFamily.bodyBold,
+    letterSpacing: 0.3,
   },
   skip: {
     position: 'absolute',
@@ -523,5 +602,23 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.primary,
     borderRadius: BorderRadius.md,
+  },
+  fabHighlight: {
+    position: 'absolute',
+    width: FAB_SIZE,
+    height: FAB_SIZE,
+  },
+  fabHalo: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.secondary,
+  },
+  // Sits a little outside the button so the ring reads around it, not on it.
+  fabRing: {
+    ...StyleSheet.absoluteFillObject,
+    margin: -Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 4,
+    borderColor: Colors.secondary,
   },
 });

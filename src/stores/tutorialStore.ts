@@ -13,6 +13,7 @@ export type TutorialStep =
   | 'open-add' // invite the user to tap + (or skip this bit)
   | 'add-word' // add modal open, waiting for a word/phrase to be added
   | 'word-added' // saved; explain recording relatives' audio
+  | 'word-options' // tapping a word opens its re-record / delete choices
   | 'flashcards'
   | 'lessons'
   | 'play'
@@ -36,6 +37,7 @@ export const TOUR_STEPS: TutorialStep[] = [
   'open-add',
   'add-word',
   'word-added',
+  'word-options',
   'flashcards',
   'lessons',
   'play',
@@ -71,6 +73,16 @@ interface TutorialState {
   notify: (event: TutorialEvent, payload?: { wasCorrect?: boolean }) => void;
   skip: () => void;
   complete: () => void;
+}
+
+/**
+ * Where the glossary part hands over. Skipping the hands-on add still leaves the
+ * row choices worth explaining, so that step is not part of what gets skipped —
+ * unless the glossary is empty, when there is no row to tap and Naani would be
+ * pointing at nothing.
+ */
+function afterAddWord(glossaryCount: number | null): TutorialStep {
+  return glossaryCount === 0 ? 'flashcards' : 'word-options';
 }
 
 export const useTutorialStore = create<TutorialState>((set, get) => ({
@@ -109,7 +121,7 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
     }
     // 'open-add' → Next skips the modal step (it only advances on a real add).
     if (step === 'open-add' || step === 'add-word') {
-      set({ step: 'flashcards', modalOpen: false });
+      set({ step: afterAddWord(get().glossaryCount), modalOpen: false });
       return;
     }
     const i = TOUR_STEPS.indexOf(step);
@@ -117,9 +129,9 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
   },
 
   skipAddWord: () => {
-    const { step } = get();
+    const { step, glossaryCount } = get();
     if (step === 'glossary' || step === 'open-add' || step === 'add-word') {
-      set({ step: 'flashcards', modalOpen: false });
+      set({ step: afterAddWord(glossaryCount), modalOpen: false });
     }
   },
 

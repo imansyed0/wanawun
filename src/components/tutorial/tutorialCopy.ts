@@ -26,6 +26,7 @@ export function pathForStep(step: TutorialStep): TourPath | null {
     case 'open-add':
     case 'add-word':
     case 'word-added':
+    case 'word-options':
       return '/learn';
     case 'flashcards':
       return '/flashcards';
@@ -49,6 +50,7 @@ export function sectionForStep(step: TutorialStep): number {
     case 'open-add':
     case 'add-word':
     case 'word-added':
+    case 'word-options':
       return 1;
     case 'flashcards':
       return 2;
@@ -112,8 +114,10 @@ export function getBubble(
         return { text: 'Go back to the Glossary tab first, jaanu.', pose: 'point' };
       }
       return {
-        // {plus} renders as a pill that looks like the app's + button.
-        text: 'Let’s add one together. Tap asun below to hear it, then tap the {plus} and add it yourself.',
+        // {plus} renders as a pill that looks like the app's + button. Naming it
+        // as the round button in the bottom corner matters: learners were
+        // hunting for an "Add" link in the list instead of the floating one.
+        text: 'Let’s add one together. Tap asun below to hear it, then tap the round {plus} button in the bottom corner and add it yourself.',
         pose: 'point',
         word: TOUR_WORD,
       };
@@ -127,6 +131,17 @@ export function getBubble(
         text: 'Shabash, it’s saved. Next time you’re with family, tap the red dot and let them say it — their voice stays with you.',
         pose: 'cheer',
       };
+    case 'word-options':
+      if (!onGlossary) {
+        return { text: 'Go back to the Glossary tab first, jaanu.', pose: 'point' };
+      }
+      return {
+        // The re-record and delete buttons used to sit on every row. They live
+        // behind the row itself now, which is tidier but invisible until
+        // somebody tells you, so Naani tells you.
+        text: 'Tap any word in the list to see what else you can do with it — re-record if you’re not happy with your pronunciation, or throw it out if you don’t want it.',
+        pose: 'point',
+      };
     case 'flashcards':
       return {
         text: 'Flashcards quiz you on your own words. Try this one — reveal it, then tell me honestly if you knew it.',
@@ -135,8 +150,8 @@ export function getBubble(
     case 'lessons':
       return {
         text: insideLesson
-          ? 'Here you are. Play a clip and listen — the ✓ comes as soon as you start it. Tap Next when you’re ready.'
-          : 'Proper audio courses. Open one and pick a lesson — listen along and tick them off as you go.',
+          ? 'Here you are. Play a clip and listen, then add one word from it — that’s what earns the ✓. Tap Next when you’re ready.'
+          : 'Proper audio courses. Open one and pick a lesson — listen, and keep a word from each one.',
         pose: 'point',
       };
     case 'play':

@@ -3,7 +3,6 @@ import { Button } from '@/src/components/ui/Button';
 import { Card } from '@/src/components/ui/Card';
 import { Grandmother } from '@/src/components/onboarding/Grandmother';
 import {
-  BorderRadius,
   Colors,
   FontFamily,
   FontSize,
@@ -54,17 +53,17 @@ export function LeaveLessonModal({
 
             <Text style={styles.title}>Wait, jaanu. Not one word?</Text>
             <Text style={styles.body}>
-              You didn&rsquo;t add any words from this lesson.
+              A lesson counts as done once you&rsquo;ve listened and added at
+              least one word to your glossary. You haven&rsquo;t added one from
+              this lesson yet.
             </Text>
             <Text style={styles.body}>
               Adding words to your glossary, going back over them, and recording
               yourself saying them is how you really learn.
             </Text>
-            <View style={styles.nudge}>
-              <Text style={styles.nudgeText}>Even one word counts.</Text>
-            </View>
+            <Text style={styles.nudgeText}>Even one word counts.</Text>
 
-            <Button title="Alright, let me add one" onPress={onAddWord} />
+            <Button title="Go back to lesson" onPress={onAddWord} />
             <Button title="Leave anyway" variant="ghost" size="sm" onPress={onLeave} />
           </Card>
         </View>
@@ -106,19 +105,15 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
   },
-  nudge: {
-    backgroundColor: Colors.surfaceLight,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    marginTop: Spacing.xs,
-    marginBottom: Spacing.sm,
-  },
+  // Plain emphasised line, no box: boxed copy above the buttons read as a
+  // third button people were tapping.
   nudgeText: {
-    fontSize: FontSize.sm,
-    lineHeight: LineHeight.body(FontSize.sm),
-    fontFamily: FontFamily.bodySemi,
+    fontSize: FontSize.md,
+    lineHeight: LineHeight.body(FontSize.md),
+    fontFamily: FontFamily.bodyBold,
     color: Colors.walnut,
     textAlign: 'center',
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
 });

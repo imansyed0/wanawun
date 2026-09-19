@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Celebration } from '@/src/components/ui/Celebration';
 import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
 import { allCourses } from '@/src/data/courses';
-import { formatClipCount, getLessonClipNoun } from '@/src/data/clipLabels';
 import { getStartedLessonIds } from '@/src/services/clipProgressService';
 import { useAuth } from '@/src/hooks/useAuth';
 import { useLessonCompletionStore } from '@/src/stores/lessonCompletionStore';
@@ -14,9 +13,12 @@ import { useLessonCompletionStore } from '@/src/stores/lessonCompletionStore';
 export default function CourseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const course = allCourses.find((c) => c.id === id);
   const [startedLessonIds, setStartedLessonIds] = useState<Set<string>>(new Set());
+  // Held back until the first read of their progress lands, so the ticks are
+  // right on first paint instead of appearing a moment after the rows.
+  const [loadingTicks, setLoadingTicks] = useState(true);
   // Set by the player when a lesson's last clip plays out, so the tick it just
   // earned arrives with confetti rather than just appearing.
   const justCompleted = useLessonCompletionStore((s) => s.justCompleted);
@@ -40,10 +42,25 @@ export default function CourseDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       if (!id || !course) return;
+      // Asking before the session is restored reads a signed-out learner's
+      // (empty) progress, so wait for auth to settle first.
+      if (authLoading) return;
+
+      let cancelled = false;
       getStartedLessonIds(user?.id, id, course.lessons)
-        .then((ids) => setStartedLessonIds(new Set(ids)))
-        .catch(() => {});
-    }, [id, course, user?.id])
+        .then((ids) => {
+          if (!cancelled) setStartedLessonIds(new Set(ids));
+        })
+        .catch(() => {})
+        .finally(() => {
+          // Only the first paint waits: coming back from a lesson refreshes the
+          // ticks in place rather than flashing a spinner over the list again.
+          if (!cancelled) setLoadingTicks(false);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [id, course, user?.id, authLoading])
   );
 
   if (!course) {
@@ -68,54 +85,54 @@ export default function CourseDetailScreen() {
         </View>
       </View>
 
-      <FlatList
-        data={course.lessons}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        renderItem={({ item }) => {
-          const isStarted = started.has(item.id);
-          return (
-            <Pressable
-              style={({ pressed }) => [styles.lessonCard, pressed && { opacity: 0.7 }]}
-              onPress={() =>
-                router.push(`/lessons/${course.id}/${item.id}`)
-              }
-            >
-              {celebrating?.lessonId === item.id ? (
-                // Pinned left and twice as wide as the gap to the middle of the
-                // tick, so the confetti sprays up out of it and stays on the card.
-                <Celebration
-                  id="lesson-tick"
-                  trigger={celebrating.at}
-                  width={(Spacing.md + 18) * 2}
-                  height={Spacing.md + 36}
-                  scale={0.62}
-                  style={{ left: 0, top: 0 }}
-                />
-              ) : null}
-              <View style={[styles.lessonNumber, isStarted && styles.lessonNumberCompleted]}>
-                <Text style={styles.lessonNumberText}>{item.number}</Text>
-                {isStarted && (
-                  <View style={styles.checkBadge}>
-                    <Text style={styles.checkText}>{'\u2713'}</Text>
-                  </View>
-                )}
-              </View>
-              <View style={styles.lessonInfo}>
-                <Text style={styles.lessonTitle}>{item.title}</Text>
-                <Text style={styles.lessonMeta}>
-                  {formatClipCount(item.audioClips.length, getLessonClipNoun(course.id, item))}
-                  {item.images && item.images.length > 0
-                    ? ` \u00B7 ${item.images.length} image${item.images.length !== 1 ? 's' : ''}`
-                    : ''}
-                </Text>
-              </View>
-              <Text style={styles.chevron}>{'\u203A'}</Text>
-            </Pressable>
-          );
-        }}
-        ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
-      />
+      {loadingTicks ? (
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={course.lessons}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          renderItem={({ item }) => {
+            const isStarted = started.has(item.id);
+            return (
+              <Pressable
+                style={({ pressed }) => [styles.lessonCard, pressed && { opacity: 0.7 }]}
+                onPress={() =>
+                  router.push(`/lessons/${course.id}/${item.id}`)
+                }
+              >
+                {celebrating?.lessonId === item.id ? (
+                  // Pinned left and twice as wide as the gap to the middle of the
+                  // tick, so the confetti sprays up out of it and stays on the card.
+                  <Celebration
+                    id="lesson-tick"
+                    trigger={celebrating.at}
+                    width={(Spacing.md + 18) * 2}
+                    height={Spacing.md + 36}
+                    scale={0.62}
+                    style={{ left: 0, top: 0 }}
+                  />
+                ) : null}
+                <View style={[styles.lessonNumber, isStarted && styles.lessonNumberCompleted]}>
+                  <Text style={styles.lessonNumberText}>{item.number}</Text>
+                  {isStarted && (
+                    <View style={styles.checkBadge}>
+                      <Text style={styles.checkText}>{'\u2713'}</Text>
+                    </View>
+                  )}
+                </View>
+                <View style={styles.lessonInfo}>
+                  <Text style={styles.lessonTitle}>{item.title}</Text>
+                </View>
+                <Text style={styles.chevron}>{'\u203A'}</Text>
+              </Pressable>
+            );
+          }}
+          ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -141,10 +158,12 @@ const styles = StyleSheet.create({
     lineHeight: LineHeight.heading(FontSize.xl),
   },
   author: { fontSize: FontSize.sm, color: Colors.textSecondary, fontStyle: 'italic' },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xxl },
   lessonCard: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    // One line of title against a 36pt badge, so centre them on each other.
+    alignItems: 'center',
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
@@ -187,8 +206,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     lineHeight: 22,
   },
-  lessonMeta: { fontSize: FontSize.xs, color: Colors.textLight, marginTop: 2 },
-  chevron: { fontSize: 24, color: Colors.textLight, marginTop: 2 },
+  chevron: { fontSize: 24, color: Colors.textLight },
   errorText: {
     textAlign: 'center',
     color: Colors.wrong,

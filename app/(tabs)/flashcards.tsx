@@ -65,6 +65,9 @@ export default function FlashcardsScreen() {
   const footerReserve = actionBarHeight + Spacing.lg;
   const swipeThreshold = Math.max(40, Math.min(88, width * 0.18));
   const swipeDismissDistance = width + 140;
+  // The intro text wraps to a different number of lines on every screen width,
+  // so measure it rather than guess, or the deck ends up under the tab bar.
+  const [introHeight, setIntroHeight] = useState(0);
   const deckHeight = Math.max(
     isShortHeight ? 240 : 300,
     Math.min(
@@ -74,6 +77,7 @@ export default function FlashcardsScreen() {
           tabBarHeight +
           insets.bottom +
           footerReserve +
+          introHeight +
           (isShortHeight ? 235 : 300))
     )
   );
@@ -409,6 +413,23 @@ export default function FlashcardsScreen() {
 
         {!isShortHeight ? <ScreenHeaderDecoration variant="saffron" /> : null}
 
+        {/* The wrapper, not the Card, carries onLayout: Card takes no layout
+            callback, and measuring here counts the spacing above it too. */}
+        <View
+          style={styles.introSection}
+          onLayout={(event) => setIntroHeight(event.nativeEvent.layout.height)}
+        >
+          <Card style={[styles.introCard, isShortHeight && styles.introCardShort]}>
+            <Text style={[styles.introText, isShortHeight && styles.introTextShort]}>
+              Every word in your glossary becomes two cards: Kashmiri to English, and
+              English to Kashmiri. Guess before you reveal the answer, then say how well
+              you knew it. A word you fumbled comes back in a few minutes; one you knew
+              waits days, then weeks. New words arrive a dozen or so a day, so nothing
+              piles up.
+            </Text>
+          </Card>
+        </View>
+
         <View style={[styles.statsRow, isCompactHeight && styles.statsRowCompact]}>
           <Card style={[styles.statCard, isShortHeight && styles.statCardShort]}>
             <Text style={styles.statLabel}>New</Text>
@@ -707,6 +728,28 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontFamily: FontFamily.bodyBold,
     color: Colors.primaryDark,
+  },
+  introSection: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+  },
+  introCard: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+  },
+  introCardShort: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+  },
+  introText: {
+    fontSize: FontSize.sm,
+    lineHeight: LineHeight.body(FontSize.sm),
+    fontFamily: FontFamily.body,
+    color: Colors.textSecondary,
+  },
+  introTextShort: {
+    fontSize: FontSize.xs,
+    lineHeight: LineHeight.body(FontSize.xs),
   },
   statsRow: {
     flexDirection: 'row',
