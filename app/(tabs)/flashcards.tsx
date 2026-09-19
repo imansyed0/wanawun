@@ -364,15 +364,17 @@ export default function FlashcardsScreen() {
         : cardCompact
           ? 28
           : FontSize.title;
+  // The answer is what they waited for, so it doesn't shrink as readily as the
+  // rest of the card: a short card drops it a step, not three. The condensed
+  // tiers below are for genuinely long answers, where small is the only way it
+  // fits at all.
   const answerFontSize = useUltraCondensedAnswer
-    ? FontSize.xs
+    ? FontSize.sm
     : useCondensedAnswer
-      ? FontSize.sm
+      ? FontSize.md
       : cardShort
-        ? FontSize.md
-        : cardCompact
-          ? FontSize.lg
-          : FontSize.xl;
+        ? FontSize.lg
+        : FontSize.xl;
   const promptLineHeight = showsKashmiriPrompt
     ? LineHeight.kashmiri(promptFontSize)
     : LineHeight.heading(promptFontSize);
@@ -583,12 +585,12 @@ export default function FlashcardsScreen() {
                         <Text
                           style={[
                             styles.kashmiri,
-                            cardCompact && styles.kashmiriCompact,
-                            cardShort && styles.kashmiriShort,
-                            useCondensedPrompt && styles.kashmiriCondensed,
-                            useUltraCondensedPrompt && styles.kashmiriUltraCondensed,
                             showsKashmiriPrompt && styles.kashmiriFont,
-                            { lineHeight: promptLineHeight },
+                            // Size and line box both come from the ladder above.
+                            // These used to be a ladder and a stack of styles
+                            // holding the same numbers, and they drifted: the
+                            // ladder was raised and the type stayed put.
+                            { fontSize: promptFontSize, lineHeight: promptLineHeight },
                           ]}
                           numberOfLines={cardShort ? 3 : 4}
                           adjustsFontSizeToFit
@@ -648,12 +650,8 @@ export default function FlashcardsScreen() {
                           style={[
                             styles.answerText,
                             !revealed && styles.answerHidden,
-                            cardCompact && styles.answerTextCompact,
-                            cardShort && styles.answerTextShort,
-                            useCondensedAnswer && styles.answerTextCondensed,
-                            useUltraCondensedAnswer && styles.answerTextUltraCondensed,
                             !showsKashmiriPrompt && styles.kashmiriFont,
-                            { lineHeight: answerLineHeight },
+                            { fontSize: answerFontSize, lineHeight: answerLineHeight },
                           ]}
                           numberOfLines={cardShort ? 3 : 4}
                           adjustsFontSizeToFit
@@ -998,18 +996,6 @@ const styles = StyleSheet.create({
   },
   // Sizes only — the matching line height is applied inline, because it
   // depends on which script the card is showing.
-  kashmiriCompact: {
-    fontSize: 28,
-  },
-  kashmiriShort: {
-    fontSize: 22,
-  },
-  kashmiriCondensed: {
-    fontSize: 24,
-  },
-  kashmiriUltraCondensed: {
-    fontSize: 18,
-  },
   cardActionsRow: {
     minHeight: 36,
     alignItems: 'center',
@@ -1083,18 +1069,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.heading,
     color: Colors.text,
     textAlign: 'center',
-  },
-  answerTextCompact: {
-    fontSize: FontSize.lg,
-  },
-  answerTextShort: {
-    fontSize: FontSize.md,
-  },
-  answerTextCondensed: {
-    fontSize: FontSize.sm,
-  },
-  answerTextUltraCondensed: {
-    fontSize: FontSize.xs,
   },
   // The area both answer controls share. Its height comes from the rating row,
   // which is always laid out, so it never changes between the two states.
