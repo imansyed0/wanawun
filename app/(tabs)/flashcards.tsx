@@ -71,13 +71,11 @@ export default function FlashcardsScreen() {
   const footerReserve = actionBarHeight + Spacing.lg;
   const swipeThreshold = Math.max(40, Math.min(88, width * 0.18));
   const swipeDismissDistance = width + 140;
-  // The intro text wraps to a different number of lines on every screen width,
-  // so measure it rather than guess, or the deck ends up under the tab bar.
-  const [introHeight, setIntroHeight] = useState(0);
+
   // Below this the explanation and a legible card don't both fit, and the card
   // is the one they came for: it keeps shrinking politely but its own contents
   // start colliding somewhere under 200pt. The explanation stands down instead.
-  const hidesIntro = height < 660;
+  const hidesIntro = height < 700;
   // Dismissed with the x and remembered: the explanation is for the first visit
   // or two, and having to read past it every time is its own annoyance. null
   // until the answer is read back, so a dismissed panel never flashes up first.
@@ -93,23 +91,18 @@ export default function FlashcardsScreen() {
     AsyncStorage.setItem(INTRO_DISMISSED_KEY, 'true').catch(() => {});
   }, []);
   const showsIntro = !hidesIntro && introDismissed === false;
-  const introReserve = showsIntro ? introHeight : 0;
-  // A ceiling, not a height: the deck is a flex item capped at this, so on a
-  // screen too small for it the deck shrinks instead of overflowing. The floor
-  // below only keeps the card generous where there is room for it.
-  const deckHeight = Math.max(
-    isShortHeight ? 240 : 300,
-    Math.min(
-      isShortHeight ? 340 : 420,
-      height -
-        (insets.top +
-          tabBarHeight +
-          insets.bottom +
-          footerReserve +
-          introReserve +
-          (isShortHeight ? 235 : 300))
-    )
-  );
+  // Only a ceiling, so the card doesn't sprawl on a tablet. The deck is a flex
+  // item inside a flex:1 area and already takes exactly what is free; working
+  // this out from the screen's chrome instead just guessed low and left the
+  // card smaller than the space it had, with its answer clipped off the bottom.
+  const deckHeight = isShortHeight ? 340 : 420;
+  // How much room the card actually got. The window's height is a poor proxy:
+  // the same 800pt screen gives a roomy card with the explanation closed and a
+  // cramped one with it open, so keying the card's own type sizes to the window
+  // let its contents overrun it between the breakpoints.
+  const [cardHeight, setCardHeight] = useState(0);
+  const cardCompact = cardHeight > 0 && cardHeight < 300;
+  const cardShort = cardHeight > 0 && cardHeight < 250;
 
   const [deck, setDeck] = useState<DeckItem[]>([]);
   const [currentKey, setCurrentKey] = useState<string | null>(null);
@@ -351,13 +344,13 @@ export default function FlashcardsScreen() {
   const promptCharCount = promptText?.length ?? 0;
   const answerCharCount = answerText?.length ?? 0;
   const useCondensedPrompt =
-    isCompactHeight && (promptWordCount >= 4 || promptCharCount >= 26);
+    cardCompact && (promptWordCount >= 4 || promptCharCount >= 26);
   const useUltraCondensedPrompt =
-    isShortHeight && (promptWordCount >= 5 || promptCharCount >= 34);
+    cardShort && (promptWordCount >= 5 || promptCharCount >= 34);
   const useCondensedAnswer =
-    isCompactHeight && (answerWordCount >= 4 || answerCharCount >= 26);
+    cardCompact && (answerWordCount >= 4 || answerCharCount >= 26);
   const useUltraCondensedAnswer =
-    isShortHeight && (answerWordCount >= 5 || answerCharCount >= 34);
+    cardShort && (answerWordCount >= 5 || answerCharCount >= 34);
   // The ladder below steps the type down to fit short screens. Amiri needs a
   // far taller line box than Rozha One does, so the line height has to follow
   // both the tier that won and which script is on that side of the card — one
@@ -366,18 +359,18 @@ export default function FlashcardsScreen() {
     ? 18
     : useCondensedPrompt
       ? 24
-      : isShortHeight
+      : cardShort
         ? 22
-        : isCompactHeight
+        : cardCompact
           ? 28
           : FontSize.title;
   const answerFontSize = useUltraCondensedAnswer
     ? FontSize.xs
     : useCondensedAnswer
       ? FontSize.sm
-      : isShortHeight
+      : cardShort
         ? FontSize.md
-        : isCompactHeight
+        : cardCompact
           ? FontSize.lg
           : FontSize.xl;
   const promptLineHeight = showsKashmiriPrompt
@@ -411,12 +404,14 @@ export default function FlashcardsScreen() {
       : null;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View
         style={[
           styles.screen,
           {
-            paddingBottom: tabBarHeight + insets.bottom + Spacing.md,
+            // tabBarHeight already includes the bottom safe-area inset, and
+            // the SafeAreaView above no longer adds it a third time.
+            paddingBottom: tabBarHeight + Spacing.md,
           },
         ]}
       >
@@ -445,10 +440,7 @@ export default function FlashcardsScreen() {
         {/* The wrapper, not the Card, carries onLayout: Card takes no layout
             callback, and measuring here counts the spacing above it too. */}
         {!showsIntro ? null : (
-        <View
-          style={styles.introSection}
-          onLayout={(event) => setIntroHeight(event.nativeEvent.layout.height)}
-        >
+        <View style={styles.introSection}>
           <Card style={[styles.introCard, isShortHeight && styles.introCardShort]}>
             <Pressable
               style={styles.introDismiss}
@@ -460,11 +452,9 @@ export default function FlashcardsScreen() {
               <Text style={styles.introDismissText}>{'\u00D7'}</Text>
             </Pressable>
             <Text style={[styles.introText, isShortHeight && styles.introTextShort]}>
-              Every word in your glossary becomes two cards: Kashmiri to English, and
-              English to Kashmiri. Guess before you reveal the answer, then say how well
-              you knew it. A word you fumbled comes back in a few minutes; one you knew
-              waits days, then weeks. New words arrive a dozen or so a day, so nothing
-              piles up.
+              Each word in your glossary becomes two cards, Kashmiri to English and
+              back. Guess, then say how well you knew it. Ones you fumble come back in
+              minutes, ones you know wait days.
             </Text>
           </Card>
         </View>
@@ -536,6 +526,7 @@ export default function FlashcardsScreen() {
                   isCompactHeight && styles.deckViewportCompact,
                   { maxHeight: deckHeight },
                 ]}
+                onLayout={(event) => setCardHeight(event.nativeEvent.layout.height)}
               >
                 <Animated.View
                   style={[styles.topCardFrame, topCardStyle]}
@@ -544,8 +535,8 @@ export default function FlashcardsScreen() {
                   <Card
                     style={[
                       styles.flashcard,
-                      isCompactHeight && styles.flashcardCompact,
-                      isShortHeight && styles.flashcardShort,
+                      cardCompact && styles.flashcardCompact,
+                      cardShort && styles.flashcardShort,
                     ]}
                   >
                     {revealed ? (
@@ -592,16 +583,16 @@ export default function FlashcardsScreen() {
                         <Text
                           style={[
                             styles.kashmiri,
-                            isCompactHeight && styles.kashmiriCompact,
-                            isShortHeight && styles.kashmiriShort,
+                            cardCompact && styles.kashmiriCompact,
+                            cardShort && styles.kashmiriShort,
                             useCondensedPrompt && styles.kashmiriCondensed,
                             useUltraCondensedPrompt && styles.kashmiriUltraCondensed,
                             showsKashmiriPrompt && styles.kashmiriFont,
                             { lineHeight: promptLineHeight },
                           ]}
-                          numberOfLines={isShortHeight ? 3 : 4}
+                          numberOfLines={cardShort ? 3 : 4}
                           adjustsFontSizeToFit
-                          minimumFontScale={isShortHeight ? 0.72 : 0.78}
+                          minimumFontScale={cardShort ? 0.72 : 0.78}
                         >
                           {promptText}
                         </Text>
@@ -617,7 +608,7 @@ export default function FlashcardsScreen() {
                           <Pressable
                             style={[
                               styles.audioPill,
-                              isCompactHeight && styles.audioPillCompact,
+                              cardCompact && styles.audioPillCompact,
                               playingId === current.word.id && styles.audioPillActive,
                             ]}
                             onPress={handlePlayAudio}
@@ -625,7 +616,7 @@ export default function FlashcardsScreen() {
                             <Text
                               style={[
                                 styles.audioPillText,
-                                isCompactHeight && styles.audioPillTextCompact,
+                                cardCompact && styles.audioPillTextCompact,
                                 playingId === current.word.id && styles.audioPillTextActive,
                               ]}
                             >
@@ -642,8 +633,8 @@ export default function FlashcardsScreen() {
                       <View
                         style={[
                           styles.answerBox,
-                          isCompactHeight && styles.answerBoxCompact,
-                          isShortHeight && styles.answerBoxShort,
+                          cardCompact && styles.answerBoxCompact,
+                          cardShort && styles.answerBoxShort,
                           !revealed && styles.answerBoxWaiting,
                         ]}
                         pointerEvents={revealed ? 'auto' : 'none'}
@@ -657,14 +648,14 @@ export default function FlashcardsScreen() {
                           style={[
                             styles.answerText,
                             !revealed && styles.answerHidden,
-                            isCompactHeight && styles.answerTextCompact,
-                            isShortHeight && styles.answerTextShort,
+                            cardCompact && styles.answerTextCompact,
+                            cardShort && styles.answerTextShort,
                             useCondensedAnswer && styles.answerTextCondensed,
                             useUltraCondensedAnswer && styles.answerTextUltraCondensed,
                             !showsKashmiriPrompt && styles.kashmiriFont,
                             { lineHeight: answerLineHeight },
                           ]}
-                          numberOfLines={isShortHeight ? 3 : 4}
+                          numberOfLines={cardShort ? 3 : 4}
                           adjustsFontSizeToFit
                           minimumFontScale={0.62}
                         >
