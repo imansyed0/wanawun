@@ -614,6 +614,7 @@ export default function FlashcardsScreen() {
                           styles.answerBox,
                           isCompactHeight && styles.answerBoxCompact,
                           isShortHeight && styles.answerBoxShort,
+                          !revealed && styles.answerBoxWaiting,
                         ]}
                         pointerEvents={revealed ? 'auto' : 'none'}
                         accessibilityElementsHidden={!revealed}
@@ -1026,6 +1027,12 @@ const styles = StyleSheet.create({
     minHeight: 64,
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
+  },
+  // Holds its place before the answer arrives but shows nothing: filled, an
+  // empty slot is the loudest thing on the card and reads as a panel that
+  // failed to load.
+  answerBoxWaiting: {
+    backgroundColor: 'transparent',
   },
   answerBoxShort: {
     minHeight: 54,
