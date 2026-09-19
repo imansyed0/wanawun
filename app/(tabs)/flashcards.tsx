@@ -68,11 +68,14 @@ export default function FlashcardsScreen() {
   // The intro text wraps to a different number of lines on every screen width,
   // so measure it rather than guess, or the deck ends up under the tab bar.
   const [introHeight, setIntroHeight] = useState(0);
-  // The trailing constant stands for the header, stats and gaps above the deck.
-  // It deliberately claims a little more than those now cost: the floor below
-  // wins when this comes out smaller, and a floor taller than the real gap is
-  // what used to push the top card up over the stat cards. Don't tighten it to
-  // match the spacing exactly without re-checking that overlap on a short screen.
+  // Below this the explanation and a legible card don't both fit, and the card
+  // is the one they came for: it keeps shrinking politely but its own contents
+  // start colliding somewhere under 200pt. The explanation stands down instead.
+  const hidesIntro = height < 660;
+  const introReserve = hidesIntro ? 0 : introHeight;
+  // A ceiling, not a height: the deck is a flex item capped at this, so on a
+  // screen too small for it the deck shrinks instead of overflowing. The floor
+  // below only keeps the card generous where there is room for it.
   const deckHeight = Math.max(
     isShortHeight ? 240 : 300,
     Math.min(
@@ -82,7 +85,7 @@ export default function FlashcardsScreen() {
           tabBarHeight +
           insets.bottom +
           footerReserve +
-          introHeight +
+          introReserve +
           (isShortHeight ? 235 : 300))
     )
   );
@@ -420,6 +423,7 @@ export default function FlashcardsScreen() {
 
         {/* The wrapper, not the Card, carries onLayout: Card takes no layout
             callback, and measuring here counts the spacing above it too. */}
+        {hidesIntro ? null : (
         <View
           style={styles.introSection}
           onLayout={(event) => setIntroHeight(event.nativeEvent.layout.height)}
@@ -434,6 +438,7 @@ export default function FlashcardsScreen() {
             </Text>
           </Card>
         </View>
+        )}
 
         <View style={[styles.statsRow, isCompactHeight && styles.statsRowCompact]}>
           <Card style={[styles.statCard, isShortHeight && styles.statCardShort]}>
@@ -499,7 +504,7 @@ export default function FlashcardsScreen() {
                 style={[
                   styles.deckViewport,
                   isCompactHeight && styles.deckViewportCompact,
-                  { height: deckHeight },
+                  { maxHeight: deckHeight },
                 ]}
               >
                 <Animated.View
@@ -821,10 +826,9 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     justifyContent: 'center',
   },
-  // The deck's height is a fixed number with a floor, so when the screen is
-  // tight the floor wins and the top card rides up over the stat cards above.
-  // These gaps are kept small to leave that floor room to sit in.
   deckContent: {
+    flex: 1,
+    minHeight: 0,
     alignItems: 'stretch',
     justifyContent: 'center',
     gap: Spacing.sm,
@@ -844,15 +848,22 @@ const styles = StyleSheet.create({
   reviewAheadButton: {
     marginTop: Spacing.md,
   },
+  // Flex, not a fixed height: deckHeight is only a ceiling now. The deck can
+  // never be taller than the space deckArea actually has, so it can't spill out
+  // of it and over the stat cards -- which is what a fixed height let it do.
   deckViewport: {
     alignSelf: 'stretch',
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minHeight: 0,
   },
   deckViewportCompact: {
     marginTop: 0,
   },
   topCardFrame: {
     width: '100%',
-    height: '100%',
+    flex: 1,
   },
   flashcard: {
     flex: 1,
