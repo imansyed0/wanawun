@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Modal, ActivityIndicator, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/src/components/ui/Button';
 import { Card } from '@/src/components/ui/Card';
@@ -15,6 +16,7 @@ import { deleteAccount } from '@/src/services/accountService';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const tabBarHeight = useBottomTabBarHeight();
   const { user, profile, loading, signOut } = useAuth();
   const [wordCount, setWordCount] = useState(0);
   const [gameCount, setGameCount] = useState(0);
@@ -135,7 +137,16 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.content}>
+      {/* Scrolls: on a short screen Sign Out was sliced by the tab bar and
+          Delete Account was off the bottom entirely, with no way to reach
+          either. Account deletion has to stay reachable on every phone. */}
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: tabBarHeight + Spacing.lg },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
@@ -185,7 +196,7 @@ export default function ProfileScreen() {
           variant="dangerGhost"
           size="sm"
         />
-      </View>
+      </ScrollView>
 
       <Modal
         visible={confirmingDelete}
