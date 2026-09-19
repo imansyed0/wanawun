@@ -26,22 +26,45 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
   const [resetMessage, setResetMessage] = useState('');
   const [resetting, setResetting] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  // "Forgot your password?" turns this same screen into the reset form instead
+  // of navigating away, so a mistyped password doesn't cost the email again.
+  const [isResetMode, setIsResetMode] = useState(false);
+
+  function startPasswordReset() {
+    setError('');
+    setResetMessage('');
+    setResetSent(false);
+    // Nothing here uses the password, and a filled field makes the form look
+    // like it is still asking for one.
+    setPassword('');
+    setIsResetMode(true);
+  }
+
+  function backToSignIn() {
+    setError('');
+    setResetMessage('');
+    setResetSent(false);
+    setIsResetMode(false);
+  }
 
   async function handleResetPassword() {
     setError('');
     setResetMessage('');
-    if (!email.trim()) {
+    const address = email.trim();
+    if (!address) {
       setError('Please enter your email address first');
       return;
     }
     setResetting(true);
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(address, {
         redirectTo: authCallbackUrl(),
       });
       if (resetError) throw resetError;
-      setResetMessage('Check your email for a reset link');
+      setResetMessage(`Sent. Open the link in the email at ${address} to set a new password.`);
+      setResetSent(true);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -101,83 +124,116 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.container}>
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Sign in to continue learning Koshur</Text>
+          <Text style={styles.title}>{isResetMode ? 'Reset Password' : 'Welcome Back'}</Text>
+          <Text style={styles.subtitle}>
+            {isResetMode
+              ? "Tell us your email and we'll send you a link to set a new password."
+              : 'Sign in to continue learning Koshur'}
+          </Text>
 
           <View style={styles.form}>
             {error ? <Text style={styles.error}>{error}</Text> : null}
             {resetMessage ? <Text style={styles.success}>{resetMessage}</Text> : null}
 
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor={Colors.textLight}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="email"
-              textContentType="emailAddress"
-              returnKeyType="next"
-              submitBehavior="submit"
-              onSubmitEditing={() => passwordRef.current?.focus()}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor={Colors.textLight}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              ref={passwordRef}
-              autoComplete="current-password"
-              textContentType="password"
-              returnKeyType="go"
-              onSubmitEditing={handleLogin}
-            />
-            <Button
-              title={resetting ? 'Sending...' : 'Forgot Password?'}
-              onPress={handleResetPassword}
-              variant="ghost"
-              disabled={resetting}
-            />
-            <Button
-              title={loading ? 'Signing in...' : 'Sign In'}
-              onPress={handleLogin}
-              disabled={loading}
-              size="lg"
-            />
+            {/* Once the email is on its way there is nothing left to fill in, so
+                the fields step aside and leave the confirmation on its own. */}
+            {resetSent ? null : (
+              <>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  placeholderTextColor={Colors.textLight}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  returnKeyType={isResetMode ? 'go' : 'next'}
+                  submitBehavior="submit"
+                  onSubmitEditing={
+                    isResetMode ? handleResetPassword : () => passwordRef.current?.focus()
+                  }
+                />
+                {isResetMode ? null : (
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    placeholderTextColor={Colors.textLight}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    ref={passwordRef}
+                    autoComplete="current-password"
+                    textContentType="password"
+                    returnKeyType="go"
+                    onSubmitEditing={handleLogin}
+                  />
+                )}
+                {isResetMode ? null : (
+                  <Button
+                    title="Forgot your password?"
+                    onPress={startPasswordReset}
+                    variant="ghost"
+                  />
+                )}
+                <Button
+                  title={
+                    isResetMode
+                      ? resetting
+                        ? 'Sending...'
+                        : 'Send reset email'
+                      : loading
+                        ? 'Signing in...'
+                        : 'Sign In'
+                  }
+                  onPress={isResetMode ? handleResetPassword : handleLogin}
+                  disabled={isResetMode ? resetting : loading}
+                  size="lg"
+                />
+              </>
+            )}
 
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
+            {isResetMode ? (
+              <Button title="Back to sign in" onPress={backToSignIn} variant="ghost" />
+            ) : (
+              <>
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>or</Text>
+                  <View style={styles.dividerLine} />
+                </View>
 
-            <Pressable
-              onPress={handleGoogleSignIn}
-              disabled={googleLoading}
-              style={({ pressed }) => [
-                styles.googleButton,
-                pressed && styles.googleButtonPressed,
-                googleLoading && styles.googleButtonDisabled,
-              ]}
-            >
-              <Text style={styles.googleButtonText}>
-                {googleLoading ? 'Connecting...' : 'Sign in with Google'}
-              </Text>
-            </Pressable>
+                <Pressable
+                  onPress={handleGoogleSignIn}
+                  disabled={googleLoading}
+                  style={({ pressed }) => [
+                    styles.googleButton,
+                    pressed && styles.googleButtonPressed,
+                    googleLoading && styles.googleButtonDisabled,
+                  ]}
+                >
+                  <Text style={styles.googleButtonText}>
+                    {googleLoading ? 'Connecting...' : 'Sign in with Google'}
+                  </Text>
+                </Pressable>
+              </>
+            )}
           </View>
 
-          <Button
-            title="Don't have an account? Sign Up"
-            onPress={() => {
-              // New learners answer Naani's level question before making an account.
-              router.push('/welcome/level' as Href);
-            }}
-            variant="ghost"
-          />
+          {/* Google is a sign-in route, not a way to reset a password, so it and
+              the sign-up link stay out of the way while the reset form is up. */}
+          {isResetMode ? null : (
+            <Button
+              title="Don't have an account? Sign Up"
+              onPress={() => {
+                // New learners answer Naani's level question before making an account.
+                router.push('/welcome/level' as Href);
+              }}
+              variant="ghost"
+            />
+          )}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

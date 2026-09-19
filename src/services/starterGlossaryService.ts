@@ -19,6 +19,21 @@ export type LearnerLevel = 'beginner' | 'intermediate' | 'understands';
 
 const LEVELS: LearnerLevel[] = ['beginner', 'intermediate', 'understands'];
 
+/**
+ * How each level is named to the learner. `title` is Naani's own wording on the
+ * question she asks; `short` is the same answer as a badge, for the course cards
+ * where her full sentence won't fit. Both live here so the question and the
+ * courses can't drift into describing the same level differently.
+ */
+export const LEVEL_LABELS: Record<LearnerLevel, { title: string; short: string }> = {
+  beginner: { title: 'Beginner', short: 'Beginner' },
+  intermediate: { title: 'Intermediate', short: 'Intermediate' },
+  understands: {
+    title: 'I understand, but struggle to speak',
+    short: 'Understand, can\u2019t speak yet',
+  },
+};
+
 // The question is asked before the account exists, so the answer waits on the
 // device and moves onto the account the first time that account reads it.
 const DEVICE_LEVEL_KEY = 'learnerLevel:device';

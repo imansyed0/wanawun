@@ -21,11 +21,43 @@ import { isPendingWordId, removePendingGlossaryWord } from '@/src/services/pendi
 // Starter words for the level the learner picked when Naani asked.
 import { getGlossaryWordsWithStarters } from '@/src/services/starterGlossaryService';
 import { useQuickAddStore } from '@/src/stores/quickAddStore';
+import Animated, {
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { useTutorialStore } from '@/src/stores/tutorialStore';
 import { playAudio, stopAudio, startRecording, stopAndUploadRecording, linkAudioToWord } from '@/src/services/audioService';
 import { PlayButton, RecordButton, RecordingTimer } from '@/src/components/ui/RecordControls';
+import { WordActionsSheet } from '@/src/components/glossary/WordActionsSheet';
 import { useAuth } from '@/src/hooks/useAuth';
 import type { WordEntry } from '@/src/types';
+
+/**
+ * Saffron ring around one word card, for the tour step where Naani explains
+ * that tapping a word opens its choices. Same pulse as the ring she puts on the
+ * + button, so "this is the thing to tap" looks the same wherever she says it.
+ */
+function RowHighlight() {
+  const pulse = useSharedValue(0);
+
+  useEffect(() => {
+    pulse.value = withRepeat(
+      withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true
+    );
+  }, [pulse]);
+
+  const ring = useAnimatedStyle(() => ({
+    opacity: interpolate(pulse.value, [0, 1], [0.55, 1]),
+  }));
+
+  return <Animated.View pointerEvents="none" style={[styles.rowHighlight, ring]} />;
+}
 
 /** How the glossary is ordered. 'added' is the order the words came in. */
 type SortKey = 'added' | 'newest' | 'kashmiri' | 'english';
@@ -53,6 +85,11 @@ export default function LearnScreen() {
   const [sort, setSort] = useState<SortKey>('added');
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  // The one tour step that tells them a word row can be tapped.
+  const tourPointingAtWords = useTutorialStore(
+    (s) => s.active && s.step === 'word-options'
+  );
+
   // Words added through the app-wide quick-add sheet (the floating +).
   const lastAdded = useQuickAddStore((s) => s.lastAdded);
 
@@ -62,6 +99,9 @@ export default function LearnScreen() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const recordingRef = useRef<AudioRecorder | null>(null);
+  // The word whose options sheet is open. Held by id so the sheet always reads
+  // the live entry — a fresh recording has to show up as "record again".
+  const [actionsWordId, setActionsWordId] = useState<string | null>(null);
 
   const loadWords = useCallback(async () => {
     setLoading(true);
@@ -102,6 +142,8 @@ export default function LearnScreen() {
     ),
     sort
   );
+
+  const actionsWord = words.find((w) => w.id === actionsWordId) ?? null;
 
   useEffect(() => {
     if (!lastAdded) return;
@@ -194,6 +236,7 @@ export default function LearnScreen() {
       }
       invalidateWordCache();
       setWords((prev) => prev.filter((entry) => entry.id !== word.id));
+      setActionsWordId(null);
     } catch (error) {
       console.error('Glossary delete error:', error);
     } finally {
@@ -201,66 +244,62 @@ export default function LearnScreen() {
     }
   }, [user?.id]);
 
-  const renderItem = useCallback(({ item }: { item: WordEntry }) => {
+  const renderItem = useCallback(({ item, index }: { item: WordEntry; index: number }) => {
     const isPlaying = playingId === item.id;
     const isRecording = recordingId === item.id;
     const isSaving = savingId === item.id;
-    const isDeleting = deletingId === item.id;
     const hasAudio = !!item.audio_url;
     // Recordings upload to the user's storage, so only signed-in users can record.
     const canRecord = !!user?.id;
+    // Pending words only live on this device, so they can go without an account.
+    const canDelete = !!user?.id || isPendingWordId(item.id);
+    // A signed-out learner looking at a synced word has nothing behind the tap.
+    const hasOptions = canDelete || (hasAudio && canRecord);
+
+    // Naani points at the first row only: one ring says "rows are tappable"
+    // just as well as fifty, and fifty would be a disco.
+    const highlighted = tourPointingAtWords && index === 0;
 
     return (
       <Card style={styles.wordCard}>
+        {highlighted ? <RowHighlight /> : null}
         <View style={styles.wordRow}>
-          {/* Delete sits on the left, away from the play/record controls, so it isn't hit by accident. */}
-          <View style={styles.deleteSlot}>
-            {isRecording ? null : isDeleting ? (
-              <ActivityIndicator size="small" color={Colors.wrong} />
-            ) : (
-              <Pressable
-                style={styles.deleteBtn}
-                onPress={() => handleDelete(item)}
-                accessibilityRole="button"
-                accessibilityLabel={`Delete ${item.kashmiri}`}
-              >
-                <Text style={styles.deleteBtnText}>{'×'}</Text>
-              </Pressable>
-            )}
-          </View>
-          <View style={styles.wordMain}>
-            <Text style={styles.kashmiri}>{item.kashmiri}</Text>
-            <Text style={styles.english}>{item.english}</Text>
-          </View>
+          {/* The words themselves are the tap target, not the whole row: the
+              play and record buttons are their own controls, and nesting them
+              inside a pressable row renders a button inside a button on web. */}
+          <Pressable
+            style={({ pressed }) => [styles.wordMain, pressed && styles.wordRowPressed]}
+            onPress={() => setActionsWordId(item.id)}
+            // Mid-record and mid-save, the row's own controls are the only thing to touch.
+            disabled={!hasOptions || isRecording || isSaving}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.kashmiri}, ${item.english}`}
+            accessibilityHint={hasOptions ? 'Opens options for this word' : undefined}
+          >
+            <Text style={styles.kashmiri} numberOfLines={2}>{item.kashmiri}</Text>
+            <Text style={styles.english} numberOfLines={2}>{item.english}</Text>
+          </Pressable>
           <View style={styles.audioActions}>
-            {isSaving ? (
-              <ActivityIndicator size="small" color={Colors.primary} />
-            ) : isRecording ? (
-              // While recording: elapsed time + stop square, nothing else.
-              <>
-                <RecordingTimer active />
-                <RecordButton recording onPress={() => handleRecord(item)} />
-              </>
-            ) : hasAudio ? (
-              // Recording exists: play + small re-record.
-              <>
+              {isSaving ? (
+                <ActivityIndicator size="small" color={Colors.primary} />
+              ) : isRecording ? (
+                // While recording: elapsed time + stop square, nothing else.
+                <>
+                  <RecordingTimer active />
+                  <RecordButton recording onPress={() => handleRecord(item)} />
+                </>
+              ) : hasAudio ? (
+                // Play is the whole inline row once a recording exists; re-record is in the sheet.
                 <PlayButton playing={isPlaying} onPress={() => handlePlay(item)} />
-                {canRecord ? (
-                  <RecordButton
-                    recording={false}
-                    onPress={() => handleRecord(item)}
-                    accessibilityLabel="Re-record audio"
-                  />
-                ) : null}
-              </>
-            ) : canRecord ? (
-              <RecordButton recording={false} onPress={() => handleRecord(item)} />
-            ) : null}
-          </View>
+              ) : canRecord ? (
+                // The first recording stays a one-tap affordance.
+                <RecordButton recording={false} onPress={() => handleRecord(item)} />
+              ) : null}
+            </View>
         </View>
       </Card>
     );
-  }, [playingId, recordingId, savingId, deletingId, handlePlay, handleRecord, handleDelete, user?.id]);
+  }, [playingId, recordingId, savingId, handlePlay, handleRecord, user?.id, tourPointingAtWords]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -274,12 +313,6 @@ export default function LearnScreen() {
           <View>
             <View style={styles.header}>
               <Text style={styles.title}>Glossary</Text>
-              {/* Don't claim "0 words" while the first fetch is still in flight. */}
-              <Text style={styles.subtitle}>
-                {loading && words.length === 0
-                  ? 'Counting your words...'
-                  : `${words.length} Kashmiri words/phrases`}
-              </Text>
             </View>
 
             <ScreenHeaderDecoration variant="teal" />
@@ -348,6 +381,23 @@ export default function LearnScreen() {
           }
         />
         {/* The + to add a word is the app-wide QuickAddFab (root layout). */}
+
+        <WordActionsSheet
+          word={actionsWord}
+          canReRecord={!!actionsWord?.audio_url && !!user?.id}
+          canDelete={!!actionsWord && (!!user?.id || isPendingWordId(actionsWord.id))}
+          deleting={!!actionsWord && deletingId === actionsWord.id}
+          onClose={() => setActionsWordId(null)}
+          onReRecord={() => {
+            // The recording UI is the row's own timer and stop button, so get out of the way.
+            if (!actionsWord) return;
+            setActionsWordId(null);
+            handleRecord(actionsWord);
+          }}
+          onDelete={() => {
+            if (actionsWord) handleDelete(actionsWord);
+          }}
+        />
       </View>
     </SafeAreaView>
   );
@@ -366,11 +416,6 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xxl,
     fontFamily: FontFamily.headingBold,
     color: Colors.primaryDark,
-  },
-  subtitle: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    marginTop: Spacing.xs,
   },
   searchWrap: {
     marginHorizontal: Spacing.lg,
@@ -476,25 +521,48 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  wordRowPressed: {
+    opacity: 0.6,
+  },
+  rowHighlight: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 3,
+    borderColor: Colors.secondary,
+  },
+  // Kashmiri and English read across one line, Kashmiri leading.
   wordMain: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   kashmiri: {
     fontSize: FontSize.lg,
     lineHeight: LineHeight.kashmiri(FontSize.lg),
     fontFamily: FontFamily.kashmiri,
     color: Colors.accent,
+    // Long phrases wrap instead of pushing the English off the card.
+    flexShrink: 1,
   },
   english: {
     fontSize: FontSize.md,
     lineHeight: LineHeight.body(FontSize.md),
     color: Colors.textSecondary,
-    // Amiri's tall line box leaves spare room under the Kashmiri; pull the English up.
-    marginTop: -Spacing.xs,
+    // Right-aligned and grown to fill the gap, so the gloss ends against the
+    // play/record button at the same place on every row instead of trailing the
+    // Kashmiri to a different spot each time.
+    textAlign: 'right',
+    // Basis 'auto' rather than flex: 1 — with a basis of 0 a wide Kashmiri phrase
+    // would squeeze the gloss down to nothing. Shrinking faster than the Kashmiri
+    // keeps a long gloss from wrapping the word the learner is here for.
+    flexGrow: 1,
+    flexShrink: 3,
+    flexBasis: 'auto',
   },
-  // Fixed width so the text column lines up on every card, whatever controls it shows.
+  // Sized to its controls, so the gloss to its left ends right beside the button
+  // rather than beside an empty reserved column.
   audioActions: {
-    width: 80,
     marginLeft: Spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
@@ -524,26 +592,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: FontFamily.bodyBold,
     lineHeight: 18,
-  },
-  deleteSlot: {
-    width: 34,
-    marginRight: Spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#fff1f2',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteBtnText: {
-    color: Colors.wrong,
-    fontSize: 18,
-    fontFamily: FontFamily.bodyBold,
-    lineHeight: 20,
   },
   emptyText: {
     textAlign: 'center',

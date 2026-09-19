@@ -1,7 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/src/lib/supabase';
+import { getCompletedLessonIds } from './lessonService';
+import { getPendingWordEntries } from './pendingGlossaryService';
 
 const STORAGE_KEY_PREFIX = 'listened_clips';
+const WORDS_KEY_PREFIX = 'lessons_with_words';
 
 type ListenedClips = Record<string, string[]>;
 
@@ -17,6 +20,10 @@ function lessonKey(courseId: string, lessonId: string): string {
 
 function storageKey(userId?: string | null): string {
   return userId ? `${STORAGE_KEY_PREFIX}:${userId}` : `${STORAGE_KEY_PREFIX}:anonymous`;
+}
+
+function wordsStorageKey(userId: string, courseId: string): string {
+  return `${WORDS_KEY_PREFIX}:${userId}:${courseId}`;
 }
 
 function toCache(rows: ClipProgressRow[]): ListenedClips {
@@ -80,15 +87,13 @@ async function mergeCacheFromRows(userId: string, rows: ClipProgressRow[]): Prom
 }
 
 export async function clearClipProgressCache(userId?: string | null): Promise<void> {
-  if (userId) {
-    await AsyncStorage.removeItem(storageKey(userId));
-    return;
-  }
-
   const keys = await AsyncStorage.getAllKeys();
-  const clipProgressKeys = keys.filter((key) => key.startsWith(`${STORAGE_KEY_PREFIX}:`));
-  if (clipProgressKeys.length > 0) {
-    await AsyncStorage.multiRemove(clipProgressKeys);
+  const prefixes = userId
+    ? [`${STORAGE_KEY_PREFIX}:${userId}`, `${WORDS_KEY_PREFIX}:${userId}:`]
+    : [`${STORAGE_KEY_PREFIX}:`, `${WORDS_KEY_PREFIX}:`];
+  const stale = keys.filter((key) => prefixes.some((prefix) => key.startsWith(prefix)));
+  if (stale.length > 0) {
+    await AsyncStorage.multiRemove(stale);
   }
 }
 
@@ -153,53 +158,80 @@ export async function getListenedClips(
   }
 }
 
-/** Check if all clips in a lesson have been listened to */
-export async function isLessonFullyListened(
+/** Every clip listened to in a course, keyed the same way as the cache. */
+async function getListenedInCourse(
   userId: string | null | undefined,
-  courseId: string,
-  lessonId: string,
-  totalClipFilenames: string[]
-): Promise<boolean> {
-  if (totalClipFilenames.length === 0) return false;
-  const listened = await getListenedClips(userId, courseId, lessonId);
-  return totalClipFilenames.every((f) => listened.has(f));
+  courseId: string
+): Promise<ListenedClips> {
+  if (!userId) return getCachedAll(null);
+
+  try {
+    const { data: rows, error } = await supabase
+      .from('lesson_clip_progress')
+      .select('course_id, lesson_id, clip_filename')
+      .eq('user_id', userId)
+      .eq('course_id', courseId);
+
+    if (error) throw error;
+
+    await mergeCacheFromRows(userId, rows ?? []);
+    return toCache(rows ?? []);
+  } catch {
+    return getCachedAll(userId);
+  }
 }
 
 /**
- * Lesson IDs in a course the learner has started — one clip played is enough.
- * The tick is there to show where they've been, not to withhold credit until
- * they've sat through every last second of audio.
+ * Which lessons in a course have a word saved from them. One query for the
+ * whole course, cached so the ticks survive a trip offline.
+ *
+ * Signed out there is no lesson_vocab to read — words go to the local pending
+ * glossary, which isn't tied to a lesson — so any word stashed there counts.
+ */
+async function getLessonsWithWords(
+  userId: string | null | undefined,
+  courseId: string
+): Promise<(lessonId: string) => boolean> {
+  if (!userId) {
+    const pending = await getPendingWordEntries().catch(() => []);
+    const hasAny = pending.length > 0;
+    return () => hasAny;
+  }
+
+  const key = wordsStorageKey(userId, courseId);
+  let lessonIds: string[];
+  try {
+    lessonIds = await getCompletedLessonIds(userId, courseId);
+    await AsyncStorage.setItem(key, JSON.stringify(lessonIds));
+  } catch {
+    const raw = await AsyncStorage.getItem(key);
+    lessonIds = raw ? JSON.parse(raw) : [];
+  }
+
+  const withWords = new Set(lessonIds);
+  return (lessonId) => withWords.has(lessonId);
+}
+
+/**
+ * Lesson IDs in a course that count as done: the learner played some of its
+ * audio and kept at least one word from it. Listening on its own slides off, so
+ * the tick waits for the word — the same one word Naani asks for on the way out.
  */
 export async function getStartedLessonIds(
   userId: string | null | undefined,
   courseId: string,
   lessons: { id: string; audioClips: { filename: string }[] }[]
 ): Promise<string[]> {
-  let data: ListenedClips;
-
-  if (!userId) {
-    data = await getCachedAll(null);
-  } else {
-    try {
-      const { data: rows, error } = await supabase
-        .from('lesson_clip_progress')
-        .select('course_id, lesson_id, clip_filename')
-        .eq('user_id', userId)
-        .eq('course_id', courseId);
-
-      if (error) throw error;
-
-      await mergeCacheFromRows(userId, rows ?? []);
-      data = toCache(rows ?? []);
-    } catch {
-      data = await getCachedAll(userId);
-    }
-  }
+  const [listenedInCourse, hasWords] = await Promise.all([
+    getListenedInCourse(userId, courseId),
+    getLessonsWithWords(userId, courseId),
+  ]);
 
   return lessons
     .filter((lesson) => {
       if (lesson.audioClips.length === 0) return false;
-      const listened = new Set(data[lessonKey(courseId, lesson.id)] ?? []);
+      if (!hasWords(lesson.id)) return false;
+      const listened = new Set(listenedInCourse[lessonKey(courseId, lesson.id)] ?? []);
       return lesson.audioClips.some((clip) => listened.has(clip.filename));
     })
     .map((lesson) => lesson.id);

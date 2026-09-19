@@ -181,6 +181,12 @@ export default function LessonPlayerScreen() {
 
   // Vocab
   const [vocab, setVocab] = useState<LessonVocabEntry[]>([]);
+  // Set when a word is saved during this visit, so the send-off only fires off
+  // the back of something the learner just did — not on reopening a done lesson.
+  const addedWordThisVisitRef = useRef(false);
+  // The audio half, earned on this visit rather than read back from a previous
+  // one — the same distinction addedWordThisVisitRef draws for the word.
+  const listenedThisVisitRef = useRef(false);
 
   // Vocab recording
   const [vocabPlayingId, setVocabPlayingId] = useState<string | null>(null);
@@ -208,13 +214,20 @@ export default function LessonPlayerScreen() {
     getLessonVocab(user.id, lessonId).then(setVocab).catch(console.error);
   }, [user?.id, lessonId]);
 
-  // Leaving with nothing saved: Naani asks for one word before they go.
-  // The exit is held (header back, swipe, hardware back) until they choose.
-  // Not during the tour, and not when signed out, where nothing can be saved.
+  // Leaving a lesson they listened to but saved nothing from: Naani asks for
+  // one word before they go, because that's the half of the rule they're
+  // missing. The exit is held (header back, swipe, hardware back) until they
+  // choose. Not before any audio has played, not during the tour, and not when
+  // signed out, where nothing can be saved.
   const tutorialActive = useTutorialStore((s) => s.active);
   const [pendingExit, setPendingExit] = useState<NavigationAction | null>(null);
   const [leaveConfirmed, setLeaveConfirmed] = useState(false);
-  const guardExit = !!user?.id && vocab.length === 0 && !tutorialActive && !leaveConfirmed;
+  const guardExit =
+    !!user?.id &&
+    vocab.length === 0 &&
+    listenedClips.size > 0 &&
+    !tutorialActive &&
+    !leaveConfirmed;
 
   usePreventRemove(guardExit, ({ data }) => setPendingExit(data.action));
 
@@ -224,6 +237,13 @@ export default function LessonPlayerScreen() {
     if (!leaveConfirmed || !pendingExit) return;
     navigation.dispatch(pendingExit);
   }, [leaveConfirmed, pendingExit, navigation]);
+
+  // How many words this lesson has, readable from the playback callback without
+  // re-subscribing the player every time one is added.
+  const vocabCountRef = useRef(0);
+  useEffect(() => {
+    vocabCountRef.current = vocab.length;
+  }, [vocab.length]);
 
   // While this lesson is open, words added with the + button (or by tapping a
   // word) are saved to it, and show up in its Words tab straight away.
@@ -243,6 +263,7 @@ export default function LessonPlayerScreen() {
   const lastAddedLessonVocab = useQuickAddStore((s) => s.lastAddedLessonVocab);
   useEffect(() => {
     if (!lastAddedLessonVocab || lastAddedLessonVocab.lesson_id !== lessonId) return;
+    addedWordThisVisitRef.current = true;
     setVocab((prev) =>
       prev.some((v) => v.id === lastAddedLessonVocab.id) ? prev : [lastAddedLessonVocab, ...prev]
     );
@@ -443,6 +464,28 @@ export default function LessonPlayerScreen() {
     : [];
 
 
+  // The whole rule, and the same one the lesson list's tick reads: some of the
+  // lesson's audio played, and one word kept from it. Whichever half lands last
+  // earns the tick and the party — there is no third condition, and nothing
+  // here waits for the rest of the audio.
+  const celebratedRef = useRef(false);
+  const markLessonDoneIfEarned = useCallback(() => {
+    if (celebratedRef.current || !courseId || !lessonId) return;
+    if (vocab.length === 0 || listenedClipsRef.current.size === 0) return;
+    // Only for a half earned on this visit. Opening a lesson that was already
+    // done would otherwise throw confetti for nothing new.
+    if (!addedWordThisVisitRef.current && !listenedThisVisitRef.current) return;
+
+    celebratedRef.current = true;
+    useLessonCompletionStore.getState().lessonCompleted(courseId, lessonId);
+  }, [courseId, lessonId, vocab.length]);
+
+  // Either half can be the one that lands last: a word added after listening,
+  // or a clip played on a lesson they'd already saved a word from.
+  useEffect(() => {
+    markLessonDoneIfEarned();
+  }, [markLessonDoneIfEarned, listenedClips]);
+
   const onPlaybackStatusUpdate = useCallback((status: AudioStatus, clipIdx: number, sound: AudioPlayer) => {
     if (!status.isLoaded) return;
     setPosition((status.currentTime || 0) * 1000);
@@ -458,7 +501,6 @@ export default function LessonPlayerScreen() {
       }
       setIsPlaying(false);
 
-      let lessonFinished = false;
       if (courseId && lessonId && clips[clipIdx]) {
         const finishedFilename = clips[clipIdx].filename;
         // Normally already recorded when the clip started; this catches a clip
@@ -466,31 +508,30 @@ export default function LessonPlayerScreen() {
         if (!listenedClipsRef.current.has(finishedFilename)) {
           const updated = new Set(listenedClipsRef.current).add(finishedFilename);
           listenedClipsRef.current = updated;
+          listenedThisVisitRef.current = true;
           setListenedClips(updated);
           markClipListened(user?.id, courseId, lessonId, finishedFilename).catch(console.error);
         }
-        const nowListened = listenedClipsRef.current;
-        lessonFinished =
-          lesson.audioClips.length > 0 &&
-          lesson.audioClips.every((clip) => nowListened.has(clip.filename));
       }
 
-      // That was the last of the lesson: hand them back to the lesson list,
-      // where the tick they just earned lands with a little party.
-      if (lessonFinished && courseId && lessonId) {
-        useLessonCompletionStore.getState().lessonCompleted(courseId, lessonId);
-        // dismissTo, not back: it pops to the course's lesson list wherever the
-        // player was opened from, and falls back to replacing this screen with
-        // it when the list isn't in the stack at all (e.g. a deep link).
-        router.dismissTo(`/lessons/${courseId}`);
-        return;
-      }
+      markLessonDoneIfEarned();
 
       if (clipIdx < clips.length - 1) {
         void playClip(clipIdx + 1);
+        return;
+      }
+
+      // The lesson's audio has run out. With a word saved they've earned the
+      // tick, so hand them back to the list where it lands; without one they
+      // stay put, and Naani asks for the word when they head for the exit.
+      // dismissTo, not back: it pops to the course's lesson list wherever the
+      // player was opened from, and falls back to replacing this screen with
+      // it when the list isn't in the stack at all (e.g. a deep link).
+      if (courseId && vocabCountRef.current > 0) {
+        router.dismissTo(`/lessons/${courseId}`);
       }
     }
-  }, [clips, courseId, lesson, lessonId, router, user?.id]);
+  }, [clips, markLessonDoneIfEarned, courseId, lessonId, router, user?.id]);
 
   const playClip = useCallback(async (idx: number) => {
     setError('');
@@ -549,6 +590,7 @@ export default function LessonPlayerScreen() {
         if (!listenedClipsRef.current.has(startedFilename)) {
           const nowListened = new Set(listenedClipsRef.current).add(startedFilename);
           listenedClipsRef.current = nowListened;
+          listenedThisVisitRef.current = true;
           setListenedClips(nowListened);
           markClipListened(user?.id, courseId, lessonId, startedFilename).catch(console.error);
         }
@@ -1058,118 +1100,124 @@ export default function LessonPlayerScreen() {
             </ScrollView>
           )}
 
-          {/* Seek bar: tap or drag anywhere on the 44pt-tall track to scrub */}
-          <View
-            style={styles.scrubber}
-            onLayout={(e) => {
-              scrubTrackWidthRef.current = e.nativeEvent.layout.width;
-            }}
-            {...scrubResponder.panHandlers}
-            accessible
-            accessibilityRole="adjustable"
-            accessibilityLabel="Seek"
-            accessibilityValue={{
-              min: 0,
-              max: Math.round(duration / 1000),
-              now: Math.round(displayPosition / 1000),
-              text: `${formatTime(displayPosition)} of ${duration > 0 ? formatTime(duration) : 'unknown'}`,
-            }}
-            accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
-            onAccessibilityAction={(e) => {
-              if (e.nativeEvent.actionName === 'increment') void seekToMs(position + 5000);
-              if (e.nativeEvent.actionName === 'decrement') void seekToMs(position - 5000);
-            }}
-          >
-            <View style={styles.progressBar} pointerEvents="none">
-              <View
-                style={[styles.progressFill, { width: `${progress * 100}%` }]}
-              />
-            </View>
-            {duration > 0 ? (
-              <View
-                pointerEvents="none"
-                style={[
-                  styles.scrubThumb,
-                  scrubPosition != null && styles.scrubThumbActive,
-                  { left: `${progress * 100}%` },
-                ]}
-              />
-            ) : null}
-          </View>
-          <View style={styles.timeRow}>
-            <Text style={styles.timeText}>{formatTime(displayPosition)}</Text>
-            <Text style={styles.timeText}>
-              {clips.length > 1
-                ? `${currentClipNoun} ${safeCurrentClipIdx + 1}/${clips.length}`
-                : ''}
-            </Text>
-            <Text style={styles.timeText}>
-              {duration > 0 ? formatTime(duration) : '--:--'}
-            </Text>
-          </View>
+          {/* One row: play, then the scrub track with its times, then the
+              clip navigation on the right. Everything condenses rather than
+              wrapping so it still holds together at phone width. */}
+          <View style={styles.playerBar}>
+            <Pressable
+              onPress={togglePlayPause}
+              style={[styles.playBtn, isLoading && styles.playBtnLoading]}
+              disabled={isLoading}
+              accessibilityRole="button"
+              accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
+            >
+              {renderPlayPauseIcon()}
+            </Pressable>
 
-          {/* Controls */}
-          <View style={styles.controls}>
+            {/* Seek bar: tap or drag anywhere on the 44pt-tall track to scrub */}
+            <View style={styles.scrubColumn}>
+              <View
+                style={styles.scrubber}
+                onLayout={(e) => {
+                  scrubTrackWidthRef.current = e.nativeEvent.layout.width;
+                }}
+                {...scrubResponder.panHandlers}
+                accessible
+                accessibilityRole="adjustable"
+                accessibilityLabel="Seek"
+                accessibilityValue={{
+                  min: 0,
+                  max: Math.round(duration / 1000),
+                  now: Math.round(displayPosition / 1000),
+                  text: `${formatTime(displayPosition)} of ${duration > 0 ? formatTime(duration) : 'unknown'}`,
+                }}
+                accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+                onAccessibilityAction={(e) => {
+                  if (e.nativeEvent.actionName === 'increment') void seekToMs(position + 5000);
+                  if (e.nativeEvent.actionName === 'decrement') void seekToMs(position - 5000);
+                }}
+              >
+                <View style={styles.progressBar} pointerEvents="none">
+                  <View
+                    style={[styles.progressFill, { width: `${progress * 100}%` }]}
+                  />
+                </View>
+                {duration > 0 ? (
+                  <View
+                    pointerEvents="none"
+                    style={[
+                      styles.scrubThumb,
+                      scrubPosition != null && styles.scrubThumbActive,
+                      { left: `${progress * 100}%` },
+                    ]}
+                  />
+                ) : null}
+              </View>
+              <View style={styles.timeRow}>
+                <Text style={styles.timeText}>{formatTime(displayPosition)}</Text>
+                <Text style={[styles.timeText, styles.timeClipText]} numberOfLines={1}>
+                  {clips.length > 1
+                    ? `${currentClipNoun} ${safeCurrentClipIdx + 1}/${clips.length}`
+                    : ''}
+                </Text>
+                <Text style={styles.timeText}>
+                  {duration > 0 ? formatTime(duration) : '--:--'}
+                </Text>
+              </View>
+            </View>
+
             {clips.length > 1 ? (
               <>
                 <Pressable
                   onPress={() => { if (safeCurrentClipIdx > 0) playClip(safeCurrentClipIdx - 1); }}
-                  style={styles.seekBtn}
+                  style={styles.navBtn}
                   disabled={safeCurrentClipIdx === 0}
                   accessibilityRole="button"
                   accessibilityLabel={`Previous ${currentClipNoun.toLowerCase()}`}
                 >
-                  <Text style={[styles.seekText, safeCurrentClipIdx === 0 && { color: Colors.border }]}>{'\u23EE'}</Text>
-                </Pressable>
-                <Pressable
-                  onPress={togglePlayPause}
-                  style={[styles.playBtn, isLoading && styles.playBtnLoading]}
-                  disabled={isLoading}
-                  accessibilityRole="button"
-                  accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
-                >
-                  {renderPlayPauseIcon()}
+                  <Text style={[styles.navIcon, safeCurrentClipIdx === 0 && styles.navDisabled]}>{'\u23EE'}</Text>
                 </Pressable>
                 <Pressable
                   onPress={() => { if (safeCurrentClipIdx < clips.length - 1) playClip(safeCurrentClipIdx + 1); }}
-                  style={styles.seekBtn}
+                  style={styles.navBtn}
                   disabled={safeCurrentClipIdx === clips.length - 1}
                   accessibilityRole="button"
                   accessibilityLabel={`Next ${currentClipNoun.toLowerCase()}`}
                 >
-                  <Text style={[styles.seekText, safeCurrentClipIdx === clips.length - 1 && { color: Colors.border }]}>{'\u23ED'}</Text>
+                  <Text style={[styles.navIcon, safeCurrentClipIdx === clips.length - 1 && styles.navDisabled]}>{'\u23ED'}</Text>
                 </Pressable>
               </>
             ) : (
               <>
                 <Pressable
                   onPress={() => seekBy(-15000)}
-                  style={styles.seekBtn}
+                  style={styles.navBtn}
                   accessibilityRole="button"
                   accessibilityLabel="Back 15 seconds"
                 >
-                  <Text style={styles.seekText}>-15s</Text>
-                </Pressable>
-                <Pressable
-                  onPress={togglePlayPause}
-                  style={[styles.playBtn, isLoading && styles.playBtnLoading]}
-                  disabled={isLoading}
-                  accessibilityRole="button"
-                  accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
-                >
-                  {renderPlayPauseIcon()}
+                  <Text style={styles.navLabel}>-15s</Text>
                 </Pressable>
                 <Pressable
                   onPress={() => seekBy(15000)}
-                  style={styles.seekBtn}
+                  style={styles.navBtn}
                   accessibilityRole="button"
                   accessibilityLabel="Forward 15 seconds"
                 >
-                  <Text style={styles.seekText}>+15s</Text>
+                  <Text style={styles.navLabel}>+15s</Text>
                 </Pressable>
               </>
             )}
           </View>
+
+          {/* People were listening straight through and leaving with nothing
+              saved, so the rule for the tick is spelled out under the bar. */}
+          <Text style={styles.playerHint}>Listen and add words as you go.</Text>
+          {vocab.length === 0 ? (
+            <Text style={styles.playerHintRule}>
+              A lesson is done once you&rsquo;ve listened and added at least one
+              word to your glossary.
+            </Text>
+          ) : null}
           {error ? <Text style={styles.audioError}>{error}</Text> : null}
         </View>
 
@@ -1301,7 +1349,6 @@ export default function LessonPlayerScreen() {
                   style={styles.imagesSection}
                   onLayout={(e) => recordContentLayout('section:spoken', e.nativeEvent.layout.y)}
                 >
-                  <Text style={styles.sectionTitle}>Lesson Content</Text>
                   {spokenIntro ? (
                     <Text style={styles.translationIntro}>{spokenIntro}</Text>
                   ) : null}
@@ -1370,7 +1417,6 @@ export default function LessonPlayerScreen() {
               {/* Image-only course content */}
               {hasLessonContext && lessonContext && (
                 <View style={styles.contextSection}>
-                  <Text style={styles.sectionTitle}>Lesson Content</Text>
                   {!shouldRenderLearnHtml && lessonContext.note ? (
                     <Text style={styles.contextNote}>{lessonContext.note}</Text>
                   ) : null}
@@ -1601,11 +1647,9 @@ export default function LessonPlayerScreen() {
                   style={styles.imagesSection}
                   onLayout={(e) => recordContentLayout('section:koul', e.nativeEvent.layout.y)}
                 >
-                  <Text style={styles.sectionTitle}>
-                    {isKoul
-                      ? KOUL_SECTION_LABELS[koulSection]
-                      : 'Lesson Content'}
-                  </Text>
+                  {/* No heading: the section picker pinned above already names
+                      the section, and repeating it here was the last of the
+                      labels that told the reader nothing. */}
                   {displayImages.map((img, idx) => {
                     const uri = img.imageUrl ?? lesson.imageBaseUrl + img.filename;
                     const aspect = imageAspectRatios[img.filename];
@@ -1638,8 +1682,8 @@ export default function LessonPlayerScreen() {
             </>
           ) : (
             <View style={styles.vocabSection}>
-              <Text style={styles.sectionTitle}>
-                Words & Phrases ({vocab.length})
+              <Text style={styles.vocabNote}>
+                Words you add here go into your glossary too.
               </Text>
               {!user?.id ? (
                 <Text style={styles.vocabWarning}>
@@ -1689,11 +1733,6 @@ export default function LessonPlayerScreen() {
                         <Text style={styles.vocabEnglish}>{item.english}</Text>
                       </View>
                       <View style={styles.vocabActions}>
-                        {item.word_id && (
-                          <View style={styles.syncBadge}>
-                            <Text style={styles.syncBadgeText}>{'\u2713'}</Text>
-                          </View>
-                        )}
                         {isItemSaving ? (
                           <ActivityIndicator size="small" color={Colors.primary} />
                         ) : isItemRecording ? (
@@ -1811,6 +1850,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     borderRadius: 3,
   },
+  playerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  scrubColumn: { flex: 1, minWidth: 0 },
   scrubber: {
     height: 44,
     justifyContent: 'center',
@@ -1838,33 +1883,33 @@ const styles = StyleSheet.create({
   timeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: Spacing.xs,
   },
   timeText: {
     fontSize: FontSize.xs,
     color: Colors.textLight,
     fontVariant: ['tabular-nums'],
   },
-  controls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.lg,
-    marginTop: Spacing.sm,
-  },
-  // All player controls are at least 48pt so they're easy to hit mid-lesson.
-  seekBtn: {
-    minWidth: 56,
-    minHeight: 48,
-    paddingHorizontal: Spacing.md,
+  // The clip counter gives way first: the times either side of it are fixed
+  // width and shouldn't be the thing that gets truncated.
+  timeClipText: { flexShrink: 1 },
+  // Narrow enough that play, track and both nav buttons share one row on a
+  // small phone, but still 44pt tall for the thumb.
+  navBtn: {
+    minWidth: 40,
+    height: 44,
+    paddingHorizontal: Spacing.xs,
     borderRadius: BorderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  seekText: { fontSize: FontSize.lg, color: Colors.textSecondary, fontFamily: FontFamily.bodySemi },
+  navIcon: { fontSize: FontSize.lg, color: Colors.textSecondary },
+  navLabel: { fontSize: FontSize.sm, color: Colors.textSecondary, fontFamily: FontFamily.bodySemi },
+  navDisabled: { color: Colors.border },
   playBtn: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1882,6 +1927,20 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 2,
     backgroundColor: '#fff',
+  },
+  playerHint: {
+    marginTop: Spacing.xs,
+    fontSize: FontSize.sm,
+    lineHeight: LineHeight.body(FontSize.sm),
+    fontFamily: FontFamily.bodySemi,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  playerHintRule: {
+    fontSize: FontSize.xs,
+    lineHeight: LineHeight.body(FontSize.xs),
+    color: Colors.textLight,
+    textAlign: 'center',
   },
   audioError: {
     marginTop: Spacing.sm,
@@ -2118,6 +2177,12 @@ const styles = StyleSheet.create({
 
   // Vocab
   vocabSection: { marginTop: Spacing.md, paddingHorizontal: Spacing.lg },
+  vocabNote: {
+    fontSize: FontSize.sm,
+    lineHeight: LineHeight.body(FontSize.sm),
+    color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
+  },
   vocabWarning: {
     fontSize: FontSize.xs,
     color: Colors.secondary,
@@ -2145,15 +2210,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   vocabActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  syncBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: Colors.correct,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  syncBadgeText: { color: '#fff', fontSize: 12, fontFamily: FontFamily.bodyBold },
   deleteSlot: {
     width: 28,
     marginRight: Spacing.sm,

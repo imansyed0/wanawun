@@ -7,22 +7,26 @@ import { Button } from '@/src/components/ui/Button';
 import { Colors, FontFamily, FontSize, LineHeight, Spacing, BorderRadius } from '@/src/constants/theme';
 import { useAuth } from '@/src/hooks/useAuth';
 import { allCourses, recommendedCourseId } from '@/src/data/courses';
-import { saveLearnerLevel, type LearnerLevel } from '@/src/services/starterGlossaryService';
+import {
+  LEVEL_LABELS,
+  saveLearnerLevel,
+  type LearnerLevel,
+} from '@/src/services/starterGlossaryService';
 
-const OPTIONS: { level: LearnerLevel; title: string; description: string }[] = [
+// Titles come from LEVEL_LABELS, which the course cards badge themselves with:
+// the answer given here and the label on the recommended course are then the
+// same words rather than two descriptions of the same level.
+const OPTIONS: { level: LearnerLevel; description: string }[] = [
   {
     level: 'beginner',
-    title: 'Beginner',
     description: 'Starting from scratch. Maybe there’s someone Kashmiri you’d love to impress.',
   },
   {
     level: 'intermediate',
-    title: 'Intermediate',
     description: 'You know bits and pieces from home and want to reconnect with your roots.',
   },
   {
     level: 'understands',
-    title: 'I understand, but struggle to speak',
     description: 'You follow most of what’s said. You just want to answer back without feeling embarrassed.',
   },
 ];
@@ -93,7 +97,7 @@ export default function LevelScreen() {
                   {isSelected ? <View style={styles.radioDot} /> : null}
                 </View>
                 <View style={styles.optionText}>
-                  <Text style={styles.optionTitle}>{option.title}</Text>
+                  <Text style={styles.optionTitle}>{LEVEL_LABELS[option.level].title}</Text>
                   <Text style={styles.optionDescription}>{option.description}</Text>
                 </View>
               </Pressable>

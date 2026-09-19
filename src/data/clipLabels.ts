@@ -30,7 +30,9 @@ export function getLessonClipNoun(courseId: string, lesson: Lesson): string {
     case 'kashmiri-koul':
       return 'Recording';
     case 'ciil':
-      return 'Programme';
+      // A CIIL lesson is a single recording, so its clip noun is the unit the
+      // rest of the app uses for a lesson — not the cassette's "programme".
+      return 'Lesson';
     case 'learn-kashmiri':
       return 'Phrase';
     default:

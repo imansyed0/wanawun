@@ -26,9 +26,11 @@ export interface LessonImage {
 }
 
 export interface Lesson {
-  id: string;        // e.g. "spoken-ch1"
+  id: string;        // e.g. "spoken-ch1" — persisted in Supabase progress rows,
+                     // so it must stay put even when the title is reworded.
   number: number;
-  title: string;
+  title: string;     // topic only: the lists already show `number` in a badge, so
+                     // a "Lesson 3:"/"Programme 3:" prefix would just repeat it.
   pageUrl?: string;     // canonical lesson page on koshur.org
   audioBaseUrl: string;  // e.g. "https://koshur.org/SpokenKashmiri/Chapter1/audio/"
   audioClips: AudioClip[];
@@ -40,7 +42,12 @@ export interface Course {
   id: string;
   title: string;
   author: string;
+  /** Why a learner would pick this one. The lesson count is already on the card
+   *  as a badge, so it says what's inside and who it suits instead. */
   description: string;
+  /** The answer to Naani's opening question this course is meant for. One course
+   *  per level, which is what `recommendedCourseId` looks up. */
+  level: LearnerLevel;
   lessons: Lesson[];
 }
 
@@ -130,7 +137,9 @@ export const spokenKashmiri: Course = {
   id: 'spoken-kashmiri',
   title: 'Introduction to Spoken Kashmiri',
   author: 'Prof. Braj B. Kachru',
-  description: '50 chapters of functional conversations, narratives, and poems with audio and transliterations.',
+  description:
+    'Real conversations with shopkeepers, boatmen and neighbours, then stories and poems, all written out as you hear them. Pick this if you follow most of what people say and want to answer back.',
+  level: 'understands',
   lessons: spokenKashmiriChapters.map(ch => {
     const vocabClips = buildSpokenVocabClips(ch.n);
     return {
@@ -182,7 +191,8 @@ export const kashmiriKoul: Course = {
   title: 'Spoken Kashmiri: A Language Course',
   author: 'Omkar N. Koul',
   description:
-    '20 chapters with lessons, drills, exercises, notes, and vocabulary. Audio streamed from koshur.org.',
+    'Everyday situations \u2014 family, food, shopping, directions \u2014 each with a dialogue, then drills and exercises to fix it in place. Pick this if you know bits and pieces from home and want to join them up.',
+  level: 'intermediate',
   lessons: getAllKoulChapters()
     .slice()
     .sort((a, b) => a.chapter - b.chapter)
@@ -215,10 +225,8 @@ export const kashmiriKoul: Course = {
         }
       }
 
-      const topic = KOUL_CHAPTER_TITLES[ch.chapter];
-      const title = topic
-        ? `Lesson ${ch.chapter}: ${topic}`
-        : `Lesson ${ch.chapter}`;
+      // Fall back to the number only when we have no topic to show for it.
+      const title = KOUL_CHAPTER_TITLES[ch.chapter] ?? `Lesson ${ch.chapter}`;
 
       return {
         id: `koul-ch${ch.chapter}`,
@@ -285,14 +293,16 @@ export const ciilCourse: Course = {
   id: 'ciil',
   title: 'Audio Cassette Course in Kashmiri',
   author: 'CIIL (Central Institute of Indian Languages)',
-  description: '41 programmes covering pronunciation, vocabulary, and grammar structures.',
+  description:
+    'Starts with the sounds themselves, then words, then how a sentence is put together. Pick this if you are starting cold and want to be taken through it in order.',
+  level: 'beginner',
   lessons: ciilTitles.map((title, i) => ({
     id: `ciil-prog${i + 1}`,
     number: i + 1,
-    title: `Programme ${i + 1}: ${title}`,
+    title,
     pageUrl: `https://koshur.org/ciil/prog${i + 1}.html`,
     audioBaseUrl: `https://koshur.org/ciil/audio/`,
-    audioClips: [{ filename: `prog${i + 1}.mp3`, label: `Programme ${i + 1}` }],
+    audioClips: [{ filename: `prog${i + 1}.mp3`, label: `Lesson ${i + 1}` }],
     // CIIL pages don't have per-lesson translation images
   })),
 };
@@ -356,11 +366,16 @@ export const learnKashmiri: Course = {
   id: 'learn-kashmiri',
   title: "Let's Learn Kashmiri",
   author: 'Koshur.org',
-  description: '34 chapters of vocabulary, grammar, conversations, and poetry with per-clip audio.',
+  description:
+    'A bit of everything \u2014 vocabulary, grammar, conversations and poetry \u2014 with audio on each line rather than one recording per lesson. Pick this if you would rather wander than be marched through a syllabus.',
+  // Hidden from allCourses. Turning it back on means settling which level it is
+  // for: recommendedCourseId takes the first course matching a level, and Koul
+  // already holds 'intermediate'.
+  level: 'intermediate',
   lessons: learnKashmiriChapters.map(ch => ({
     id: `learn-ch${ch.n}`,
     number: ch.n,
-    title: `Chapter ${ch.n}: ${ch.title}`,
+    title: ch.title,
     pageUrl: `https://koshur.org/LearnKashmiri/chapter${ch.siteN}/`,
     audioBaseUrl: `https://koshur.org/LearnKashmiri/chapter${ch.siteN}/audio/`,
     audioClips: ch.clips.map(c => ({ filename: `${c}.mp3`, label: c })),
@@ -389,15 +404,12 @@ export const allCourses: Course[] = [
 // ---------------------------------------------------------------------------
 
 /**
- * The course to start on, from the level chosen when Naani asked. `allCourses`
- * is listed in order of difficulty, so the answer is the first, middle or last
- * one — nothing to keep in step when a course is added or hidden.
+ * The course to start on, from the level chosen when Naani asked. Each course
+ * names the level it is for, so hiding one or adding one can't quietly shuffle
+ * the recommendation onto a course that doesn't suit the answer. Falls back to
+ * the gentlest course on offer if the level it wants isn't in the list.
  */
 export function recommendedCourseId(level: LearnerLevel): string {
-  const index: Record<LearnerLevel, number> = {
-    beginner: 0,
-    intermediate: Math.floor((allCourses.length - 1) / 2),
-    understands: allCourses.length - 1,
-  };
-  return allCourses[index[level]].id;
+  const match = allCourses.find((course) => course.level === level);
+  return (match ?? allCourses[0]).id;
 }
