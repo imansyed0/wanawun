@@ -870,7 +870,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
     justifyContent: 'center',
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
   },
   flashcardCompact: {
@@ -910,10 +910,13 @@ const styles = StyleSheet.create({
   swipeBadgeTextRight: {
     color: Colors.correct,
   },
+  // Tight gaps on purpose: chip, prompt, audio and answer all have to fit
+  // inside a card whose height the screen decides, and the prompt no longer
+  // absorbs the shortfall by pushing its own text out of the top.
   cardContent: {
     flex: 1,
     justifyContent: 'space-between',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   stateChipRow: {
     alignItems: 'center',
@@ -935,9 +938,9 @@ const styles = StyleSheet.create({
   // below is laid out either way, so the prompt is handed the same box every
   // time and the word doesn't jump the moment the learner reveals it.
   promptSection: {
-    flexBasis: 0,
-    flexGrow: 1.45,
-    flexShrink: 1,
+    flexBasis: 'auto',
+    flexGrow: 1,
+    flexShrink: 0,
     justifyContent: 'center',
     alignItems: 'center',
     gap: Spacing.sm,
@@ -1010,14 +1013,14 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   answerBox: {
-    minHeight: 82,
+    minHeight: 72,
     borderRadius: BorderRadius.md,
     backgroundColor: Colors.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
   answerBoxCompact: {
     minHeight: 64,
