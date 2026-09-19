@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
   Animated,
@@ -40,6 +41,11 @@ import { useTutorialStore } from '@/src/stores/tutorialStore';
 /** How often the due counters and queue re-evaluate against the clock. */
 const CLOCK_TICK_MS = 20 * 1000;
 
+// Per device, not per account: closing a panel you've read is a preference of
+// this phone's, and it isn't worth a round trip to the database. It does mean a
+// new phone shows the explanation again, which is the right way round anyway.
+const INTRO_DISMISSED_KEY = 'flashcardsIntroDismissed';
+
 const RATING_LABEL: Record<ReviewRating, string> = {
   again: 'Again',
   hard: 'Hard',
@@ -72,7 +78,22 @@ export default function FlashcardsScreen() {
   // is the one they came for: it keeps shrinking politely but its own contents
   // start colliding somewhere under 200pt. The explanation stands down instead.
   const hidesIntro = height < 660;
-  const introReserve = hidesIntro ? 0 : introHeight;
+  // Dismissed with the x and remembered: the explanation is for the first visit
+  // or two, and having to read past it every time is its own annoyance. null
+  // until the answer is read back, so a dismissed panel never flashes up first.
+  const [introDismissed, setIntroDismissed] = useState<boolean | null>(null);
+  useEffect(() => {
+    AsyncStorage.getItem(INTRO_DISMISSED_KEY)
+      .then((raw) => setIntroDismissed(raw === 'true'))
+      .catch(() => setIntroDismissed(false));
+  }, []);
+  const dismissIntro = useCallback(() => {
+    setIntroDismissed(true);
+    // Losing the preference is a small thing next to blocking the tap on it.
+    AsyncStorage.setItem(INTRO_DISMISSED_KEY, 'true').catch(() => {});
+  }, []);
+  const showsIntro = !hidesIntro && introDismissed === false;
+  const introReserve = showsIntro ? introHeight : 0;
   // A ceiling, not a height: the deck is a flex item capped at this, so on a
   // screen too small for it the deck shrinks instead of overflowing. The floor
   // below only keeps the card generous where there is room for it.
@@ -423,12 +444,21 @@ export default function FlashcardsScreen() {
 
         {/* The wrapper, not the Card, carries onLayout: Card takes no layout
             callback, and measuring here counts the spacing above it too. */}
-        {hidesIntro ? null : (
+        {!showsIntro ? null : (
         <View
           style={styles.introSection}
           onLayout={(event) => setIntroHeight(event.nativeEvent.layout.height)}
         >
           <Card style={[styles.introCard, isShortHeight && styles.introCardShort]}>
+            <Pressable
+              style={styles.introDismiss}
+              onPress={dismissIntro}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Hide this explanation"
+            >
+              <Text style={styles.introDismissText}>{'\u00D7'}</Text>
+            </Pressable>
             <Text style={[styles.introText, isShortHeight && styles.introTextShort]}>
               Every word in your glossary becomes two cards: Kashmiri to English, and
               English to Kashmiri. Guess before you reveal the answer, then say how well
@@ -546,7 +576,10 @@ export default function FlashcardsScreen() {
                     ) : null}
 
                     <View style={styles.cardContent}>
-                      <View style={styles.stateChipRow}>
+                      {/* Chip, label and word travel together. Pinned to the top
+                          of the card instead, the chip is left stranded above a
+                          gap whenever the card has room to spare. */}
+                      <View style={styles.promptSection}>
                         <View style={styles.stateChip}>
                           <Text style={styles.stateChipText}>
                             {STATE_LABEL[current.card.state]}
@@ -555,9 +588,6 @@ export default function FlashcardsScreen() {
                               : ''}
                           </Text>
                         </View>
-                      </View>
-
-                      <View style={styles.promptSection}>
                         <Text style={styles.promptLabel}>{promptLabel}</Text>
                         <Text
                           style={[
@@ -758,6 +788,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.sm,
   },
+  introDismiss: {
+    position: 'absolute',
+    top: Spacing.xs,
+    right: Spacing.xs,
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  introDismissText: {
+    fontSize: FontSize.lg,
+    lineHeight: LineHeight.body(FontSize.lg),
+    color: Colors.textLight,
+  },
   introCard: {
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.md,
@@ -767,6 +812,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
   },
   introText: {
+    paddingRight: Spacing.md,
     fontSize: FontSize.sm,
     lineHeight: LineHeight.body(FontSize.sm),
     fontFamily: FontFamily.body,
@@ -918,9 +964,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-between',
     gap: Spacing.xs,
-  },
-  stateChipRow: {
-    alignItems: 'center',
   },
   stateChip: {
     paddingHorizontal: 10,
